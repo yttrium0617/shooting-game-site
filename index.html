@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>2D対戦シューティング</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 0;
+      background: #222;
+      color: white;
+    }
+    .hidden { display: none; }
+    canvas { background: #fff; display: block; margin: 0 auto; }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    select {
+      margin: 5px;
+      padding: 5px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ホーム画面 -->
+  <div id="homeScreen">
+    <h1>2D対戦シューティング</h1>
+    <button onclick="goToCharacterSelect()">スタート</button>
+  </div>
+
+  <!-- キャラ選択 -->
+  <!-- キャラ選択 -->
+<div id="characterSelect" class="hidden">
+  <h2>キャラクター選択</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    
+    <!-- 左に1Pキャラの画像 -->
+    <div style="flex:1; text-align:center;">
+      <img id="player1Image" src="" alt="1Pキャラ" style="max-width:200px; display:none;">
+    </div>
+
+    <!-- 真ん中にセレクトボックス -->
+    <div style="flex:1; text-align:center;">
+      <div>
+        <label>1Pキャラ:
+          <select id="player1Select">
+            <option>スナイパー太郎</option>
+            <option>白い死神</option>
+            <option>怪盗レッド</option>
+            <option>ガジェットボット</option>
+            <option>アクアファイター</option>
+            <option>ツインブラザーズ</option>
+            <option>聖なる使者</option>
+            <option>ジャンパー</option>
+            <option>ボマー</option>
+            <option>ブーメランボーイ</option>
+            <option>ジョーカー</option>
+            <option>サンダーマウス</option>
+          </select>
+        </label>
+      </div>
+      <div>
+        <label>2Pキャラ:
+          <select id="player2Select">
+            <option>スナイパー太郎</option>
+            <option>白い死神</option>
+            <option>怪盗レッド</option>
+            <option>ガジェットボット</option>
+            <option>アクアファイター</option>
+            <option>ツインブラザーズ</option>
+            <option>聖なる使者</option>
+            <option>ジャンパー</option>
+            <option>ボマー</option>
+            <option>ブーメランボーイ</option>
+            <option>ジョーカー</option>
+            <option>サンダーマウス</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <!-- 右に2Pキャラの画像 -->
+    <div style="flex:1; text-align:center;">
+      <img id="player2Image" src="" alt="2Pキャラ" style="max-width:200px; display:none;">
+    </div>
+
+  </div>
+  <button onclick="goToMapSelect()">次へ</button>
+</div>
+
+
+  <!-- マップ選択 -->
+  <div id="mapSelect" class="hidden">
+    <h2>マップ選択</h2>
+    <select id="mapSelectDropdown">
+      <option>草原</option>
+      <option>雪原</option>
+      <option>都市</option>
+      <option>火山</option>
+      <option>宇宙</option>
+      <option>海辺</option>
+      <option>ジャングル</option>
+      <option>工場</option>
+    </select>
+    <button onclick="startGame()">ゲーム開始</button>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div id="gameScreen" class="hidden">
+    <h2 id="gameInfo"></h2>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+  </div>
+
+  <!-- リザルト画面 -->
+  <div id="resultScreen" class="hidden">
+    <h2 id="resultText"></h2>
+    <button onclick="returnToMenu()">メニューに戻る</button>
+  </div>
+
+  <script>
+    let canvas, ctx;
+    let player1, player2;
+    let keys = {};
+    let obstacles = [];
+    let bullets = [];
+    let turrets = [];
+    let explosions = [];
+    let gameStartTime;
+let safeZone = {
+  x: 0, y: 0,
+  radius: 0,
+  shrinking: false
+};
+let lastPoisonTick = 0;
+
+    let selectedMap = "草原";
+    let gameActive = false;
+
+    function goToCharacterSelect() {
+      hideAllScreens();
+      document.getElementById("characterSelect").classList.remove("hidden");
+    }
+    
+    // キャラ名と画像ファイルの対応
+const characterImages = {
+  "スナイパー太郎": "images/nobita.png",
+  "白い死神": "images/simo.png",
+  "怪盗レッド": "images/lupin.png",
+  "ガジェットボット": "images/doraemon.png",
+  "アクアファイター": "images/fishstick.png",
+  "ツインブラザーズ": "images/hikakin_seikin.png",
+  "聖なる使者": "images/teresa.png",
+  "ジャンパー": "images/mario.png",
+  "ボマー": "images/creeper.png",
+  "ブーメランボーイ": "images/boomerang.png",
+  "ジョーカー": "images/donald.png",
+  "サンダーマウス": "images/pikachu.png"
+};
+
+// キャラ選択時に画像更新
+function updateCharacterImage(player, selectId, imageId) {
+  const selected = document.getElementById(selectId).value;
+  const imgPath = characterImages[selected] || "";
+  const imgElem = document.getElementById(imageId);
+
+  if (imgPath) {
+    imgElem.src = imgPath;
+    imgElem.style.display = "inline";
+  } else {
+    imgElem.style.display = "none";
+  }
+}
+
+// セレクトボックスにイベント登録
+document.getElementById("player1Select").addEventListener("change", () => {
+  updateCharacterImage(1, "player1Select", "player1Image");
+});
+document.getElementById("player2Select").addEventListener("change", () => {
+  updateCharacterImage(2, "player2Select", "player2Image");
+});
+
+// 初期表示用（ページ遷移直後に更新しておく）
+document.addEventListener("DOMContentLoaded", () => {
+  updateCharacterImage(1, "player1Select", "player1Image");
+  updateCharacterImage(2, "player2Select", "player2Image");
+});
+
+
+    function goToMapSelect() {
+      hideAllScreens();
+      document.getElementById("mapSelect").classList.remove("hidden");
+    }
+
+    function startGame() {
+      hideAllScreens();
+      document.getElementById("gameScreen").classList.remove("hidden");
+
+      const p1Name = document.getElementById("player1Select").value;
+      const p2Name = document.getElementById("player2Select").value;
+      selectedMap = document.getElementById("mapSelectDropdown").value;
+
+      document.getElementById("gameInfo").innerText =
+        `1P: ${p1Name} vs 2P: ${p2Name} | マップ: ${selectedMap}`;
+
+      canvas = document.getElementById("gameCanvas");
+      ctx = canvas.getContext("2d");
+
+      // プレイヤー初期位置設定
+let p1Y = 300, p2Y = 100;
+if (selectedMap === "工場" || selectedMap === "火山") {
+  p1Y = 0;
+  p2Y = 0;
+}
+
+player1 = createPlayer(100, p1Y, "blue", p1Name);
+player2 = createPlayer(650, p2Y, "red", p2Name);
+
+
+      obstacles = getObstaclesForMap(selectedMap);
+      bullets = [];
+      turrets = [];
+      explosions = [];
+
+      keys = {};
+      gameActive = true;
+      gameStartTime = Date.now();
+safeZone.x = canvas.width / 2;
+safeZone.y = canvas.height / 2;
+safeZone.radius = Math.max(canvas.width, canvas.height); // 最初は全体を覆う大きさ
+safeZone.shrinking = false;
+lastPoisonTick = Date.now();
+
+
+      document.addEventListener("keydown", keyDownHandler);
+      document.addEventListener("keyup", keyUpHandler);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function keyDownHandler(e) {
+      keys[e.key] = true;
+
+      if (!gameActive) return;
+
+      if (e.key === "f") shootBullet(player1, player2);
+      if (e.key === "k") shootBullet(player2, player1);
+      if (e.key === "g") useSkill(player1);
+      if (e.key === "l") useSkill(player2);
+    }
+
+    function keyUpHandler(e) {
+      keys[e.key] = false;
+    }
+
+    function createPlayer(x, y, color, charName) {
+      let params = {
+        reloadTime: 1500,
+        damage: 10,
+        maxAmmo: 3,
+        bulletsPerShot: 1,
+        bulletSpeed: 6,
+        bulletLifeTimeMax: 1000,
+        bulletRadius: 5,
+        bulletPassThroughObstacles: false,
+        speed: 3,
+        skillCooldown: 15000
+      };
+
+      let mode = null;
+
+      if (charName === "スナイパー太郎") {
+        params.reloadTime = 1000;
+        params.damage = 8;
+        params.maxAmmo = 4;
+        params.bulletsPerShot = 2;
+        params.speed = 3;
+        params.skillCooldown = 15000;
+      }else if (charName === "サンダーマウス") {
+  params.reloadTime = 1800;       // 通常攻撃リロード（1.8秒）
+  params.damage = 20;             // 分裂前の弾ダメージ
+  params.maxAmmo = 4;             // 最大リロード数
+  params.bulletSpeed = 7;         // 通常弾スピード
+  params.bulletLifeTimeMax = 500; // 分裂するまでの時間
+  params.speed = 3.5;
+  params.skillCooldown = 4000;    // スキルクールタイム7.5秒
+}
+
+      else if (charName === "白い死神") {
+        params.reloadTime = 2000;
+        params.damage = 20;
+        params.maxAmmo = 1;
+        params.bulletSpeed = 50;
+        params.bulletLifeTimeMax = 3000;
+        params.speed = 1;
+        params.skillCooldown = 30000;
+      }else if (charName === "ブーメランボーイ") {
+  params.reloadTime = 1000;        // 1秒で手元に戻れば弾回復
+  params.damage = 12;              // 1ヒットのダメージ
+  params.maxAmmo = 1;              // 常に1発のみ
+  params.bulletSpeed = 7;          // 弾速やや早め
+  params.bulletLifeTimeMax = 100;  // ブーメランの寿命（戻るまで）
+  params.speed = 3.2;
+  params.skillCooldown = 12000;    // ワープは12秒クールタイム
+
+
+      }else if (charName === "ジョーカー") {
+  params.reloadTime = 1600;       // リロード速度
+  params.damage = 15;             // 1発のダメージ
+  params.maxAmmo = 3;             // 最大弾数
+  params.bulletsPerShot = 3;      // 一度に3発拡散
+  params.bulletSpeed = 6;         // 弾速
+  params.bulletLifeTimeMax = 1000;
+  params.speed = 3;               // 移動速度
+  params.skillCooldown = 15000;   // スキル15秒に1回
+
+
+      }else if (charName === "怪盗レッド") {
+        params.reloadTime = 1500;
+        params.damage = 10;
+        params.maxAmmo = 3;
+        params.speed = 4;
+        params.skillCooldown = 23000;
+      } else if (charName === "ガジェットボット") {
+        params.reloadTime = 1300;
+        params.damage = 15;
+        params.maxAmmo = 3;
+        params.bulletLifeTimeMax = 600;
+        params.bulletRadius = 10;
+        params.bulletPassThroughObstacles = true;
+        params.speed = 2.5;
+        params.skillCooldown = 7000;
+      } else if (charName === "アクアファイター") {
+        params.reloadTime = 1000;
+        params.damage = 4;
+        params.maxAmmo = 10;
+        params.bulletLifeTimeMax = 1200;
+        params.speed = 3.5;
+        params.skillCooldown = 8000;
+      } else if (charName === "ツインブラザーズ") {
+        mode = "H";
+        params.reloadTime = 1000;
+        params.damage = 15;
+        params.maxAmmo = 3;
+        params.bulletLifeTimeMax = 25000;
+        params.speed = 2.8;
+        params.skillCooldown = 10000;
+      } else if (charName === "聖なる使者") {
+        params.reloadTime = 5000;
+        params.damage = 5;
+        params.maxAmmo = 9999; // 弾切れになったらリロード開始
+        params.bulletSpeed = 9;
+        params.bulletLifeTimeMax = 3000; // 長距離
+        params.speed = 2.5;
+        params.skillCooldown = Infinity; // 時間経過で回復しない
+      } else if (charName === "ジャンパー") {
+  params.reloadTime = 1500;              // 1.5秒
+  params.damage = 7;                     // 最初の弾のダメージ
+  params.maxAmmo = 5;                    // 最大弾数
+  params.bulletLifeTimeMax = 1000;       // 普通の飛距離
+  params.bulletSpeed = 5;                // 初速
+  params.bulletRadius = 5;               // 最初のサイズ
+  params.speed = 3.5;
+  params.skillCooldown = 30000;          // スキルは開始20秒後にチャージ、その後30秒ごと
+} else if (charName === "ボマー") {
+  params.reloadTime = 300;             // 0.3秒
+  params.damage = 34;                  // 爆発ダメージ
+  params.maxAmmo = 1;                  // 最大弾数 1
+  params.bulletSpeed = 0;              // 弾速なし（その場爆発）
+  params.bulletLifeTimeMax = 1;        // 即時爆発
+  params.bulletRadius = 40;            // 爆発の半径
+  params.bulletPassThroughObstacles = true; // 壁貫通
+  params.speed = 2.8;                  // 少し遅め
+  params.skillCooldown = 20000;        // 20秒に一回スキル
+}
+
+
+      return {
+        x, y, w: 30, h: 30, color,
+        speed: params.speed,
+        hp: 100,
+        ammo: params.maxAmmo,
+        maxAmmo: params.maxAmmo,
+        reloadTime: params.reloadTime,
+        lastReload: Date.now(),
+        damage: params.damage,
+        bulletsPerShot: params.bulletsPerShot,
+        bulletSpeed: params.bulletSpeed,
+        bulletLifeTimeMax: params.bulletLifeTimeMax,
+        bulletRadius: params.bulletRadius,
+        bulletPassThroughObstacles: params.bulletPassThroughObstacles,
+        charName,
+        skillCooldown: params.skillCooldown,
+        skillLastUsed: 0,
+        bulletSpeedBoost: 1,
+        nextShotBonusDamage: 0,
+        mode,
+        skillCharge: 0
+      };
+    }
+
+    function getObstaclesForMap(mapName) {
+  let base = [];
+  if (mapName === "草原") {
+    base = [{ x: 350, y: 150, w: 40, h: 100 }];
+  } else if (mapName === "雪原") {
+    base = [
+      { x: 250, y: 100, w: 30, h: 30 },
+      { x: 400, y: 180, w: 50, h: 30 }
+    ];
+  } else if (mapName === "都市") {
+    base = [
+      { x: 300, y: 160, w: 40, h: 80 },
+      { x: 380, y: 220, w: 60, h: 40 }
+    ];
+  } else if (mapName === "火山") {
+    base = [
+      { x: 350, y: 200, w: 60, h: 60 },   // 中央の溶岩
+      { x: 100, y: 320, w: 50, h: 50 },   // 左下の溶岩
+      { x: 550, y: 80, w: 50, h: 50 }     // 右上の溶岩
+    ];
+  } else if (mapName === "宇宙") {
+    base = [
+      { x: 150, y: 80, w: 20, h: 20 },
+      { x: 250, y: 200, w: 25, h: 25 },
+      { x: 400, y: 120, w: 15, h: 15 },
+      { x: 500, y: 250, w: 20, h: 20 },
+      { x: 300, y: 300, w: 25, h: 25 }
+    ]; // 浮遊岩を多数配置
+  } else if (mapName === "海辺") {
+    base = [
+      { x: 350, y: 300, w: 80, h: 20 },   // 波
+      { x: 280, y: 180, w: 140, h: 40 }   // 砂の丘（特殊形状っぽく横長）
+    ];
+  } else if (mapName === "ジャングル") {
+    // 丸型っぽい障害物（円を表現するため正方形を多用）
+    base = [
+      { x: 180, y: 100, w: 30, h: 30 },
+      { x: 220, y: 150, w: 35, h: 35 },
+      { x: 260, y: 200, w: 40, h: 40 },
+      { x: 320, y: 120, w: 30, h: 30 },
+      { x: 380, y: 160, w: 35, h: 35 },
+      { x: 420, y: 210, w: 40, h: 40 }
+    ]; // 森っぽく林立
+  } else if (mapName === "工場") {
+    base = [];
+    // 等間隔にコンテナを縦横配置、真ん中は空ける
+    for (let i = 100; i <= 500; i += 100) {
+      for (let j = 80; j <= 320; j += 80) {
+        if (!(i > 250 && i < 400 && j > 140 && j < 260)) {
+          base.push({ x: i, y: j, w: 60, h: 20 });
+        }
+      }
+    }
+  }
+
+  // 対称配置
+  const full = [];
+  base.forEach(o => {
+    full.push(o);
+    full.push({
+      x: canvas.width - o.x - o.w,
+      y: canvas.height - o.y - o.h,
+      w: o.w,
+      h: o.h
+    });
+  });
+  return full;
+}
+
+
+
+    function shootBullet(shooter, target) {
+      if (shooter.ammo <= 0 || !gameActive) return;
+
+      const dx = target.x + target.w / 2 - (shooter.x + shooter.w / 2);
+      const dy = target.y + target.h / 2 - (shooter.y + shooter.h / 2);
+      const mag = Math.sqrt(dx * dx + dy * dy);
+      const dirX = dx / mag;
+      const dirY = dy / mag;
+
+      const speedMult = shooter.bulletSpeedBoost || 1;
+      let useBonus = 0;
+      if (shooter.nextShotBonusDamage > 0) {
+        useBonus = shooter.nextShotBonusDamage;
+        shooter.nextShotBonusDamage = 0;
+      }
+      if (shooter.charName === "ボマー") {
+  // その場で爆発を発生させる
+  explode({
+    x: shooter.x + shooter.w / 2,
+    y: shooter.y + shooter.h / 2,
+    from: shooter,
+    damage: shooter.damage
+  });
+  shooter.ammo -= 1;
+  shooter.lastReload = Date.now();
+  return;
+}
+
+　　　if (shooter.charName === "ジャンパー") {
+  bullets.push({
+    x: shooter.x + shooter.w / 2,
+    y: shooter.y + shooter.h / 2,
+    r: 5,
+    vx: dirX * shooter.bulletSpeed,
+    vy: dirY * shooter.bulletSpeed,
+    from: shooter,
+    damage: shooter.damage,
+    lifeTime: 0,
+    maxLifeTime: shooter.bulletLifeTimeMax,
+    mario: true   // フラグを立てる
+  });
+  shooter.ammo -= 1;
+  shooter.lastReload = Date.now();
+  return;
+}
+      if (shooter.charName === "ジョーカー") {
+  // 拡散3発攻撃
+  const baseAngle = Math.atan2(
+    target.y + target.h / 2 - (shooter.y + shooter.h / 2),
+    target.x + target.w / 2 - (shooter.x + shooter.w / 2)
+  );
+
+  for (let i = -1; i <= 1; i++) {
+    const angle = baseAngle + i * 0.15; // 少しずつ角度ずらす
+    const vx = Math.cos(angle) * shooter.bulletSpeed;
+    const vy = Math.sin(angle) * shooter.bulletSpeed;
+    bullets.push({
+      x: shooter.x + shooter.w / 2,
+      y: shooter.y + shooter.h / 2,
+      r: 5,
+      vx, vy,
+      from: shooter,
+      damage: shooter.damage,
+      lifeTime: 0,
+      maxLifeTime: shooter.bulletLifeTimeMax
+    });
+  }
+
+  shooter.ammo -= 1;
+  shooter.lastReload = Date.now();
+  return;
+}
+
+      if (shooter.charName === "ブーメランボーイ") {
+  const dx = target.x + target.w / 2 - (shooter.x + shooter.w / 2);
+  const dy = target.y + target.h / 2 - (shooter.y + shooter.h / 2);
+  const mag = Math.sqrt(dx * dx + dy * dy);
+  const dirX = dx / mag, dirY = dy / mag;
+
+  bullets.push({
+    x: shooter.x + shooter.w / 2,
+    y: shooter.y + shooter.h / 2,
+    r: 6,
+    vx: dirX * shooter.bulletSpeed,
+    vy: dirY * shooter.bulletSpeed,
+    from: shooter,
+    damage: shooter.damage,
+    lifeTime: 0,
+    maxLifeTime: 9999,     // 無限にして手動で戻す
+    isBoomerang: true,     // ブーメラン判定
+    goingOut: true,    // 最初は飛び出し状態
+    bulletPassThroughObstacles: true
+  });
+
+  shooter.ammo -= 1;
+  shooter.lastReload = Date.now();
+  return;
+}
+
+　　　if (shooter.charName === "ガジェットボット") {
+    bullets.push({
+      x: shooter.x + shooter.w / 2,
+      y: shooter.y + shooter.h / 2,
+      r: shooter.bulletRadius,
+      vx: dirX * shooter.bulletSpeed,
+      vy: dirY * shooter.bulletSpeed,
+      from: shooter,
+      damage: shooter.damage,
+      lifeTime: 0,
+      maxLifeTime: shooter.bulletLifeTimeMax,
+      bulletPassThroughObstacles: true // ← これを必ず付与！
+    });
+    shooter.ammo -= 1;
+    shooter.lastReload = Date.now();
+    return; // 共通処理を飛ばす
+  }
+      if (shooter.charName === "サンダーマウス") {
+  // 通常弾を発射（分裂までのタイマー付き）
+  const dx = target.x + target.w / 2 - (shooter.x + shooter.w / 2);
+  const dy = target.y + target.h / 2 - (shooter.y + shooter.h / 2);
+  const mag = Math.sqrt(dx * dx + dy * dy);
+  const dirX = dx / mag, dirY = dy / mag;
+
+  bullets.push({
+    x: shooter.x + shooter.w / 2,
+    y: shooter.y + shooter.h / 2,
+    r: 6,
+    vx: dirX * shooter.bulletSpeed,
+    vy: dirY * shooter.bulletSpeed,
+    from: shooter,
+    damage: shooter.damage,
+    lifeTime: 0,
+    maxLifeTime: shooter.bulletLifeTimeMax,
+    pikaMain: true // 分裂フラグ
+  });
+  shooter.ammo -= 1;
+  shooter.lastReload = Date.now();
+  return;
+}
+
+      // ヒカキン＆セイキン特別処理（置き換え）
+if (shooter.charName === "ツインブラザーズ") {
+  if (shooter.mode === "H") {
+    bullets.push({
+      x: shooter.x + shooter.w / 2,
+      y: shooter.y + shooter.h / 2,
+      r: 6,                       // 見た目の弾サイズ（小さくてもOK）
+      vx: dirX * 4,
+      vy: dirY * 4,
+      from: shooter,
+      damage: shooter.damage + useBonus,
+      lifeTime: 0,
+      maxLifeTime: 250,
+      explosive: true,
+      // ← ここで爆発判定専用の半径を指定（デフォルトは40）
+      explosiveRadius: 50,
+      hasReflected: false
+    });
+  } else {
+    for (let i = 0; i < 10; i++) {
+      const angle = (Math.random() - 0.5) * 0.4;
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      const vx = dirX * 6 * cos - dirY * 6 * sin;
+      const vy = dirX * 6 * sin + dirY * 6 * cos;
+      bullets.push({
+        x: shooter.x + shooter.w / 2,
+        y: shooter.y + shooter.h / 2,
+        r: 3,
+        vx, vy,
+        from: shooter,
+        damage: 5,
+        lifeTime: 0,
+        maxLifeTime: 20,
+        hasReflected: false
+      });
+    }
+  }
+  shooter.ammo -= 1;
+  shooter.lastReload = Date.now();
+  return;
+}
+
+
+      for (let i = 0; i < shooter.bulletsPerShot; i++) {
+        const offsetY = (i === 0) ? -5 : 5;
+        bullets.push({
+          x: shooter.x + shooter.w / 2,
+          y: shooter.y + shooter.h / 2 + offsetY,
+          r: shooter.bulletRadius,
+          vx: dirX * shooter.bulletSpeed * speedMult,
+          vy: dirY * shooter.bulletSpeed * speedMult,
+          from: shooter,
+          damage: shooter.damage + useBonus,
+          lifeTime: 0,
+          maxLifeTime: shooter.bulletLifeTimeMax,
+          hasReflected: false
+        });
+      }
+      shooter.ammo -= 1;
+      shooter.lastReload = Date.now();
+    }
+
+    function useSkill(player) {
+      if (player.charName === "聖なる使者") {
+        if (player.skillCharge >= 30) {
+          player.skillCharge -= 30;
+          player.hp = Math.min(100, player.hp + 20);
+        }
+        return;
+      }
+
+      const now = Date.now();
+      if (now - player.skillLastUsed < player.skillCooldown) return;
+      player.skillLastUsed = now;
+
+      if (player.charName === "スナイパー太郎") {
+        player.bulletSpeedBoost = (player.bulletSpeedBoost || 1) + 1;
+        return;
+      }
+      if (player.charName === "サンダーマウス") {
+  // 同時押し方向に短距離ワープ
+  const dashDistance = 60;
+  let dx = 0, dy = 0;
+
+  if (player === player1) {
+    if (keys["w"]) dy -= 1;
+    if (keys["s"]) dy += 1;
+    if (keys["a"]) dx -= 1;
+    if (keys["d"]) dx += 1;
+  } else {
+    if (keys["ArrowUp"]) dy -= 1;
+    if (keys["ArrowDown"]) dy += 1;
+    if (keys["ArrowLeft"]) dx -= 1;
+    if (keys["ArrowRight"]) dx += 1;
+  }
+
+  const mag = Math.sqrt(dx * dx + dy * dy) || 1;
+  dx /= mag; dy /= mag;
+
+  player.x += dx * dashDistance;
+  player.y += dy * dashDistance;
+
+  // 範囲外に出ないように制限
+  player.x = Math.max(0, Math.min(canvas.width - player.w, player.x));
+  player.y = Math.max(0, Math.min(canvas.height - player.h, player.y));
+
+  return;
+}
+
+      if (player.charName === "ボマー") {
+  player.isChargedCreeper = true;
+  player.damage = 50;      // 爆発ダメージ強化
+  player.bulletRadius = 50; // 爆発範囲拡大
+  player.speed = 3.5;       // 移動速度アップ
+
+  setTimeout(() => {
+    player.isChargedCreeper = false;
+    player.damage = 34;      // 元のダメージ
+    player.bulletRadius = 40;
+    player.speed = 2.8;
+  }, 10000); // 10秒で元に戻る
+  return;
+}
+      if (player.charName === "ジョーカー") {
+  const enemy = player === player1 ? player2 : player1;
+  const effect = Math.floor(Math.random() * 6) + 1;
+
+  switch (effect) {
+    case 1: // 50回復
+      player.hp = Math.min(100, player.hp + 50);
+      break;
+
+    case 2: // 移動速度アップ
+      player.speed += 2;
+      setTimeout(() => player.speed -= 2, 5000);
+      break;
+
+    case 3: // 両方のHPが20減少
+      player.hp -= 20;
+      enemy.hp -= 20;
+      break;
+
+    case 4: // 触れると100ダメージの貫通弾
+  // 敵の方向を正確に計算
+  const angle = Math.atan2(
+    enemy.y + enemy.h / 2 - (player.y + player.h / 2),
+    enemy.x + enemy.w / 2 - (player.x + player.w / 2)
+  );
+
+  const vx = Math.cos(angle) * 8; // 弾速8
+  const vy = Math.sin(angle) * 8;
+
+  bullets.push({
+    x: player.x + player.w / 2,
+    y: player.y + player.h / 2,
+    r: 15,
+    vx,
+    vy,
+    from: player,
+    damage: 100,
+    lifeTime: 0,
+    maxLifeTime: 2000,
+    bulletPassThroughObstacles: true
+  });
+  break;
+
+
+    case 5: // 両方のキャラが50回復
+      player.hp = Math.min(100, player.hp + 50);
+      enemy.hp = Math.min(100, enemy.hp + 50);
+      break;
+
+    case 6: // 次に受けた攻撃を反射
+      player.reflectNextDamage = true;
+      break;
+  }
+
+  return;
+}
+
+
+      if (player.charName === "白い死神") {
+        player.nextShotBonusDamage = 50;
+        return;
+      }
+      
+      if (player.charName === "ブーメランボーイ") {
+  if (!player.warpPoint) {
+    // ワープポイント設置
+    player.warpPoint = { x: player.x, y: player.y };
+  } else {
+    // ワープ実行
+    player.x = player.warpPoint.x;
+    player.y = player.warpPoint.y;
+    player.warpPoint = null;
+  }
+  return;
+}
+
+      if (player.charName === "怪盗レッド") {
+        const myTurrets = turrets.filter(t => t.owner === player).length;
+        if (myTurrets < 2) {
+          turrets.push({ x: player.x + player.w / 2, y: player.y + player.h / 2, owner: player, reloadTime: 30, timer: 0 });
+        }
+        return;
+      }
+      if (player.charName === "ガジェットボット") {
+        teleportRandomly(player);
+        return;
+      }
+      if (player.charName === "アクアファイター") {
+        createWallInEnemyDirection(player);
+        return;
+      }
+      if (player.charName === "ツインブラザーズ") {
+        if (player.mode === "H") {
+          player.mode = "S";
+          player.reloadTime = 1500;
+          player.damage = 5;
+          player.maxAmmo = 3;
+        } else {
+          player.mode = "H";
+          player.reloadTime = 800;
+          player.damage = 15;
+          player.maxAmmo = 3;
+        }
+        player.ammo = player.maxAmmo;
+        return;
+      }
+      if (player.charName === "ジャンパー") {
+  const enemy = player === player1 ? player2 : player1;
+  const px = player.x + player.w / 2;
+  const py = player.y + player.h / 2;
+  const dx = enemy.x + enemy.w / 2 - px;
+  const dy = enemy.y + enemy.h / 2 - py;
+  const mag = Math.sqrt(dx * dx + dy * dy);
+  const dirX = dx / mag, dirY = dy / mag;
+
+  // 三発拡散
+  for (let i = -1; i <= 1; i++) {
+    const angle = i * 0.2;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const vx = dirX * 12 * cos - dirY * 12 * sin;
+    const vy = dirX * 12 * sin + dirY * 12 * cos;
+    bullets.push({
+      x: px, y: py, r: 8,
+      vx, vy,
+      from: player,
+      damage: 20,
+      lifeTime: 0,
+      maxLifeTime: 800,
+      bulletPassThroughObstacles: true // ★ 壁を貫通させる
+    });
+  }
+  return;
+}
+
+    }
+
+    function createWallInEnemyDirection(player) {
+      const enemy = player === player1 ? player2 : player1;
+      const px = player.x + player.w / 2;
+      const py = player.y + player.h / 2;
+      const ex = enemy.x + enemy.w / 2;
+      const ey = enemy.y + enemy.h / 2;
+      const dx = ex - px, dy = ey - py;
+      const mag = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      const dirX = dx / mag, dirY = dy / mag;
+      const wallW = 30, wallH = 30, distance = 50;
+      const wallX = px + dirX * distance - wallW / 2;
+      const wallY = py + dirY * distance - wallH / 2;
+      const newWall = { x: wallX, y: wallY, w: wallW, h: wallH };
+      if (!collidesWithObstacles(newWall)) obstacles.push(newWall);
+    }
+
+    function teleportRandomly(player) {
+      let safe = false, tries = 0;
+      while (!safe && tries < 100) {
+        const randX = Math.random() * (canvas.width - player.w);
+        const randY = Math.random() * (canvas.height - player.h);
+        const rect = { x: randX, y: randY, w: player.w, h: player.h };
+        if (!collidesWithObstacles(rect)) {
+          player.x = randX; player.y = randY; safe = true;
+        }
+        tries++;
+      }
+    }
+
+    function gameLoop() {
+      if (!gameActive) return;
+      update();
+      draw();
+      checkGameOver();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+      movePlayer(player1,"w","s","a","d");
+      movePlayer(player2,"ArrowUp","ArrowDown","ArrowLeft","ArrowRight");
+      updateBullets();
+      updateTurrets();
+      handleReload(player1);
+      handleReload(player2);
+      updateSafeZone();
+
+    }
+
+    function handleReload(player) {
+      const now = Date.now();
+      if (player.charName === "聖なる使者") {
+        if (player.ammo <= 0 && now - player.lastReload >= player.reloadTime) {
+          player.ammo = player.maxAmmo;
+          player.lastReload = now;
+        }
+        return;
+      }
+      if (player.ammo < player.maxAmmo && now - player.lastReload >= player.reloadTime) {
+        player.ammo += 1;
+        player.lastReload = now;
+      }
+    }
+
+    function movePlayer(player, up, down, left, right) {
+      let newX = player.x, newY = player.y;
+      if (keys[up]) newY -= player.speed;
+      if (keys[down]) newY += player.speed;
+      if (keys[left]) newX -= player.speed;
+      if (keys[right]) newX += player.speed;
+      const newRect = { x: newX, y: newY, w: player.w, h: player.h };
+      if (!collidesWithObstacles(newRect)) { player.x = newX; player.y = newY; }
+    }
+
+    function collidesWithObstacles(rect) {
+      return obstacles.some(obs =>
+        rect.x < obs.x + obs.w &&
+        rect.x + rect.w > obs.x &&
+        rect.y < obs.y + obs.h &&
+        rect.y + rect.h > obs.y
+      );
+    }
+
+    function updateBullets() {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx; b.y += b.vy;
+        b.lifeTime++;
+        if (b.mario) {
+  // 弾が進むにつれて大きく＆速くなる
+  b.r = 5 + Math.floor(b.lifeTime / 8);   // 半径が徐々に増える
+  b.vx *= 1.05;                            // 徐々に加速
+  b.vy *= 1.05;
+  b.damage = 7 + Math.floor(b.r / 1);      // サイズでダメージ上昇
+}
+
+        const target = b.from === player1 ? player2 : player1;
+        const dx = target.x + target.w/2 - b.x;
+        const dy = target.y + target.h/2 - b.y;
+        
+        if (b.isBoomerang) {
+  if (b.goingOut) {
+    // 前進して一定距離で戻り開始
+    if (b.lifeTime > 35) { // 好きな距離で調整
+      b.goingOut = false;
+    }
+  } else {
+    // プレイヤーの元へ戻る
+    const owner = b.from;
+    const dx = (owner.x + owner.w/2) - b.x;
+    const dy = (owner.y + owner.h/2) - b.y;
+    const mag = Math.sqrt(dx*dx + dy*dy);
+    b.vx = dx / mag * owner.bulletSpeed;
+    b.vy = dy / mag * owner.bulletSpeed;
+
+    // 手元に戻ったらリロード回復
+    if (mag < 10) {
+      owner.ammo = owner.maxAmmo;
+      bullets.splice(i,1);
+      continue;
+    }
+  }
+}
+
+
+        if (b.explosive && Math.sqrt(dx*dx+dy*dy) < 40) {
+          explode(b);
+          bullets.splice(i, 1);
+          continue;
+        }
+        if (b.pikaMain && b.lifeTime > b.maxLifeTime * 0.8) {
+  // 分裂発動
+  for (let j = 0; j < 6; j++) {
+    const angle = j * (Math.PI / 3);
+    const speed = 5;
+    bullets.push({
+      x: b.x, y: b.y,
+      r: 4,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      from: b.from,
+      damage: 5,
+      lifeTime: 0,
+      maxLifeTime: 800
+    });
+  }
+  // 分裂したら元弾削除
+  bullets.splice(i, 1);
+  i--;
+  continue;
+}
+
+
+        if (b.lifeTime > b.maxLifeTime) {
+          if (b.explosive) explode(b);
+          bullets.splice(i, 1);
+          continue;
+        }
+        if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+          if (b.explosive) explode(b);
+          bullets.splice(i, 1); continue;
+        }
+        if (circleHitRect(b, target)) {
+          if (b.explosive) explode(b);
+          else target.hp -= b.damage;
+
+          if (b.from.charName === "聖なる使者") {
+            b.from.skillCharge += b.damage;
+          }
+
+          bullets.splice(i, 1);
+          continue;
+        }
+       if (!b.bulletPassThroughObstacles && circleHitAnyObstacle(b)) {
+          if (b.explosive) explode(b);
+          bullets.splice(i, 1);
+        }
+      }
+
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        explosions[i].life--;
+        if (explosions[i].life <= 0) explosions.splice(i, 1);
+      }
+    }
+
+    function explode(bullet) {
+  const target = bullet.from === player1 ? player2 : player1;
+  const dx = target.x + target.w/2 - bullet.x;
+  const dy = target.y + target.h/2 - bullet.y;
+
+  // 爆発半径をキャラごとに反映
+  const radius = bullet.explosiveRadius || bullet.r || bullet.from && bullet.from.bulletRadius || 20;
+
+  // 当たり判定
+  if (Math.sqrt(dx*dx+dy*dy) < radius) {
+    target.hp -= bullet.damage;
+    if (target.reflectNextDamage) {
+  bullet.from.hp -= bullet.damage; // 反射ダメージ
+  target.reflectNextDamage = false;
+}
+
+    if (bullet.from.charName === "聖なる使者") {
+      bullet.from.skillCharge+= bullet.damage;
+    }
+  }
+
+  // 見た目の爆発エフェクトも radius を使う
+  explosions.push({x: bullet.x, y: bullet.y, r: radius, life: 15});
+}
+
+
+    function updateTurrets() {
+      turrets.forEach(turret => {
+        turret.timer--;
+        if (turret.timer <= 0) {
+          turretShoot(turret);
+          turret.timer = turret.reloadTime;
+        }
+      });
+    }
+function updateSafeZone() {
+  const now = Date.now();
+  const elapsed = (now - gameStartTime) / 1000; // 秒
+
+  // 25秒経過後に縮小開始
+  if (elapsed > 25) {
+    safeZone.shrinking = true;
+  }
+
+  // 縮小中
+  if (safeZone.shrinking && safeZone.radius > 50) {
+    safeZone.radius -= 0.5; // 縮小スピード（調整可）
+  }
+
+ // プレイヤーごとに判定
+[player1, player2].forEach(p => {
+  if (!p || p.hp <= 0) return; // プレイヤーが存在しない、または既に死んでいる場合はスキップ
+  
+  const dx = p.x + p.w/2 - safeZone.x;
+  const dy = p.y + p.h/2 - safeZone.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+
+  if (safeZone.shrinking && dist > safeZone.radius) {
+    // 外にいる場合、1秒ごとにダメージ
+    if (now - lastPoisonTick >= 1000) {
+      p.hp -= 25; // ダメージを25から5に調整（調整可能）
+      console.log(`${p.charName} が安全地帯外でダメージを受けました！ HP: ${p.hp}`); // デバッグ用
+    }
+  }
+});
+  if (now - lastPoisonTick >= 1000) {
+    lastPoisonTick = now;
+  }
+}
+
+    function turretShoot(turret) {
+      if (!gameActive) return;
+      const target = turret.owner === player1 ? player2 : player1;
+      const dx = target.x + target.w/2 - turret.x;
+      const dy = target.y + target.h/2 - turret.y;
+      const mag = Math.sqrt(dx*dx+dy*dy);
+      bullets.push({ x: turret.x, y: turret.y, r: 5, vx: dx/mag*6, vy: dy/mag*6, from: turret.owner, damage: 5, lifeTime: 0, maxLifeTime: 1000, hasReflected: false });
+    }
+
+    function circleHitRect(circle, rect) {
+      const distX = Math.abs(circle.x - rect.x - rect.w / 2);
+      const distY = Math.abs(circle.y - rect.y - rect.h / 2);
+      if (distX > (rect.w / 2 + circle.r)) return false;
+      if (distY > (rect.h / 2 + circle.r)) return false;
+      if (distX <= (rect.w / 2)) return true;
+      if (distY <= (rect.h / 2)) return true;
+      const dx = distX - rect.w / 2, dy = distY - rect.h / 2;
+      return (dx * dx + dy * dy <= (circle.r * circle.r));
+    }
+
+    function circleHitAnyObstacle(circle) {
+      return obstacles.some(obs => circleHitRect(circle, obs));
+    }
+
+    function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 背景（マップ全体）
+  ctx.fillStyle = selectedMap === "草原" ? "#e0ffe0" : selectedMap === "雪原" ? "#ddf0ff" : "#eeeeee";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+ // 外側の毒ゾーン
+if (safeZone.shrinking && safeZone.radius < Math.max(canvas.width, canvas.height)) {
+  ctx.fillStyle = "rgba(200,0,0,0.3)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.globalCompositeOperation = "destination-out"; // 重要：合成モードを変更
+  ctx.beginPath();
+  ctx.arc(safeZone.x, safeZone.y, safeZone.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over"; // 元に戻す
+}
+
+// 安全地帯の枠線（視覚的に分かりやすくする）
+if (safeZone.shrinking) {
+  ctx.strokeStyle = "green";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(safeZone.x, safeZone.y, safeZone.radius, 0, Math.PI*2);
+  ctx.stroke();
+}
+  // 安全地帯の枠線（視覚的に分かりやすくする）
+  ctx.strokeStyle = "green";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(safeZone.x, safeZone.y, safeZone.radius, 0, Math.PI*2);
+  ctx.stroke();
+
+  // 障害物
+  ctx.fillStyle = "gray"; 
+  obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.w, obs.h));
+
+  // プレイヤー・弾・タレットなど
+  drawPlayer(player1);
+  drawPlayer(player2);
+
+  ctx.fillStyle = "black";
+  bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); });
+
+  turrets.forEach(turret => { ctx.fillStyle="purple"; ctx.beginPath(); ctx.arc(turret.x,turret.y,10,0,Math.PI*2); ctx.fill(); });
+
+  explosions.forEach(ex => {
+    ctx.strokeStyle="red"; ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.r,0,Math.PI*2); ctx.stroke();
+  });
+
+  // スキル情報
+  ctx.fillStyle = "black"; ctx.font="16px Arial";
+  const now = Date.now();
+  ctx.fillText(`1Pスキル${player1.charName==="聖なる使者" ? `チャージ:${player1.skillCharge}/20` : now-player1.skillLastUsed>=player1.skillCooldown?"OK":"…待機中"}`,10,20);
+  ctx.fillText(`2Pスキル${player2.charName==="聖なる使者" ? `チャージ:${player2.skillCharge}/20` : now-player2.skillLastUsed>=player2.skillCooldown?"OK":"…待機中"}`,10,40);
+}
+
+
+    function drawPlayer(player) {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+      const hpRatio = Math.max(0, player.hp) / 100;
+      ctx.fillStyle = "red"; ctx.fillRect(player.x, player.y-10, player.w, 5);
+      ctx.fillStyle = "lime"; ctx.fillRect(player.x, player.y-10, player.w*hpRatio, 5);
+      const ammoRatio = player.ammo / player.maxAmmo;
+      ctx.fillStyle="black"; ctx.fillRect(player.x, player.y-4, player.w, 4);
+      ctx.fillStyle="cyan"; ctx.fillRect(player.x, player.y-4, player.w*ammoRatio, 4);
+      const now = Date.now();
+      if (player.charName !== "聖なる使者" && now - player.skillLastUsed >= player.skillCooldown) {
+        ctx.strokeStyle="yellow"; ctx.strokeRect(player.x-2,player.y-2,player.w+4,player.h+4);
+      }
+      if (player.charName==="ツインブラザーズ") {
+        ctx.fillStyle="black"; ctx.fillText(player.mode, player.x, player.y-20);
+      }
+    }
+
+    function checkGameOver() {
+      if (player1.hp <= 0 || player2.hp <= 0) {
+        gameActive = false;
+        showResult();
+      }
+    }
+
+    function showResult() {
+      hideAllScreens();
+      document.getElementById("resultScreen").classList.remove("hidden");
+      const winnerText =
+        player1.hp <= 0 && player2.hp <= 0 ? "引き分け！" :
+        player1.hp <= 0 ? "2Pの勝ち！" : "1Pの勝ち！";
+      document.getElementById("resultText").innerText = winnerText;
+      keys = {};
+    }
+
+    function returnToMenu() {
+      hideAllScreens();
+      document.getElementById("homeScreen").classList.remove("hidden");
+      player1=null; player2=null; bullets=[]; obstacles=[]; turrets=[]; explosions=[]; keys={}; gameActive=false;
+    }
+
+    function hideAllScreens() {
+      document.getElementById("homeScreen").classList.add("hidden");
+      document.getElementById("characterSelect").classList.add("hidden");
+      document.getElementById("mapSelect").classList.add("hidden");
+      document.getElementById("gameScreen").classList.add("hidden");
+      document.getElementById("resultScreen").classList.add("hidden");
+    }
+  </script>
+</body>
+</html>
