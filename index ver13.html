@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>2D対戦シューティング</title>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
@@ -247,6 +248,54 @@
       .hud { grid-template-columns: 1fr; }
       .hud-center { order: -1; flex-direction: row; gap: 12px; }
     }
+  
+    /* ===== ver17 モバイル対応（body.mobile のときだけ有効。PC表示は変わりません） ===== */
+    .mode-sel { margin-top: 22px; display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .mode-sel span { color: #9db4d8; font-size: 12px; letter-spacing: .2em; }
+    .mode-sel button { margin: 0; padding: 8px 16px; font-size: 14px; }
+    .mode-sel button.on { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,229,255,.5); background: linear-gradient(135deg, #1f4a78, #143058); }
+    #rotateMsg { display: none; position: fixed; inset: 0; z-index: 200; background: #070b16; color: #fff; align-items: center; justify-content: center; flex-direction: column; gap: 14px; font-size: 18px; font-weight: 800; letter-spacing: .1em; }
+    #rotateMsg b { font-size: 56px; }
+    @media (orientation: portrait) { body.mobile #rotateMsg { display: flex; } }
+    body.mobile { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+    #touchUI { position: fixed; inset: 0; z-index: 60; pointer-events: none; display: none; }
+    body.mobile.ingame #touchUI { display: block; }
+    #touchUI .joy { position: fixed; bottom: max(14px, env(safe-area-inset-bottom)); width: 124px; height: 124px; border-radius: 50%; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.28); touch-action: none; pointer-events: auto; }
+    #touchUI .knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(255,255,255,.35); border: 2px solid rgba(255,255,255,.65); }
+    #touchUI .tbtns { position: fixed; bottom: max(22px, env(safe-area-inset-bottom)); display: flex; gap: 14px; align-items: flex-end; pointer-events: none; }
+    #touchUI .tbtn { width: 70px; height: 70px; margin: 0; padding: 0; border-radius: 50%; font-size: 13px; font-weight: 800; touch-action: none; pointer-events: auto; background: rgba(10,16,34,.55); border: 2px solid; transform: none; }
+    #touchUI .tbtn.skl { margin-bottom: 26px; }
+    #touchUI .tbtn:hover:not(:disabled) { transform: none; box-shadow: none; }
+    #touchUI .tbtn.down { filter: brightness(1.8); }
+    #touchUI .tp1 .joy { left: max(14px, env(safe-area-inset-left)); }
+    #touchUI .tp1 .tbtn { border-color: #3aa0ff; }
+    #touchUI .tp1 .tbtns { left: 156px; }
+    #touchUI .tp2 .joy { right: max(14px, env(safe-area-inset-right)); }
+    #touchUI .tp2 .tbtn { border-color: #ff4d6d; }
+    #touchUI .tp2 .tbtns { right: 156px; flex-direction: row-reverse; }
+    #touchUI.online .tp2 { display: none; }
+    #touchUI.online .tp1 .tbtns { left: auto; right: max(18px, env(safe-area-inset-right)); flex-direction: row-reverse; }
+
+    body.mobile.ingame { overflow: hidden; height: 100vh; touch-action: none; }
+    body.mobile.ingame #backBtn { top: auto; bottom: 4px; left: 50%; transform: translateX(-50%); padding: 3px 10px; font-size: 11px; opacity: .75; }
+    body.mobile #gameScreen { padding: 4px 8px 2px; }
+    body.mobile .hud { grid-template-columns: 1fr 84px 1fr; gap: 6px; margin-bottom: 4px; }
+    body.mobile .hud-p { padding: 4px 8px; gap: 6px; min-width: 0; }
+    body.mobile .hud-center { order: 0; flex-direction: column; gap: 0; }
+    body.mobile .hud-portrait { width: 34px; height: 34px; flex-basis: 34px; }
+    body.mobile .hud-name { font-size: 11px; }
+    body.mobile .hp { height: 10px; margin: 2px 0; }
+    body.mobile .hp em { font-size: 9px; line-height: 10px; }
+    body.mobile .hud-row { gap: 4px; }
+    body.mobile .pips i { width: 5px; height: 8px; }
+    body.mobile .skill { height: 9px; }
+    body.mobile .skill b { font-size: 7px; line-height: 9px; }
+    body.mobile .timer { font-size: 20px; }
+    body.mobile .zone { font-size: 9px; }
+    body.mobile .mapname, body.mobile .ctrl { display: none; }
+    body.mobile .arena { width: fit-content; margin: 0 auto; padding: 4px; }
+    body.mobile .arena canvas { width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 84px); max-height: calc(100dvh - 84px); }
   </style>
 </head>
 <body>
@@ -257,6 +306,7 @@
     <div class="home-wrap">
       <div class="logo-sub">1 VS 1 ARENA</div>
       <h1 class="logo">2D対戦<span>シューティング</span></h1>
+      <div class="mode-sel" style="margin:-16px 0 20px"><span>プレイ方法</span><button id="modePC" onclick="setPlayMode('pc')">🖥 PC</button><button id="modeMobile" onclick="setPlayMode('mobile')">📱 モバイル</button></div>
       <div class="menu-list">
         <button class="menu-btn" onclick="goToCharacterSelect()">
           <span class="mb-icon">⚔</span>
@@ -271,7 +321,8 @@
           <span><b>キャラ図鑑</b><small>キャラクターの性能をチェック</small></span>
         </button>
       </div>
-      <div class="ver">VER 16</div>
+      
+      <div class="ver">VER 17</div>
     </div>
   </div>
 
@@ -2756,6 +2807,93 @@ function updateSafeZone() {
       CHAR_NAMES.forEach(n => { $("player1Select").add(new Option(n, n)); $("player2Select").add(new Option(n, n)); });
       MAP_NAMES.forEach(n => $("mapSelectDropdown").add(new Option(n, n)));
       $("player1Select").value = CHAR_NAMES[0]; $("player2Select").value = CHAR_NAMES[1];
+    })();
+  </script>
+
+  <script>
+    /* ============================================================
+       ver17：プレイ方法の選択（PC / モバイル）とタッチ操作
+       ※ ゲーム本体は変更せず、キー入力と同じイベントを発行して操作します
+       ============================================================ */
+    let playMode = "pc";
+    function tkey(type, key) { document.dispatchEvent(new KeyboardEvent(type, { key: key, bubbles: true })); }
+
+    function makeJoy(el, keyMap) {
+      const knob = el.querySelector(".knob"), st = { u: 0, d: 0, l: 0, r: 0 };
+      let id = null;
+      const set = (k, v) => { if (st[k] !== v) { st[k] = v; tkey(v ? "keydown" : "keyup", keyMap[k]); } };
+      const reset = () => { id = null; knob.style.transform = ""; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
+      const upd = e => {
+        const r = el.getBoundingClientRect(), R = r.width / 2;
+        const dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R), m = Math.hypot(dx, dy) || 1, c = Math.min(m, R);
+        knob.style.transform = `translate(${dx / m * c * .6}px, ${dy / m * c * .6}px)`;
+        const on = m > R * .3, a = m * .38;
+        set("l", on && dx < -a ? 1 : 0); set("r", on && dx > a ? 1 : 0);
+        set("u", on && dy < -a ? 1 : 0); set("d", on && dy > a ? 1 : 0);
+      };
+      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} upd(e); e.preventDefault(); });
+      el.addEventListener("pointermove", e => { if (e.pointerId === id) upd(e); });
+      const end = e => { if (e.pointerId === id) reset(); };
+      el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+      return { release() { if (id !== null) reset(); } };
+    }
+    function makeBtn(el) {
+      const key = el.dataset.key; let id = null;
+      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} el.classList.add("down"); tkey("keydown", key); e.preventDefault(); });
+      const end = e => { if (e.pointerId !== id) return; id = null; el.classList.remove("down"); tkey("keyup", key); };
+      el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+    }
+
+    const touchUI = document.createElement("div");
+    touchUI.id = "touchUI";
+    touchUI.innerHTML = `
+      <div class="tp tp1"><div class="joy" id="joy1"><div class="knob"></div></div>
+        <div class="tbtns"><button class="tbtn atk" data-key="f">攻撃</button><button class="tbtn skl" data-key="g">スキル</button></div></div>
+      <div class="tp tp2"><div class="joy" id="joy2"><div class="knob"></div></div>
+        <div class="tbtns"><button class="tbtn atk" data-key="k">攻撃</button><button class="tbtn skl" data-key="l">スキル</button></div></div>`;
+    document.body.appendChild(touchUI);
+    const rot = document.createElement("div");
+    rot.id = "rotateMsg"; rot.innerHTML = "<b>📱↻</b><div>横向きにしてください</div>";
+    document.body.appendChild(rot);
+    const joys = [
+      makeJoy(document.getElementById("joy1"), { u: "w", d: "s", l: "a", r: "d" }),
+      makeJoy(document.getElementById("joy2"), { u: "ArrowUp", d: "ArrowDown", l: "ArrowLeft", r: "ArrowRight" })
+    ];
+    touchUI.querySelectorAll(".tbtn").forEach(makeBtn);
+
+    async function lockLandscape() {
+      try { if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+      try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape"); } catch (e) {}
+    }
+    function armLandscapeLock() {
+      const once = () => { if (playMode === "mobile") lockLandscape(); };
+      document.addEventListener("pointerdown", once, { once: true });
+    }
+    function setPlayMode(m) {
+      playMode = m === "mobile" ? "mobile" : "pc";
+      document.body.classList.toggle("mobile", playMode === "mobile");
+      document.getElementById("modePC").classList.toggle("on", playMode === "pc");
+      document.getElementById("modeMobile").classList.toggle("on", playMode === "mobile");
+      try { localStorage.setItem("playMode", playMode); } catch (e) {}
+      if (playMode === "mobile") { lockLandscape(); armLandscapeLock(); }
+      else {
+        joys.forEach(j => j.release());
+        try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+        try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (e) {}
+      }
+    }
+    setInterval(() => {
+      const ig = !document.getElementById("gameScreen").classList.contains("hidden");
+      document.body.classList.toggle("ingame", ig);
+      touchUI.classList.toggle("online", !!(typeof onl !== "undefined" && onl.running));
+      if (!ig || playMode !== "mobile") joys.forEach(j => j.release());
+    }, 150);
+
+    (function () {
+      let saved = "";
+      try { saved = localStorage.getItem("playMode") || ""; } catch (e) {}
+      if (saved !== "pc" && saved !== "mobile") saved = (window.matchMedia && matchMedia("(pointer: coarse)").matches) ? "mobile" : "pc";
+      setPlayMode(saved);
     })();
   </script>
 </body>
