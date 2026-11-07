@@ -138,6 +138,115 @@
     /* --- 共通 戻るボタン --- */
     #backBtn { position: fixed; top: 8px; left: 8px; margin: 0; padding: 6px 12px; font-size: 13px; z-index: 50; }
     #onlineResult h2 { font-size: 34px; text-shadow: 0 0 16px var(--cyan); }
+  
+    /* ===== ver16 ビジュアル刷新 ===== */
+    body { font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif; }
+    .cta {
+      margin: 14px 8px; padding: 14px 40px; font-size: 18px; font-weight: 800; letter-spacing: .12em;
+      background: linear-gradient(100deg, #ff2e88, #ff6a3d); border: none; color: #fff; border-radius: 0;
+      clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+      transition: filter .15s, transform .15s;
+    }
+    .cta:hover:not(:disabled) { filter: brightness(1.18); transform: translateY(-2px); box-shadow: none; }
+    .cta.ghost { background: linear-gradient(100deg, #2a3d66, #17223f); }
+
+    .select-screen { max-width: 1100px; margin: 0 auto; padding: 56px 16px 28px; }
+    .sel-head { display: flex; align-items: baseline; gap: 14px; text-align: left; border-bottom: 1px solid var(--line); margin-bottom: 18px; padding-bottom: 8px; flex-wrap: wrap; }
+    .sel-head small { color: var(--cyan); letter-spacing: .4em; font-weight: 800; font-size: 12px; }
+    .sel-head h2 { margin: 0; font-size: 28px; font-style: italic; letter-spacing: .12em; }
+    .sel-head .vs-sum { margin-left: auto; font-weight: 800; letter-spacing: .08em; color: #cfe3ff; }
+
+    .cs-layout { display: grid; grid-template-columns: 250px 1fr 250px; gap: 16px; align-items: start; }
+    .cs-side { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: left; }
+    .cs-side.p1 { border-top: 4px solid #3aa0ff; background-image: linear-gradient(160deg, rgba(58,160,255,.2), transparent 55%); }
+    .cs-side.p2 { border-top: 4px solid #ff4d6d; background-image: linear-gradient(200deg, rgba(255,77,109,.2), transparent 55%); }
+    .cs-side .who { font-size: 12px; letter-spacing: .3em; font-weight: 800; }
+    .cs-side.p1 .who { color: #7cc2ff; } .cs-side.p2 .who { color: #ff8aa0; }
+    .cs-portrait { height: 190px; display: flex; align-items: center; justify-content: center; margin: 6px 0 8px; }
+    .cs-portrait img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,.6)); }
+    .cs-portrait .cx-ph { width: 120px; height: 120px; font-size: 50px; }
+    .cs-name { font-size: 22px; font-weight: 800; }
+    .cs-tag { color: #9db4d8; font-size: 12px; min-height: 2.6em; margin: 2px 0 8px; }
+    .cs-side .stat { grid-template-columns: 52px 1fr 56px; font-size: 11px; margin: 5px 0; }
+    .cs-tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
+    .cs-tab { margin: 0; padding: 7px 24px; font-weight: 800; letter-spacing: .15em; font-size: 13px; }
+    .cs-tab.on1 { background: #1d5fa8; border-color: #3aa0ff; box-shadow: 0 0 14px rgba(58,160,255,.5); }
+    .cs-tab.on2 { background: #a8243f; border-color: #ff4d6d; box-shadow: 0 0 14px rgba(255,77,109,.5); }
+    .cs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .cs-card { position: relative; margin: 0; padding: 8px 4px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; }
+    .cs-card img, .cs-card .cx-ph { width: 70px; height: 70px; object-fit: contain; }
+    .cs-card.sel1 { border-color: #3aa0ff; box-shadow: 0 0 14px rgba(58,160,255,.55); }
+    .cs-card.sel2 { border-color: #ff4d6d; box-shadow: 0 0 14px rgba(255,77,109,.55); }
+    .cs-badges { position: absolute; top: 3px; left: 3px; display: flex; gap: 3px; }
+    .cs-badges i { font-style: normal; font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 3px; }
+    .cs-badges .b1 { background: #3aa0ff; color: #04203d; } .cs-badges .b2 { background: #ff4d6d; color: #2c0510; }
+    .sel-foot { margin-top: 18px; }
+
+    .ms-layout { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    .ms-list { flex: 0 0 340px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ms-card { margin: 0; padding: 6px; text-align: left; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+    .ms-card canvas { width: 100%; height: auto; border-radius: 6px; background: #000; margin: 0; }
+    .ms-card b { font-size: 14px; } .ms-card small { color: #9db4d8; font-size: 11px; }
+    .ms-card.on { border-color: var(--pink); box-shadow: 0 0 16px rgba(255,46,136,.5); }
+    .ms-detail { flex: 1; min-width: 320px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: left; }
+    .ms-detail canvas { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: #000; margin: 0; }
+    .ms-detail h3 { margin: 12px 0 2px; font-size: 26px; font-style: italic; letter-spacing: .06em; }
+    .ms-detail .tagline { color: var(--cyan); font-size: 13px; letter-spacing: .2em; font-weight: 800; }
+    .ms-detail p { color: #cfe3ff; line-height: 1.7; font-size: 14px; margin: 8px 0 0; }
+    .lobby-prev { display: block; margin: 8px auto; width: 320px; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #000; }
+
+    #gameScreen { padding: 46px 10px 18px; }
+    .battle-wrap { max-width: 880px; margin: 0 auto; }
+    .hud { display: grid; grid-template-columns: 1fr 150px 1fr; gap: 10px; align-items: stretch; margin-bottom: 10px; }
+    .hud-p { display: flex; gap: 10px; align-items: center; padding: 8px 14px; background: var(--panel); border: 1px solid var(--line); text-align: left; }
+    .hud-p.p1 { border-left: 4px solid #3aa0ff; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+    .hud-p.p2 { border-right: 4px solid #ff4d6d; flex-direction: row-reverse; text-align: right; clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
+    .hud-portrait { width: 58px; height: 58px; flex: 0 0 58px; border-radius: 50%; overflow: hidden; background: #0b1226; border: 2px solid; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+    .hud-p.p1 .hud-portrait { border-color: #3aa0ff; } .hud-p.p2 .hud-portrait { border-color: #ff4d6d; }
+    .hud-portrait img { width: 100%; height: 100%; object-fit: cover; }
+    .hud-body { flex: 1; min-width: 0; }
+    .hud-name { font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hud-name .tag { font-size: 11px; padding: 1px 6px; margin-right: 6px; border-radius: 3px; color: #04122a; font-weight: 800; }
+    .hud-p.p1 .tag { background: #3aa0ff; } .hud-p.p2 .tag { background: #ff4d6d; margin-right: 0; margin-left: 6px; order: 2; }
+    .hp { position: relative; height: 14px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.18); transform: skewX(-14deg); margin: 4px 0; overflow: hidden; }
+    .hp .trail, .hp .fill { position: absolute; top: 0; bottom: 0; left: 0; }
+    .hud-p.p2 .hp .trail, .hud-p.p2 .hp .fill { left: auto; right: 0; }
+    .hp .trail { background: #fff; opacity: .75; transition: width .7s ease .25s; }
+    .hp .fill { background: linear-gradient(90deg, #27d6a0, #4dff9b); transition: width .12s; }
+    .hp.mid .fill { background: linear-gradient(90deg, #ff9f1a, #ffc53d); }
+    .hp.low .fill { background: linear-gradient(90deg, #ff2e4d, #ff6b7a); animation: pulseB .6s infinite alternate; }
+    .hp em { position: absolute; inset: 0; text-align: center; font-style: normal; font-size: 11px; font-weight: 800; line-height: 14px; text-shadow: 0 0 3px #000; transform: skewX(14deg); }
+    .hud-row { display: flex; align-items: center; gap: 8px; }
+    .hud-p.p2 .hud-row { flex-direction: row-reverse; }
+    .pips { display: flex; gap: 2px; min-width: 20px; }
+    .pips i { display: block; width: 8px; height: 12px; background: rgba(255,255,255,.12); transform: skewX(-14deg); }
+    .pips i.on { background: #7df3ff; box-shadow: 0 0 6px #00e5ff; }
+    .pips.inf { color: #7df3ff; font-weight: 800; font-size: 13px; }
+    .skill { position: relative; flex: 1; height: 12px; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.18); transform: skewX(-14deg); overflow: hidden; }
+    .skill i { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: linear-gradient(90deg, #b8860b, #ffd23f); }
+    .hud-p.p2 .skill i { left: auto; right: 0; }
+    .skill b { position: absolute; inset: 0; text-align: center; font-size: 9px; font-weight: 800; line-height: 12px; letter-spacing: .1em; text-shadow: 0 0 3px #000; transform: skewX(14deg); }
+    .skill.ready { border-color: #ffd23f; box-shadow: 0 0 10px rgba(255,210,63,.7); animation: pulseB .8s infinite alternate; }
+    .hud-center { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
+    .timer { font-size: 30px; font-weight: 900; font-style: italic; letter-spacing: .08em; text-shadow: 0 0 12px rgba(0,229,255,.7); }
+    .zone { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: #9db4d8; }
+    .zone.hot { color: #ff6b7a; animation: pulseB .6s infinite alternate; }
+    .mapname { font-size: 11px; color: var(--cyan); letter-spacing: .2em; margin: 0; }
+    .arena { padding: 6px; background: linear-gradient(135deg, rgba(0,229,255,.6), rgba(255,46,136,.6)); clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+    .arena canvas { width: 100%; height: auto; background: #000; display: block; margin: 0; }
+    .ctrl { margin-top: 10px; font-size: 12px; color: #9db4d8; letter-spacing: .06em; }
+    @keyframes pulseB { from { filter: brightness(1); } to { filter: brightness(1.5); } }
+
+    .result-wrap { padding-top: 14vh; }
+    .res-label { color: var(--cyan); letter-spacing: .6em; font-size: 13px; font-weight: 800; }
+    #resultText, #onlineResult #onlineResultText { font-size: clamp(36px, 8vw, 64px); font-style: italic; margin: 10px 0 26px; letter-spacing: .06em; text-shadow: 0 0 24px rgba(0,229,255,.7), 3px 3px 0 var(--pink); }
+
+    @media (max-width: 860px) {
+      .cs-layout { grid-template-columns: 1fr; }
+      .cs-grid { grid-template-columns: repeat(3, 1fr); }
+      .hud { grid-template-columns: 1fr; }
+      .hud-center { order: -1; flex-direction: row; gap: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -162,100 +271,87 @@
           <span><b>キャラ図鑑</b><small>キャラクターの性能をチェック</small></span>
         </button>
       </div>
-      <div class="ver">VER 14</div>
+      <div class="ver">VER 16</div>
     </div>
   </div>
 
   <!-- キャラ選択 -->
-  <!-- キャラ選択 -->
-<div id="characterSelect" class="hidden">
-  <h2>キャラクター選択</h2>
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    
-    <!-- 左に1Pキャラの画像 -->
-    <div style="flex:1; text-align:center;">
-      <img id="player1Image" src="" alt="1Pキャラ" style="max-width:200px; display:none;">
-    </div>
-
-    <!-- 真ん中にセレクトボックス -->
-    <div style="flex:1; text-align:center;">
+  <div id="characterSelect" class="hidden select-screen">
+    <div class="sel-head"><small>STEP 1 / 2</small><h2>CHARACTER SELECT</h2></div>
+    <div class="cs-layout">
+      <div class="cs-side p1" id="csP1"></div>
       <div>
-        <label>1Pキャラ:
-          <select id="player1Select">
-            <option>スナイパー太郎</option>
-            <option>白い死神</option>
-            <option>怪盗レッド</option>
-            <option>ガジェットボット</option>
-            <option>アクアファイター</option>
-            <option>ツインブラザーズ</option>
-            <option>聖なる使者</option>
-            <option>ジャンパー</option>
-            <option>ボマー</option>
-            <option>ブーメランボーイ</option>
-            <option>ジョーカー</option>
-            <option>サンダーマウス</option>
-          </select>
-        </label>
+        <div class="cs-tabs">
+          <button class="cs-tab" id="csTab1" onclick="csSetActive(1)">1P を選ぶ</button>
+          <button class="cs-tab" id="csTab2" onclick="csSetActive(2)">2P を選ぶ</button>
+        </div>
+        <div class="cs-grid" id="csGrid"></div>
       </div>
-      <div>
-        <label>2Pキャラ:
-          <select id="player2Select">
-            <option>スナイパー太郎</option>
-            <option>白い死神</option>
-            <option>怪盗レッド</option>
-            <option>ガジェットボット</option>
-            <option>アクアファイター</option>
-            <option>ツインブラザーズ</option>
-            <option>聖なる使者</option>
-            <option>ジャンパー</option>
-            <option>ボマー</option>
-            <option>ブーメランボーイ</option>
-            <option>ジョーカー</option>
-            <option>サンダーマウス</option>
-          </select>
-        </label>
-      </div>
+      <div class="cs-side p2" id="csP2"></div>
     </div>
-
-    <!-- 右に2Pキャラの画像 -->
-    <div style="flex:1; text-align:center;">
-      <img id="player2Image" src="" alt="2Pキャラ" style="max-width:200px; display:none;">
-    </div>
-
+    <div class="sel-foot"><button class="cta" onclick="goToMapSelect()">マップ選択へ ▶</button></div>
+    <select id="player1Select" class="hidden"></select>
+    <select id="player2Select" class="hidden"></select>
   </div>
-  <button onclick="goToMapSelect()">次へ</button>
-</div>
-
 
   <!-- マップ選択 -->
-  <div id="mapSelect" class="hidden">
-    <h2>マップ選択</h2>
-    <select id="mapSelectDropdown">
-      <option>草原</option>
-      <option>雪原</option>
-      <option>都市</option>
-      <option>火山</option>
-      <option>宇宙</option>
-      <option>海辺</option>
-      <option>ジャングル</option>
-      <option>工場</option>
-    </select>
-    <button onclick="startGame()">ゲーム開始</button>
+  <div id="mapSelect" class="hidden select-screen">
+    <div class="sel-head"><small>STEP 2 / 2</small><h2>MAP SELECT</h2><span class="vs-sum" id="msVs"></span></div>
+    <div class="ms-layout">
+      <div class="ms-list" id="msList"></div>
+      <div class="ms-detail">
+        <canvas id="msBig" width="640" height="320"></canvas>
+        <h3 id="msName"></h3>
+        <div class="tagline" id="msTag"></div>
+        <p id="msDesc"></p>
+      </div>
+    </div>
+    <div class="sel-foot">
+      <button class="cta ghost" onclick="goToCharacterSelect()">◀ キャラ選択</button>
+      <button class="cta" onclick="startGame()">対戦開始 ▶</button>
+    </div>
+    <select id="mapSelectDropdown" class="hidden"></select>
   </div>
 
   <!-- ゲーム画面 -->
   <div id="gameScreen" class="hidden">
-    <h2 id="gameInfo"></h2>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="battle-wrap">
+      <div class="hud">
+        <div class="hud-p p1">
+          <div class="hud-portrait" id="hudImg1"></div>
+          <div class="hud-body">
+            <div class="hud-name"><span class="tag">1P</span><span id="hudName1"></span></div>
+            <div class="hp" id="hudHpBox1"><div class="trail" id="hudTrail1"></div><div class="fill" id="hudHp1"></div><em id="hudHpTxt1"></em></div>
+            <div class="hud-row"><div class="pips" id="hudAmmo1"></div><div class="skill" id="hudSkBox1"><i id="hudSk1"></i><b id="hudSkTxt1"></b></div></div>
+          </div>
+        </div>
+        <div class="hud-center">
+          <div class="timer" id="hudTimer">0:00</div>
+          <div class="zone" id="hudZone"></div>
+          <div class="mapname" id="gameInfo"></div>
+        </div>
+        <div class="hud-p p2">
+          <div class="hud-portrait" id="hudImg2"></div>
+          <div class="hud-body">
+            <div class="hud-name"><span class="tag">2P</span><span id="hudName2"></span></div>
+            <div class="hp" id="hudHpBox2"><div class="trail" id="hudTrail2"></div><div class="fill" id="hudHp2"></div><em id="hudHpTxt2"></em></div>
+            <div class="hud-row"><div class="pips" id="hudAmmo2"></div><div class="skill" id="hudSkBox2"><i id="hudSk2"></i><b id="hudSkTxt2"></b></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="arena"><canvas id="gameCanvas" width="800" height="400"></canvas></div>
+      <div class="ctrl" id="controlHelp"></div>
+    </div>
   </div>
 
   <!-- リザルト画面 -->
-  <div id="resultScreen" class="hidden">
+  <div id="resultScreen" class="hidden panel-screen result-wrap">
+    <div class="res-label">RESULT</div>
     <h2 id="resultText"></h2>
-    <button onclick="returnToMenu()">メニューに戻る</button>
+    <button class="cta" onclick="returnToMenu()">メニューに戻る</button>
   </div>
 
-  <!-- ===== ここから ver14 追加画面 ===== -->
+<!-- ===== ここから ver14 追加画面 ===== -->
   <button id="backBtn" class="hidden" onclick="backToMenu()">← メニュー</button>
 
   <!-- オンライン：入口 -->
@@ -309,6 +405,7 @@
           <select id="lobbyMapSelect"></select>
         </label>
         <span id="lobbyMapNote" class="keyhelp"></span>
+        <canvas id="lobbyMapPreview" class="lobby-prev" width="320" height="160"></canvas>
       </div>
       <div>
         <button id="lobbyReadyBtn" class="hidden" onclick="toggleReady()">準備OK</button>
@@ -382,34 +479,6 @@ const characterImages = {
   "サンダーマウス": "images/pikachu.png"
 };
 
-// キャラ選択時に画像更新
-function updateCharacterImage(player, selectId, imageId) {
-  const selected = document.getElementById(selectId).value;
-  const imgPath = characterImages[selected] || "";
-  const imgElem = document.getElementById(imageId);
-
-  if (imgPath) {
-    imgElem.src = imgPath;
-    imgElem.style.display = "inline";
-  } else {
-    imgElem.style.display = "none";
-  }
-}
-
-// セレクトボックスにイベント登録
-document.getElementById("player1Select").addEventListener("change", () => {
-  updateCharacterImage(1, "player1Select", "player1Image");
-});
-document.getElementById("player2Select").addEventListener("change", () => {
-  updateCharacterImage(2, "player2Select", "player2Image");
-});
-
-// 初期表示用（ページ遷移直後に更新しておく）
-document.addEventListener("DOMContentLoaded", () => {
-  updateCharacterImage(1, "player1Select", "player1Image");
-  updateCharacterImage(2, "player2Select", "player2Image");
-});
-
 
     function goToMapSelect() {
       hideAllScreens();
@@ -431,14 +500,8 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx = canvas.getContext("2d");
 
       // プレイヤー初期位置設定
-let p1Y = 300, p2Y = 100;
-if (selectedMap === "工場" || selectedMap === "火山") {
-  p1Y = 0;
-  p2Y = 0;
-}
-
-player1 = createPlayer(100, p1Y, "blue", p1Name);
-player2 = createPlayer(650, p2Y, "red", p2Name);
+player1 = createPlayer(SPAWNS.p1.x, SPAWNS.p1.y, "blue", p1Name);
+      player2 = createPlayer(SPAWNS.p2.x, SPAWNS.p2.y, "red", p2Name);
 
 
       obstacles = getObstaclesForMap(selectedMap);
@@ -623,76 +686,111 @@ lastPoisonTick = Date.now();
       };
     }
 
-    function getObstaclesForMap(mapName) {
-  let base = [];
-  if (mapName === "草原") {
-    base = [{ x: 350, y: 150, w: 40, h: 100 }];
-  } else if (mapName === "雪原") {
-    base = [
-      { x: 250, y: 100, w: 30, h: 30 },
-      { x: 400, y: 180, w: 50, h: 30 }
-    ];
-  } else if (mapName === "都市") {
-    base = [
-      { x: 300, y: 160, w: 40, h: 80 },
-      { x: 380, y: 220, w: 60, h: 40 }
-    ];
-  } else if (mapName === "火山") {
-    base = [
-      { x: 350, y: 200, w: 60, h: 60 },   // 中央の溶岩
-      { x: 100, y: 320, w: 50, h: 50 },   // 左下の溶岩
-      { x: 550, y: 80, w: 50, h: 50 }     // 右上の溶岩
-    ];
-  } else if (mapName === "宇宙") {
-    base = [
-      { x: 150, y: 80, w: 20, h: 20 },
-      { x: 250, y: 200, w: 25, h: 25 },
-      { x: 400, y: 120, w: 15, h: 15 },
-      { x: 500, y: 250, w: 20, h: 20 },
-      { x: 300, y: 300, w: 25, h: 25 }
-    ]; // 浮遊岩を多数配置
-  } else if (mapName === "海辺") {
-    base = [
-      { x: 350, y: 300, w: 80, h: 20 },   // 波
-      { x: 280, y: 180, w: 140, h: 40 }   // 砂の丘（特殊形状っぽく横長）
-    ];
-  } else if (mapName === "ジャングル") {
-    // 丸型っぽい障害物（円を表現するため正方形を多用）
-    base = [
-      { x: 180, y: 100, w: 30, h: 30 },
-      { x: 220, y: 150, w: 35, h: 35 },
-      { x: 260, y: 200, w: 40, h: 40 },
-      { x: 320, y: 120, w: 30, h: 30 },
-      { x: 380, y: 160, w: 35, h: 35 },
-      { x: 420, y: 210, w: 40, h: 40 }
-    ]; // 森っぽく林立
-  } else if (mapName === "工場") {
-    base = [];
-    // 等間隔にコンテナを縦横配置、真ん中は空ける
-    for (let i = 100; i <= 500; i += 100) {
-      for (let j = 80; j <= 320; j += 80) {
-        if (!(i > 250 && i < 400 && j > 140 && j < 260)) {
-          base.push({ x: i, y: j, w: 60, h: 20 });
-        }
+    /* ===== ver16：競技マップ（すべて点対称・左右完全公平） =====
+       base に書いた障害物の「180度回転コピー」が自動で反対側に作られます。
+       中央に置いた自己対称の障害物は重複しないよう1つにまとめます。 */
+    const ARENA_W = 800, ARENA_H = 400;
+    const SPAWNS = { p1: { x: 70, y: 185 }, p2: { x: 700, y: 185 } }; // 30x30 の左上座標
+    const MAP_DEFS = {
+      "草原": {
+        tag: "ピラー戦",
+        desc: "中央の太い柱と、左右の斜め配置の遮蔽物。弾道の読み合いが基本のスタンダードマップ。",
+        base: [
+          { x: 385, y: 150, w: 30, h: 100 },
+          { x: 230, y: 70,  w: 36, h: 70 },
+          { x: 200, y: 260, w: 70, h: 30 },
+          { x: 130, y: 120, w: 24, h: 24 }
+        ]
+      },
+      "雪原": {
+        tag: "アイスフィールド",
+        desc: "小さな氷塊が散らばる開けた戦場。遮蔽が少なく、移動と弾避けの腕が出る。",
+        base: [
+          { x: 190, y: 60,  w: 30, h: 30 },
+          { x: 190, y: 310, w: 30, h: 30 },
+          { x: 290, y: 150, w: 30, h: 30 },
+          { x: 290, y: 220, w: 30, h: 30 },
+          { x: 385, y: 185, w: 30, h: 30 }
+        ]
+      },
+      "都市": {
+        tag: "ストリート",
+        desc: "ビルで通りが縦に分かれた市街地。中央ブロックを挟んだ読み合いと回り込みが鍵。",
+        base: [
+          { x: 250, y: 40,  w: 50, h: 110 },
+          { x: 250, y: 250, w: 50, h: 60 },
+          { x: 370, y: 170, w: 60, h: 60 }
+        ]
+      },
+      "火山": {
+        tag: "マグマリフト",
+        desc: "岩壁が中央に対角線の通路を作る。壁際の押し引きとスキル回しの勝負。",
+        base: [
+          { x: 360, y: 0,   w: 30, h: 120 },
+          { x: 200, y: 170, w: 40, h: 60 },
+          { x: 300, y: 310, w: 40, h: 40 }
+        ]
+      },
+      "宇宙": {
+        tag: "アステロイド",
+        desc: "小さな小惑星が点在。どこからでも視線が通りにくく、位置取りが重要。",
+        base: [
+          { x: 150, y: 70,  w: 26, h: 26 },
+          { x: 150, y: 304, w: 26, h: 26 },
+          { x: 250, y: 150, w: 30, h: 30 },
+          { x: 250, y: 220, w: 30, h: 30 },
+          { x: 330, y: 90,  w: 34, h: 34 },
+          { x: 330, y: 276, w: 34, h: 34 },
+          { x: 388, y: 188, w: 24, h: 24 }
+        ]
+      },
+      "海辺": {
+        tag: "ビーチ",
+        desc: "横長の障害物が上下レーンを作る。中央の砂丘を取った側が主導権を握る。",
+        base: [
+          { x: 260, y: 80,  w: 100, h: 20 },
+          { x: 260, y: 300, w: 100, h: 20 },
+          { x: 350, y: 185, w: 100, h: 30 },
+          { x: 140, y: 150, w: 20,  h: 20 }
+        ]
+      },
+      "ジャングル": {
+        tag: "グローブ",
+        desc: "木々が点在する森。視線を切りやすく、待ち伏せと奇襲が狙える。",
+        base: [
+          { x: 170, y: 100, w: 34, h: 34 },
+          { x: 170, y: 266, w: 34, h: 34 },
+          { x: 260, y: 170, w: 36, h: 36 },
+          { x: 300, y: 60,  w: 36, h: 36 },
+          { x: 300, y: 304, w: 36, h: 36 },
+          { x: 382, y: 182, w: 36, h: 36 }
+        ]
+      },
+      "工場": {
+        tag: "ファクトリー",
+        desc: "コンテナで作られた通路。中央の狭い通路をどちらが制圧するかが勝負の分かれ目。",
+        base: [
+          { x: 200, y: 80,  w: 90, h: 24 },
+          { x: 200, y: 296, w: 90, h: 24 },
+          { x: 340, y: 130, w: 24, h: 70 },
+          { x: 340, y: 240, w: 24, h: 60 }
+        ]
       }
+    };
+
+    function getObstaclesForMap(mapName) {
+      const def = MAP_DEFS[mapName] || MAP_DEFS["草原"];
+      const out = [], seen = new Set();
+      const push = o => {
+        const k = o.x + "," + o.y + "," + o.w + "," + o.h;
+        if (!seen.has(k)) { seen.add(k); out.push({ x: o.x, y: o.y, w: o.w, h: o.h }); }
+      };
+      def.base.forEach(o => {
+        push(o);
+        push({ x: ARENA_W - o.x - o.w, y: ARENA_H - o.y - o.h, w: o.w, h: o.h });
+      });
+      return out;
     }
-  }
-
-  // 対称配置
-  const full = [];
-  base.forEach(o => {
-    full.push(o);
-    full.push({
-      x: canvas.width - o.x - o.w,
-      y: canvas.height - o.y - o.h,
-      w: o.w,
-      h: o.h
-    });
-  });
-  return full;
-}
-
-
 
     function shootBullet(shooter, target) {
       if (shooter.ammo <= 0 || !gameActive) return;
@@ -1162,6 +1260,8 @@ if (shooter.charName === "ツインブラザーズ") {
       if (keys[down]) newY += player.speed;
       if (keys[left]) newX -= player.speed;
       if (keys[right]) newX += player.speed;
+      newX = Math.max(0, Math.min(ARENA_W - player.w, newX));
+      newY = Math.max(0, Math.min(ARENA_H - player.h, newY));
       const newRect = { x: newX, y: newY, w: player.w, h: player.h };
       if (!collidesWithObstacles(newRect)) { player.x = newX; player.y = newY; }
     }
@@ -1371,82 +1471,7 @@ function updateSafeZone() {
       return obstacles.some(obs => circleHitRect(circle, obs));
     }
 
-    function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // 背景（マップ全体）
-  ctx.fillStyle = selectedMap === "草原" ? "#e0ffe0" : selectedMap === "雪原" ? "#ddf0ff" : "#eeeeee";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
- // 外側の毒ゾーン
-if (safeZone.shrinking && safeZone.radius < Math.max(canvas.width, canvas.height)) {
-  ctx.fillStyle = "rgba(200,0,0,0.3)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  ctx.globalCompositeOperation = "destination-out"; // 重要：合成モードを変更
-  ctx.beginPath();
-  ctx.arc(safeZone.x, safeZone.y, safeZone.radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalCompositeOperation = "source-over"; // 元に戻す
-}
-
-// 安全地帯の枠線（視覚的に分かりやすくする）
-if (safeZone.shrinking) {
-  ctx.strokeStyle = "green";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(safeZone.x, safeZone.y, safeZone.radius, 0, Math.PI*2);
-  ctx.stroke();
-}
-  // 安全地帯の枠線（視覚的に分かりやすくする）
-  ctx.strokeStyle = "green";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(safeZone.x, safeZone.y, safeZone.radius, 0, Math.PI*2);
-  ctx.stroke();
-
-  // 障害物
-  ctx.fillStyle = "gray"; 
-  obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.w, obs.h));
-
-  // プレイヤー・弾・タレットなど
-  drawPlayer(player1);
-  drawPlayer(player2);
-
-  ctx.fillStyle = "black";
-  bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); });
-
-  turrets.forEach(turret => { ctx.fillStyle="purple"; ctx.beginPath(); ctx.arc(turret.x,turret.y,10,0,Math.PI*2); ctx.fill(); });
-
-  explosions.forEach(ex => {
-    ctx.strokeStyle="red"; ctx.beginPath(); ctx.arc(ex.x,ex.y,ex.r,0,Math.PI*2); ctx.stroke();
-  });
-
-  // スキル情報
-  ctx.fillStyle = "black"; ctx.font="16px Arial";
-  const now = Date.now();
-  ctx.fillText(`1Pスキル${player1.charName==="聖なる使者" ? `チャージ:${player1.skillCharge}/20` : now-player1.skillLastUsed>=player1.skillCooldown?"OK":"…待機中"}`,10,20);
-  ctx.fillText(`2Pスキル${player2.charName==="聖なる使者" ? `チャージ:${player2.skillCharge}/20` : now-player2.skillLastUsed>=player2.skillCooldown?"OK":"…待機中"}`,10,40);
-}
-
-
-    function drawPlayer(player) {
-      ctx.fillStyle = player.color;
-      ctx.fillRect(player.x, player.y, player.w, player.h);
-      const hpRatio = Math.max(0, player.hp) / 100;
-      ctx.fillStyle = "red"; ctx.fillRect(player.x, player.y-10, player.w, 5);
-      ctx.fillStyle = "lime"; ctx.fillRect(player.x, player.y-10, player.w*hpRatio, 5);
-      const ammoRatio = player.ammo / player.maxAmmo;
-      ctx.fillStyle="black"; ctx.fillRect(player.x, player.y-4, player.w, 4);
-      ctx.fillStyle="cyan"; ctx.fillRect(player.x, player.y-4, player.w*ammoRatio, 4);
-      const now = Date.now();
-      if (player.charName !== "聖なる使者" && now - player.skillLastUsed >= player.skillCooldown) {
-        ctx.strokeStyle="yellow"; ctx.strokeRect(player.x-2,player.y-2,player.w+4,player.h+4);
-      }
-      if (player.charName==="ツインブラザーズ") {
-        ctx.fillStyle="black"; ctx.fillText(player.mode, player.x, player.y-20);
-      }
-    }
+    // draw() / drawPlayer() は ver16 の描画スクリプトで定義
 
     function checkGameOver() {
       if (player1.hp <= 0 || player2.hp <= 0) {
@@ -1923,6 +1948,7 @@ if (safeZone.shrinking) {
       const ms = document.getElementById("lobbyMapSelect");
       ms.value = onl.map;
       ms.disabled = !host;
+      drawMapPreview(document.getElementById("lobbyMapPreview"), onl.map);
       document.getElementById("lobbyMapNote").textContent = host ? "" : "（ホストが選びます）";
 
       const readyBtn = document.getElementById("lobbyReadyBtn");
@@ -1997,10 +2023,8 @@ if (safeZone.shrinking) {
       document.removeEventListener("keydown", keyDownHandler);
       document.removeEventListener("keyup", keyUpHandler);
 
-      let p1Y = 300, p2Y = 100;
-      if (mapName === "工場" || mapName === "火山") { p1Y = 0; p2Y = 0; }
-      player1 = createPlayer(100, p1Y, "blue", p1Name);
-      player2 = createPlayer(650, p2Y, "red", p2Name);
+      player1 = createPlayer(SPAWNS.p1.x, SPAWNS.p1.y, "blue", p1Name);
+      player2 = createPlayer(SPAWNS.p2.x, SPAWNS.p2.y, "red", p2Name);
       bullets = []; turrets = []; explosions = []; keys = {};
       obstacles = onl.isHost ? getObstaclesForMap(mapName) : [];
       safeZone.x = canvas.width / 2;
@@ -2067,10 +2091,10 @@ if (safeZone.shrinking) {
           cd: isFinite(p.skillCooldown) ? p.skillCooldown : null,
           se: now - p.skillLastUsed
         })),
-        b: bullets.map(b => [r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.r)]),
-        tu: turrets.map(t => [r1(t.x), r1(t.y)]),
+        b: bullets.map(b => [r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.r), b.from === player1 ? 1 : 2]),
+        tu: turrets.map(t => [r1(t.x), r1(t.y), t.owner === player1 ? 1 : 2]),
         ex: explosions.map(e => [r1(e.x), r1(e.y), r1(e.r), e.life]),
-        sz: [safeZone.x, safeZone.y, r1(safeZone.radius), safeZone.shrinking ? 1 : 0]
+        sz: [safeZone.x, safeZone.y, r1(safeZone.radius), safeZone.shrinking ? 1 : 0, now - gameStartTime]
       };
       if (obstacles.length !== onl.lastObCount) {
         s.ob = obstacles.map(o => [o.x, o.y, o.w, o.h]);
@@ -2090,11 +2114,12 @@ if (safeZone.shrinking) {
         p.skillCooldown = d.cd === null ? Infinity : d.cd;
         p.skillLastUsed = Date.now() - d.se;
       });
-      bullets = s.b.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], r: a[4] }));
-      turrets = s.tu.map(a => ({ x: a[0], y: a[1] }));
+      bullets = s.b.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], r: a[4], own: a[5] }));
+      turrets = s.tu.map(a => ({ x: a[0], y: a[1], own: a[2] }));
       explosions = s.ex.map(a => ({ x: a[0], y: a[1], r: a[2], life: a[3] }));
       if (s.ob) obstacles = s.ob.map(a => ({ x: a[0], y: a[1], w: a[2], h: a[3] }));
       safeZone.x = s.sz[0]; safeZone.y = s.sz[1]; safeZone.radius = s.sz[2]; safeZone.shrinking = !!s.sz[3];
+      gameStartTime = Date.now() - (s.sz[4] || 0);
     }
 
     function guestLoop(ts) {
@@ -2110,17 +2135,6 @@ if (safeZone.shrinking) {
       draw();
       drawYouMarker();
       onl.raf = requestAnimationFrame(guestLoop);
-    }
-
-    function drawYouMarker() {
-      const me = onl.isHost ? player1 : player2;
-      if (!me || !ctx) return;
-      ctx.save();
-      ctx.fillStyle = onl.isHost ? "#1d4ed8" : "#dc2626";
-      ctx.font = "bold 12px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("▼YOU", me.x + me.w / 2, me.y - 26);
-      ctx.restore();
     }
 
     /* ----- 試合終了 ----- */
@@ -2176,6 +2190,573 @@ if (safeZone.shrinking) {
       if (e.key === "Enter") onlineJoinRoom();
     });
     window.addEventListener("beforeunload", () => { try { if (onl.conn) onl.conn.close(); } catch (e) {} });
+  </script>
+
+  <script>
+    /* ============================================================
+       ver16：バトル演出 / キャラ選択 / マップ選択 のビジュアル刷新
+       ※ ゲームロジック（ダメージ・弾・スキル等）は変更していません
+       ============================================================ */
+    const TAU = Math.PI * 2;
+    const $ = id => document.getElementById(id);
+    const TEAM = {
+      1: { main: "#3aa0ff", light: "#bfe3ff", rgb: "58,160,255" },
+      2: { main: "#ff4d6d", light: "#ffc2cd", rgb: "255,77,109" }
+    };
+
+    const CHAR_TAGS = {
+      "スナイパー太郎": "高速の2連射。スキルで弾速が上がっていく",
+      "白い死神": "超高速の一撃。スキルで次の弾が大威力に",
+      "怪盗レッド": "俊足の撃ち手。自動で撃つタレットを設置",
+      "ガジェットボット": "壁を貫通する弾。ランダムワープで回避",
+      "アクアファイター": "10発の連射型。スキルで壁を作り出す",
+      "ツインブラザーズ": "爆発弾と散弾をスキルで切り替え",
+      "聖なる使者": "与ダメージを溜めて自分のHPを回復",
+      "ジャンパー": "飛ぶほど加速して巨大化する弾",
+      "ボマー": "その場で爆発。スキルで威力と速度が上昇",
+      "ブーメランボーイ": "戻ってくる弾と、ワープ地点の設置",
+      "ジョーカー": "3方向の拡散弾。スキルは運任せの6択",
+      "サンダーマウス": "途中で分裂する弾と、短距離ダッシュ"
+    };
+
+    /* ---------- マップのテーマ ---------- */
+    const MAP_THEME = {
+      "草原":     { floor: ["#1f4a2c", "#112a1a"], grid: "rgba(160,255,190,.06)", accent: "#7dffa8", deco: "grass",   obs: { style: "stone",     top: "#a9b79a", side: "#5c6a52", edge: "#2a3326" } },
+      "雪原":     { floor: ["#2a4a68", "#132539"], grid: "rgba(200,235,255,.08)", accent: "#bfe6ff", deco: "snow",    obs: { style: "ice",       top: "#dff2ff", side: "#85bde3", edge: "#4a7ea6" } },
+      "都市":     { floor: ["#2b2f3d", "#171a24"], grid: "rgba(255,255,255,.05)", accent: "#ffd166", deco: "city",    obs: { style: "building",  top: "#5a6280", side: "#2f3446", edge: "#10121b" } },
+      "火山":     { floor: ["#3d1b14", "#1a0b0a"], grid: "rgba(255,120,60,.06)",  accent: "#ff7a3d", deco: "volcano", obs: { style: "basalt",    top: "#4b3b39", side: "#231918", edge: "#ff6a2a" } },
+      "宇宙":     { floor: ["#171b40", "#07091d"], grid: "rgba(150,170,255,.06)", accent: "#b49bff", deco: "space",   obs: { style: "rock",      top: "#8d92ab", side: "#4a4e66", edge: "#22253a" } },
+      "海辺":     { floor: ["#7a6440", "#46391f"], grid: "rgba(255,240,200,.07)", accent: "#5fe3d0", deco: "beach",   obs: { style: "dune",      top: "#f0d79a", side: "#b8975a", edge: "#6b5530" } },
+      "ジャングル": { floor: ["#17402a", "#0a2015"], grid: "rgba(150,255,150,.05)", accent: "#9dff6a", deco: "jungle",  obs: { style: "tree",      top: "#2f8a4a", side: "#1d5c32", edge: "#0a2f18" } },
+      "工場":     { floor: ["#3a3f47", "#1f2329"], grid: "rgba(255,255,255,.06)", accent: "#ffb020", deco: "factory", obs: { style: "container", top: "#c25b2a", side: "#7a3a1a", edge: "#2a1408" } }
+    };
+    const CONTAINER_PAL = [
+      { top: "#d2652d", side: "#7e3b1a" }, { top: "#2f74b5", side: "#1a4468" }, { top: "#4f9a5a", side: "#2b5a33" }
+    ];
+
+    function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+    function hashPos(o, n) { return Math.abs((o.x * 31 + o.y * 17 + o.w * 7 + o.h * 3) | 0) % n; }
+    function rrect(g, x, y, w, h, r) {
+      r = Math.min(r, w / 2, h / 2);
+      g.beginPath(); g.moveTo(x + r, y);
+      g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+    }
+    function hazard(g, x, y, w, h) {
+      g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+      g.fillStyle = "rgba(255,176,32,.22)"; g.fillRect(x, y, w, h);
+      g.fillStyle = "rgba(0,0,0,.35)";
+      for (let k = -h; k < w + h; k += 16) {
+        g.beginPath(); g.moveTo(x + k, y + h); g.lineTo(x + k + 8, y + h); g.lineTo(x + k + 8 + h, y); g.lineTo(x + k + h, y); g.closePath(); g.fill();
+      }
+      g.restore();
+    }
+
+    /* ---------- 床の装飾 ---------- */
+    const DECO = {
+      grass(g, r) {
+        for (let i = 0; i < 320; i++) {
+          const x = r() * ARENA_W, y = r() * ARENA_H, l = 3 + r() * 6;
+          g.strokeStyle = `rgba(150,230,150,${(.10 + r() * .14).toFixed(2)})`; g.lineWidth = 1;
+          g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - .5) * 3, y - l); g.stroke();
+        }
+        g.fillStyle = "rgba(255,240,170,.3)";
+        for (let i = 0; i < 18; i++) { g.beginPath(); g.arc(r() * ARENA_W, r() * ARENA_H, 1.6, 0, TAU); g.fill(); }
+      },
+      snow(g, r) {
+        g.fillStyle = "rgba(255,255,255,.18)";
+        for (let i = 0; i < 200; i++) { g.beginPath(); g.arc(r() * ARENA_W, r() * ARENA_H, .6 + r() * 1.4, 0, TAU); g.fill(); }
+        g.strokeStyle = "rgba(190,230,255,.16)"; g.lineWidth = 1.2;
+        for (let i = 0; i < 9; i++) {
+          let x = r() * ARENA_W, y = r() * ARENA_H; g.beginPath(); g.moveTo(x, y);
+          for (let k = 0; k < 4; k++) { x += (r() - .5) * 70; y += (r() - .5) * 50; g.lineTo(x, y); } g.stroke();
+        }
+      },
+      city(g) {
+        g.fillStyle = "rgba(255,255,255,.045)"; g.fillRect(0, 0, ARENA_W, 16); g.fillRect(0, ARENA_H - 16, ARENA_W, 16);
+        g.strokeStyle = "rgba(255,209,102,.30)"; g.lineWidth = 3; g.setLineDash([22, 16]);
+        g.beginPath(); g.moveTo(0, ARENA_H / 2); g.lineTo(ARENA_W, ARENA_H / 2); g.stroke();
+        g.beginPath(); g.moveTo(ARENA_W / 2, 0); g.lineTo(ARENA_W / 2, ARENA_H); g.stroke(); g.setLineDash([]);
+        g.fillStyle = "rgba(255,255,255,.10)";
+        [150, 626].forEach(x => { for (let y = 40; y < ARENA_H - 40; y += 16) g.fillRect(x, y, 24, 8); });
+      },
+      volcano(g, r) {
+        for (let i = 0; i < 7; i++) {
+          const x = r() * ARENA_W, y = r() * ARENA_H, R = 70 + r() * 50;
+          const gr = g.createRadialGradient(x, y, 0, x, y, R);
+          gr.addColorStop(0, "rgba(255,100,30,.20)"); gr.addColorStop(1, "rgba(255,100,30,0)");
+          g.fillStyle = gr; g.fillRect(0, 0, ARENA_W, ARENA_H);
+        }
+        g.save(); g.strokeStyle = "rgba(255,120,50,.40)"; g.lineWidth = 1.5; g.shadowColor = "#ff6a2a"; g.shadowBlur = 8;
+        for (let i = 0; i < 14; i++) {
+          let x = r() * ARENA_W, y = r() * ARENA_H; g.beginPath(); g.moveTo(x, y);
+          for (let k = 0; k < 5; k++) { x += (r() - .5) * 60; y += (r() - .5) * 60; g.lineTo(x, y); } g.stroke();
+        }
+        g.restore();
+      },
+      space(g, r) {
+        [["rgba(120,80,255,.22)", 140], ["rgba(40,140,255,.18)", 170], ["rgba(255,80,180,.12)", 120]].forEach(([c, R]) => {
+          const x = r() * ARENA_W, y = r() * ARENA_H, gr = g.createRadialGradient(x, y, 0, x, y, R);
+          gr.addColorStop(0, c); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, ARENA_W, ARENA_H);
+        });
+        for (let i = 0; i < 150; i++) { g.fillStyle = `rgba(255,255,255,${(.2 + r() * .7).toFixed(2)})`; g.beginPath(); g.arc(r() * ARENA_W, r() * ARENA_H, .4 + r() * 1.2, 0, TAU); g.fill(); }
+      },
+      beach(g, r) {
+        g.fillStyle = "rgba(255,235,190,.12)";
+        for (let i = 0; i < 260; i++) { g.beginPath(); g.arc(r() * ARENA_W, 24 + r() * (ARENA_H - 48), .8, 0, TAU); g.fill(); }
+        const band = (y0, dir) => {
+          const gr = g.createLinearGradient(0, y0, 0, y0 + dir * 26); gr.addColorStop(0, "#0b6f86"); gr.addColorStop(1, "#2fb6c4");
+          g.fillStyle = gr; g.fillRect(0, dir > 0 ? y0 : y0 - 26, ARENA_W, 26);
+          g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 2; g.beginPath();
+          for (let x = 0; x <= ARENA_W; x += 6) { const y = y0 + dir * (26 + Math.sin(x / 14) * 3); x ? g.lineTo(x, y) : g.moveTo(x, y); }
+          g.stroke();
+        };
+        band(0, 1); band(ARENA_H, -1);
+      },
+      jungle(g, r) {
+        for (let i = 0; i < 46; i++) {
+          g.fillStyle = `rgba(70,170,90,${(.08 + r() * .08).toFixed(2)})`;
+          g.beginPath(); g.ellipse(r() * ARENA_W, r() * ARENA_H, 8 + r() * 18, 4 + r() * 8, r() * 3, 0, TAU); g.fill();
+        }
+        g.strokeStyle = "rgba(120,200,110,.12)"; g.lineWidth = 1.5;
+        for (let i = 0; i < 10; i++) { let x = r() * ARENA_W, y = r() * ARENA_H; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (r() - .5) * 80; y += (r() - .5) * 60; g.lineTo(x, y); } g.stroke(); }
+      },
+      factory(g) {
+        g.strokeStyle = "rgba(0,0,0,.30)"; g.lineWidth = 2;
+        for (let x = 100; x < ARENA_W; x += 100) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, ARENA_H); g.stroke(); }
+        for (let y = 100; y < ARENA_H; y += 100) { g.beginPath(); g.moveTo(0, y); g.lineTo(ARENA_W, y); g.stroke(); }
+        g.fillStyle = "rgba(255,255,255,.10)";
+        for (let x = 100; x < ARENA_W; x += 100) for (let y = 100; y < ARENA_H; y += 100) { [[-6, -6], [6, -6], [-6, 6], [6, 6]].forEach(([dx, dy]) => { g.beginPath(); g.arc(x + dx, y + dy, 1.6, 0, TAU); g.fill(); }); }
+        hazard(g, 392, 0, 16, ARENA_H); hazard(g, 0, 0, ARENA_W, 6); hazard(g, 0, ARENA_H - 6, ARENA_W, 6);
+      }
+    };
+
+    /* ---------- 背景（マップごとにキャッシュ） ---------- */
+    const bgCache = {};
+    function getBg(mapName) {
+      if (bgCache[mapName]) return bgCache[mapName];
+      const th = MAP_THEME[mapName] || MAP_THEME["草原"];
+      const c = document.createElement("canvas"); c.width = ARENA_W; c.height = ARENA_H;
+      const g = c.getContext("2d");
+      const r = rng(mapName.length * 977 + mapName.charCodeAt(0));
+      const grad = g.createLinearGradient(0, 0, 0, ARENA_H); grad.addColorStop(0, th.floor[0]); grad.addColorStop(1, th.floor[1]);
+      g.fillStyle = grad; g.fillRect(0, 0, ARENA_W, ARENA_H);
+      DECO[th.deco](g, r);
+      g.strokeStyle = th.grid; g.lineWidth = 1;
+      for (let x = 40; x < ARENA_W; x += 40) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, ARENA_H); g.stroke(); }
+      for (let y = 40; y < ARENA_H; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(ARENA_W, y); g.stroke(); }
+      // 中央マーク（最終安全地帯の目安）
+      g.save(); g.strokeStyle = th.accent; g.globalAlpha = .28; g.lineWidth = 2; g.setLineDash([8, 8]);
+      g.beginPath(); g.arc(ARENA_W / 2, ARENA_H / 2, 50, 0, TAU); g.stroke(); g.restore();
+      // スポーンパッド
+      [[1, SPAWNS.p1], [2, SPAWNS.p2]].forEach(([i, s]) => {
+        const cx = s.x + 15, cy = s.y + 15, T = TEAM[i];
+        const gr = g.createRadialGradient(cx, cy, 0, cx, cy, 60);
+        gr.addColorStop(0, `rgba(${T.rgb},.38)`); gr.addColorStop(1, `rgba(${T.rgb},0)`);
+        g.fillStyle = gr; g.fillRect(cx - 60, cy - 60, 120, 120);
+        g.strokeStyle = `rgba(${T.rgb},.7)`; g.lineWidth = 2; g.setLineDash([6, 5]);
+        g.beginPath(); g.arc(cx, cy, 36, 0, TAU); g.stroke(); g.setLineDash([]);
+      });
+      // ビネット
+      const vg = g.createRadialGradient(ARENA_W / 2, ARENA_H / 2, 160, ARENA_W / 2, ARENA_H / 2, 480);
+      vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.5)");
+      g.fillStyle = vg; g.fillRect(0, 0, ARENA_W, ARENA_H);
+      // 枠
+      g.strokeStyle = th.accent; g.globalAlpha = .55; g.lineWidth = 3; g.strokeRect(1.5, 1.5, ARENA_W - 3, ARENA_H - 3);
+      g.globalAlpha = .95; g.lineWidth = 4; const L = 24;
+      [[0, 0, 1, 1], [ARENA_W, 0, -1, 1], [0, ARENA_H, 1, -1], [ARENA_W, ARENA_H, -1, -1]].forEach(([x, y, sx, sy]) => {
+        g.beginPath(); g.moveTo(x + sx * L, y + sy * 2); g.lineTo(x + sx * 2, y + sy * 2); g.lineTo(x + sx * 2, y + sy * L); g.stroke();
+      });
+      bgCache[mapName] = c; return c;
+    }
+
+    /* ---------- 障害物（2.5D） ---------- */
+    function drawObstacle(g, o, th) {
+      const s = th.obs, cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+      g.save();
+      g.fillStyle = "rgba(0,0,0,.38)";
+      if (s.style === "tree" || s.style === "rock") { g.beginPath(); g.ellipse(cx + 3, cy + 6, o.w * .55, o.h * .5, 0, 0, TAU); g.fill(); }
+      else { rrect(g, o.x + 4, o.y + 6, o.w, o.h, 3); g.fill(); }
+
+      if (s.style === "tree") {
+        const R = Math.max(o.w, o.h) / 2 * 1.08;
+        const gr = g.createRadialGradient(cx - R * .3, cy - R * .35, R * .1, cx, cy, R);
+        gr.addColorStop(0, "#5ccb74"); gr.addColorStop(.6, "#2f8a4a"); gr.addColorStop(1, "#1a5430");
+        g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+        g.strokeStyle = s.edge; g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = "rgba(255,255,255,.14)"; g.beginPath(); g.ellipse(cx - R * .3, cy - R * .35, R * .38, R * .22, -.5, 0, TAU); g.fill();
+        g.restore(); return;
+      }
+      if (s.style === "rock") {
+        const R = Math.max(o.w, o.h) / 2;
+        const gr = g.createRadialGradient(cx - R * .3, cy - R * .3, R * .1, cx, cy, R * 1.1);
+        gr.addColorStop(0, "#b5bad0"); gr.addColorStop(1, "#4a4e66");
+        g.fillStyle = gr; rrect(g, o.x, o.y, o.w, o.h, Math.min(o.w, o.h) * .45); g.fill();
+        g.strokeStyle = s.edge; g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = "rgba(0,0,0,.22)";
+        const k = hashPos(o, 3);
+        g.beginPath(); g.arc(cx + (k - 1) * R * .3, cy + R * .15, R * .22, 0, TAU); g.fill();
+        g.beginPath(); g.arc(cx - R * .25, cy - R * .2, R * .13, 0, TAU); g.fill();
+        g.restore(); return;
+      }
+
+      const D = Math.min(7, o.h * .35), topH = o.h - D;
+      const rad = s.style === "dune" ? 9 : s.style === "ice" ? 4 : 2;
+      let pal = { top: s.top, side: s.side };
+      if (s.style === "container") pal = CONTAINER_PAL[hashPos(o, 3)];
+      rrect(g, o.x, o.y, o.w, o.h, rad); g.fillStyle = pal.side; g.fill();
+      rrect(g, o.x, o.y, o.w, topH, rad); g.fillStyle = pal.top; g.fill();
+      const og = g.createLinearGradient(0, o.y, 0, o.y + topH);
+      og.addColorStop(0, "rgba(255,255,255,.22)"); og.addColorStop(1, "rgba(0,0,0,.14)");
+      g.fillStyle = og; g.fill();
+
+      g.save(); rrect(g, o.x, o.y, o.w, topH, rad); g.clip();
+      if (s.style === "building") {
+        for (let x = o.x + 6; x < o.x + o.w - 6; x += 12) for (let y = o.y + 6; y < o.y + topH - 6; y += 12) {
+          const lit = (hashPos({ x: x, y: y, w: 1, h: 1 }, 5)) < 2;
+          g.fillStyle = lit ? "rgba(255,220,120,.85)" : "rgba(20,24,40,.6)"; g.fillRect(x, y, 6, 6);
+        }
+      } else if (s.style === "container") {
+        g.strokeStyle = "rgba(0,0,0,.25)"; g.lineWidth = 2;
+        if (o.w >= o.h) for (let x = o.x + 8; x < o.x + o.w; x += 9) { g.beginPath(); g.moveTo(x, o.y); g.lineTo(x, o.y + topH); g.stroke(); }
+        else for (let y = o.y + 8; y < o.y + topH; y += 9) { g.beginPath(); g.moveTo(o.x, y); g.lineTo(o.x + o.w, y); g.stroke(); }
+      } else if (s.style === "ice") {
+        g.strokeStyle = "rgba(255,255,255,.7)"; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(o.x + 4, o.y + topH - 3); g.lineTo(o.x + o.w * .45, o.y + 3); g.stroke();
+      } else if (s.style === "stone" || s.style === "basalt") {
+        g.strokeStyle = "rgba(0,0,0,.25)"; g.lineWidth = 1;
+        for (let i = 0; i < 4; i++) { const k = hashPos({ x: o.x + i * 13, y: o.y, w: o.w, h: o.h }, 100) / 100; g.beginPath(); g.moveTo(o.x + k * o.w, o.y); g.lineTo(o.x + (1 - k) * o.w, o.y + topH); g.stroke(); }
+      } else if (s.style === "dune") {
+        g.strokeStyle = "rgba(120,90,40,.30)"; g.lineWidth = 1.5;
+        for (let y = o.y + 5; y < o.y + topH; y += 6) { g.beginPath(); for (let x = o.x; x <= o.x + o.w; x += 4) { const yy = y + Math.sin(x / 7) * 1.4; x === o.x ? g.moveTo(x, yy) : g.lineTo(x, yy); } g.stroke(); }
+      }
+      g.restore();
+
+      g.lineWidth = 1.5;
+      if (s.style === "basalt") { g.strokeStyle = "rgba(255,106,42,.95)"; g.shadowColor = "#ff6a2a"; g.shadowBlur = 10; }
+      else g.strokeStyle = s.edge;
+      rrect(g, o.x, o.y, o.w, o.h, rad); g.stroke();
+      g.restore();
+    }
+
+    function drawMapPreview(cv, mapName) {
+      if (!cv) return;
+      const g = cv.getContext("2d"), k = cv.width / ARENA_W, th = MAP_THEME[mapName] || MAP_THEME["草原"];
+      g.clearRect(0, 0, cv.width, cv.height);
+      g.save(); g.scale(k, k);
+      g.drawImage(getBg(mapName), 0, 0);
+      getObstaclesForMap(mapName).forEach(o => drawObstacle(g, o, th));
+      g.font = "bold 22px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+      [[1, SPAWNS.p1], [2, SPAWNS.p2]].forEach(([i, s]) => {
+        g.fillStyle = TEAM[i].main; g.fillText(i + "P", s.x + 15, s.y + 15);
+      });
+      g.restore();
+    }
+
+    /* ---------- 画像キャッシュ ---------- */
+    const imgCache = {};
+    function getCharImg(name) {
+      if (!(name in imgCache)) {
+        const im = new Image(); im._bad = false; im.onerror = () => { im._bad = true; };
+        if (characterImages[name]) im.src = characterImages[name]; else im._bad = true;
+        imgCache[name] = im;
+      }
+      const im = imgCache[name];
+      return (im.complete && im.naturalWidth > 0 && !im._bad) ? im : null;
+    }
+
+    /* ---------- 画面エフェクト用の状態（見た目専用） ---------- */
+    const fx = { p1: null, p2: null, hp: [100, 100], flash: [0, 0], floaters: [], shake: 0 };
+    function fxSync() {
+      if (fx.p1 !== player1 || fx.p2 !== player2) {
+        fx.p1 = player1; fx.p2 = player2; fx.hp = [player1.hp, player2.hp]; fx.flash = [0, 0]; fx.floaters = []; fx.shake = 0;
+      }
+      [player1, player2].forEach((p, i) => {
+        const d = p.hp - fx.hp[i];
+        if (Math.abs(d) >= 1) {
+          fx.floaters.push({ x: p.x + p.w / 2, y: p.y - 12, t: 0, txt: (d < 0 ? "-" : "+") + Math.round(Math.abs(d)), c: d < 0 ? "#ff5470" : "#5dff9b" });
+          if (d < 0) { fx.flash[i] = 1; fx.shake = Math.min(8, Math.max(fx.shake, Math.abs(d) / 4)); }
+        }
+        fx.hp[i] = p.hp;
+      });
+    }
+    function bulletOwner(b) { return b.own || (b.from === player1 ? 1 : 2); }
+    function isSkillReady(p, now) {
+      if (p.charName === "聖なる使者") return p.skillCharge >= 30;
+      return now - p.skillLastUsed >= p.skillCooldown;
+    }
+
+    /* ---------- 描画 ---------- */
+    function drawZone() {
+      const W = canvas.width, H = canvas.height, t = performance.now() / 1000;
+      if (safeZone.shrinking && safeZone.radius < Math.max(W, H)) {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(safeZone.x, safeZone.y, Math.max(0, safeZone.radius), 0, TAU);
+        ctx.fillStyle = "rgba(190,20,50,.32)"; ctx.fill("evenodd");
+        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(120,255,170,.95)"; ctx.shadowColor = "#4dff9a"; ctx.shadowBlur = 14;
+        ctx.setLineDash([14, 8]); ctx.lineDashOffset = -t * 20;
+        ctx.beginPath(); ctx.arc(safeZone.x, safeZone.y, Math.max(0, safeZone.radius), 0, TAU); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawTurret(t) {
+      const idx = t.own || (t.owner === player1 ? 1 : 2), T = TEAM[idx], foe = idx === 1 ? player2 : player1;
+      const ang = Math.atan2(foe.y + foe.h / 2 - t.y, foe.x + foe.w / 2 - t.x);
+      ctx.save(); ctx.translate(t.x, t.y);
+      ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(2, 6, 11, 5, 0, 0, TAU); ctx.fill();
+      ctx.shadowColor = T.main; ctx.shadowBlur = 10; ctx.fillStyle = "#171d33"; ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
+      ctx.shadowBlur = 0; ctx.lineWidth = 2.5; ctx.strokeStyle = T.main; ctx.stroke();
+      ctx.rotate(ang); ctx.fillStyle = T.light; ctx.fillRect(2, -2.5, 13, 5);
+      ctx.restore();
+    }
+
+    function drawPlayer(p) {
+      const idx = p === player1 ? 1 : 2, T = TEAM[idx], foe = idx === 1 ? player2 : player1;
+      const cx = p.x + p.w / 2, cy = p.y + p.h / 2, R = 19, now = Date.now();
+      const ready = isSkillReady(p, now), flash = fx.flash[idx - 1];
+      ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(cx, cy + 16, 16, 6, 0, 0, TAU); ctx.fill();
+      if (ready) {
+        ctx.strokeStyle = `rgba(255,214,64,${(.45 + .35 * Math.sin(now / 180)).toFixed(2)})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(cx, cy, R + 5, 0, TAU); ctx.stroke();
+      }
+      ctx.save(); ctx.shadowColor = T.main; ctx.shadowBlur = 14; ctx.fillStyle = "#0b1226";
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R - 2, 0, TAU); ctx.clip();
+      const img = getCharImg(p.charName);
+      if (img) {
+        const s = Math.max((2 * (R - 2)) / img.naturalWidth, (2 * (R - 2)) / img.naturalHeight);
+        const w = img.naturalWidth * s, h = img.naturalHeight * s; ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+      } else {
+        const gr = ctx.createLinearGradient(cx, cy - R, cx, cy + R); gr.addColorStop(0, T.main); gr.addColorStop(1, "#0b1226");
+        ctx.fillStyle = gr; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+        ctx.fillStyle = "#fff"; ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(p.charName.charAt(0), cx, cy + 1);
+      }
+      if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${(flash * .7).toFixed(2)})`; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R); }
+      ctx.restore();
+      fx.flash[idx - 1] = Math.max(0, flash - .08);
+      ctx.lineWidth = 3; ctx.strokeStyle = T.main; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+      // 照準の向き（相手方向）
+      const a = Math.atan2(foe.y + foe.h / 2 - cy, foe.x + foe.w / 2 - cx);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.fillStyle = T.light;
+      ctx.beginPath(); ctx.moveTo(R + 9, 0); ctx.lineTo(R + 2, -4); ctx.lineTo(R + 2, 4); ctx.closePath(); ctx.fill(); ctx.restore();
+      // HP・弾数バー
+      const bw = 38, bx = cx - bw / 2, by = p.y - 16, ratio = Math.max(0, Math.min(1, p.hp / 100));
+      ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.fillRect(bx - 1, by - 1, bw + 2, 7);
+      ctx.fillStyle = ratio > .5 ? "#4dff9b" : ratio > .25 ? "#ffc53d" : "#ff4d5e"; ctx.fillRect(bx, by, bw * ratio, 5);
+      if (p.maxAmmo <= 12) {
+        const n = p.maxAmmo, gap = 2, pw = (bw - (n - 1) * gap) / n;
+        for (let i = 0; i < n; i++) { ctx.fillStyle = i < p.ammo ? "#7df3ff" : "rgba(255,255,255,.2)"; ctx.fillRect(bx + i * (pw + gap), by + 8, pw, 3); }
+      }
+      if (p.charName === "ツインブラザーズ" && p.mode) {
+        ctx.fillStyle = "#ffd23f"; ctx.font = "bold 11px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillText(p.mode, bx + bw + 4, by + 6);
+      }
+    }
+
+    function drawBullets() {
+      bullets.forEach(b => {
+        const T = TEAM[bulletOwner(b)], sp = Math.hypot(b.vx, b.vy);
+        if (sp > .1) {
+          const len = Math.min(36, sp * 4), ux = b.vx / sp, uy = b.vy / sp;
+          const gr = ctx.createLinearGradient(b.x - ux * len, b.y - uy * len, b.x, b.y);
+          gr.addColorStop(0, `rgba(${T.rgb},0)`); gr.addColorStop(1, `rgba(${T.rgb},.7)`);
+          ctx.strokeStyle = gr; ctx.lineWidth = Math.max(2, b.r * 1.4); ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(b.x - ux * len, b.y - uy * len); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+        const gg = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * 3);
+        gg.addColorStop(0, `rgba(${T.rgb},.55)`); gg.addColorStop(1, `rgba(${T.rgb},0)`);
+        ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 3, 0, TAU); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(b.x, b.y, Math.max(1.5, b.r * .75), 0, TAU); ctx.fill();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = T.main; ctx.beginPath(); ctx.arc(b.x, b.y, Math.max(2, b.r), 0, TAU); ctx.stroke();
+      });
+      ctx.lineCap = "butt";
+    }
+
+    function drawExplosions() {
+      explosions.forEach(e => {
+        const p = 1 - e.life / 15, a = Math.max(0, 1 - p);
+        const gr = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r);
+        gr.addColorStop(0, `rgba(255,255,220,${(.85 * a).toFixed(2)})`); gr.addColorStop(.5, `rgba(255,150,50,${(.55 * a).toFixed(2)})`); gr.addColorStop(1, "rgba(255,60,20,0)");
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, TAU); ctx.fill();
+        ctx.strokeStyle = `rgba(255,200,120,${a.toFixed(2)})`; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (.55 + .45 * p), 0, TAU); ctx.stroke();
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 10; i++) {
+          const ang = i * TAU / 10 + .3, r1 = e.r * (.3 + .7 * p), r2 = r1 + e.r * .25;
+          ctx.beginPath(); ctx.moveTo(e.x + Math.cos(ang) * r1, e.y + Math.sin(ang) * r1); ctx.lineTo(e.x + Math.cos(ang) * r2, e.y + Math.sin(ang) * r2); ctx.stroke();
+        }
+      });
+    }
+
+    function draw() {
+      fxSync();
+      const W = canvas.width, H = canvas.height, th = MAP_THEME[selectedMap] || MAP_THEME["草原"];
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+      ctx.save();
+      if (fx.shake > .3) { ctx.translate((Math.random() - .5) * fx.shake, (Math.random() - .5) * fx.shake); fx.shake *= .85; } else fx.shake = 0;
+      ctx.drawImage(getBg(selectedMap), 0, 0);
+      obstacles.forEach(o => drawObstacle(ctx, o, th));
+      drawZone();
+      turrets.forEach(drawTurret);
+      drawPlayer(player1); drawPlayer(player2);
+      drawBullets(); drawExplosions();
+      ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.font = "bold 15px sans-serif"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.8)";
+      for (let i = fx.floaters.length - 1; i >= 0; i--) {
+        const f = fx.floaters[i]; f.t++; f.y -= .6;
+        if (f.t > 45) { fx.floaters.splice(i, 1); continue; }
+        ctx.globalAlpha = 1 - f.t / 45; ctx.fillStyle = f.c; ctx.strokeText(f.txt, f.x, f.y); ctx.fillText(f.txt, f.x, f.y);
+      }
+      ctx.globalAlpha = 1;
+      const el = Date.now() - gameStartTime;
+      if (el >= 0 && el < 1300) {
+        const k = el / 1300, sc = 1 + (1 - k) * .5;
+        ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, (1 - k) * 2);
+        ctx.font = "italic 900 72px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineWidth = 6; ctx.strokeStyle = "#000";
+        ctx.shadowColor = "#00e5ff"; ctx.shadowBlur = 24; ctx.strokeText("FIGHT!", 0, 0); ctx.fillStyle = "#fff"; ctx.fillText("FIGHT!", 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+      updateHud();
+    }
+
+    /* ---------- HUD ---------- */
+    const hudState = { p1: null, p2: null, mx: [-1, -1] };
+    function hudSetPlayer(i, p) {
+      $("hudName" + i).textContent = p.charName;
+      const img = characterImages[p.charName];
+      $("hudImg" + i).innerHTML = img ? `<img src="${img}" alt="" onerror="this.outerHTML='${escapeHtml(p.charName.charAt(0))}'">` : escapeHtml(p.charName.charAt(0));
+      $("hudTrail" + i).style.width = "100%";
+    }
+    function skillKey(i) {
+      if (typeof onl !== "undefined" && onl.running) return (onl.isHost ? i === 1 : i === 2) ? "G" : "";
+      return i === 1 ? "G" : "L";
+    }
+    function updateHud() {
+      const now = Date.now();
+      if (hudState.p1 !== player1 || hudState.p2 !== player2) {
+        hudState.p1 = player1; hudState.p2 = player2; hudState.mx = [-1, -1];
+        hudSetPlayer(1, player1); hudSetPlayer(2, player2);
+        const online = typeof onl !== "undefined" && onl.running;
+        $("controlHelp").textContent = online
+          ? "移動：WASD / 矢印キー　攻撃：F　スキル：G"
+          : "1P　移動 WASD ・ 攻撃 F ・ スキル G　　|　　2P　移動 ↑↓←→ ・ 攻撃 K ・ スキル L";
+        const label = (MAP_DEFS[selectedMap] ? selectedMap + " / " + MAP_DEFS[selectedMap].tag : selectedMap);
+        $("gameInfo").textContent = label;
+      }
+      [[player1, 1], [player2, 2]].forEach(([p, i]) => {
+        const ratio = Math.max(0, Math.min(1, p.hp / 100)), pct = (ratio * 100).toFixed(1) + "%";
+        $("hudHp" + i).style.width = pct; $("hudTrail" + i).style.width = pct;
+        $("hudHpTxt" + i).textContent = Math.max(0, Math.ceil(p.hp));
+        const box = $("hudHpBox" + i); box.classList.toggle("mid", ratio <= .5 && ratio > .25); box.classList.toggle("low", ratio <= .25);
+        const pips = $("hudAmmo" + i);
+        if (hudState.mx[i - 1] !== p.maxAmmo) {
+          hudState.mx[i - 1] = p.maxAmmo;
+          if (p.maxAmmo >= 100) { pips.className = "pips inf"; pips.textContent = "∞"; }
+          else { pips.className = "pips"; pips.innerHTML = "<i></i>".repeat(p.maxAmmo); }
+        }
+        if (p.maxAmmo < 100) for (let k = 0; k < pips.children.length; k++) pips.children[k].classList.toggle("on", k < p.ammo);
+        const heal = p.charName === "聖なる使者", ready = isSkillReady(p, now), key = skillKey(i);
+        const sk = heal ? p.skillCharge / 30 : (ready ? 1 : (now - p.skillLastUsed) / p.skillCooldown);
+        $("hudSk" + i).style.width = (Math.max(0, Math.min(1, sk)) * 100).toFixed(1) + "%";
+        $("hudSkBox" + i).classList.toggle("ready", ready);
+        $("hudSkTxt" + i).textContent = heal ? (ready ? "HEAL" : "CHARGE " + Math.min(30, Math.floor(p.skillCharge)) + "/30") + (ready && key ? " [" + key + "]" : "")
+                                              : (ready ? "READY" + (key ? " [" + key + "]" : "") : "SKILL");
+      });
+      const el = Math.max(0, Math.floor((now - gameStartTime) / 1000));
+      $("hudTimer").textContent = Math.floor(el / 60) + ":" + String(el % 60).padStart(2, "0");
+      const z = $("hudZone");
+      if (el < 25) { z.textContent = "ZONE まで " + (25 - el) + "s"; z.classList.remove("hot"); }
+      else { z.textContent = "ZONE 縮小中"; z.classList.add("hot"); }
+    }
+
+    /* ---------- YOU マーカー（オンライン） ---------- */
+    function drawYouMarker() {
+      const me = onl.isHost ? player1 : player2;
+      if (!me || !ctx) return;
+      const T = onl.isHost ? TEAM[1] : TEAM[2], cx = me.x + me.w / 2, y = me.y - 30 + Math.sin(Date.now() / 200) * 2;
+      ctx.save(); ctx.fillStyle = T.main; ctx.strokeStyle = "#000"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx, y + 6); ctx.lineTo(cx - 6, y - 4); ctx.lineTo(cx + 6, y - 4); ctx.closePath(); ctx.stroke(); ctx.fill();
+      ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeText("YOU", cx, y - 8); ctx.fillStyle = "#fff"; ctx.fillText("YOU", cx, y - 8);
+      ctx.restore();
+    }
+
+    /* ============================================================
+       キャラ選択
+       ============================================================ */
+    let csActive = 1, _allStats = null;
+    function relRows(name) {
+      if (!_allStats) _allStats = CHAR_NAMES.map(charStats);
+      const all = _allStats, st = charStats(name);
+      const maxSpeed = Math.max(...all.map(s => s.speed)), maxPower = Math.max(...all.map(s => s.power));
+      const maxAmmo = Math.max(...all.map(s => s.ammo).filter(a => a < 100));
+      const maxRate = Math.max(...all.map(s => 1 / s.reload));
+      const maxSkill = Math.max(...all.filter(s => isFinite(s.skillCt)).map(s => 1 / s.skillCt));
+      const pct = v => Math.max(4, Math.min(100, Math.round(v * 100)));
+      return [
+        ["速度", pct(st.speed / maxSpeed), st.speed.toFixed(1)],
+        ["攻撃", pct(st.power / maxPower), st.shots > 1 ? `${st.dmg}×${st.shots}` : `${st.dmg}`],
+        ["装弾", st.ammo >= 100 ? 100 : pct(st.ammo / maxAmmo), st.ammo >= 100 ? "∞" : `${st.ammo}発`],
+        ["装填", pct((1 / st.reload) / maxRate), `${st.reload.toFixed(1)}秒`],
+        ["技", isFinite(st.skillCt) ? pct((1 / st.skillCt) / maxSkill) : 4, isFinite(st.skillCt) ? `${st.skillCt}秒` : "溜め式"]
+      ];
+    }
+    function renderSidePanel(id, idx, name) {
+      $(id).innerHTML = `<div class="who">${idx}P ・ ${idx === 1 ? "BLUE" : "RED"}</div>
+        <div class="cs-portrait">${imgOrPlaceholder(name)}</div>
+        <div class="cs-name">${escapeHtml(name)}</div>
+        <div class="cs-tag">${escapeHtml(CHAR_TAGS[name] || "")}</div>
+        ${relRows(name).map(r => `<div class="stat"><span>${r[0]}</span><div class="bar"><i style="width:${r[1]}%"></i></div><span class="val">${r[2]}</span></div>`).join("")}`;
+    }
+    function csSetActive(i) { csActive = i; renderCharSelect(); }
+    function csPick(name) { $("player" + csActive + "Select").value = name; csActive = csActive === 1 ? 2 : 1; renderCharSelect(); }
+    function renderCharSelect() {
+      const grid = $("csGrid");
+      if (!grid.dataset.built) {
+        grid.innerHTML = CHAR_NAMES.map(n => `<button class="cs-card" data-name="${escapeHtml(n)}">${imgOrPlaceholder(n)}<span>${escapeHtml(n)}</span><span class="cs-badges"></span></button>`).join("");
+        grid.querySelectorAll(".cs-card").forEach(b => b.addEventListener("click", () => csPick(b.dataset.name)));
+        grid.dataset.built = "1";
+      }
+      const sel = [$("player1Select").value, $("player2Select").value];
+      grid.querySelectorAll(".cs-card").forEach(b => {
+        const n = b.dataset.name;
+        b.classList.toggle("sel1", n === sel[0]); b.classList.toggle("sel2", n === sel[1]);
+        b.querySelector(".cs-badges").innerHTML = (n === sel[0] ? '<i class="b1">1P</i>' : "") + (n === sel[1] ? '<i class="b2">2P</i>' : "");
+      });
+      $("csTab1").className = "cs-tab" + (csActive === 1 ? " on1" : ""); $("csTab2").className = "cs-tab" + (csActive === 2 ? " on2" : "");
+      renderSidePanel("csP1", 1, sel[0]); renderSidePanel("csP2", 2, sel[1]);
+    }
+
+    /* ============================================================
+       マップ選択
+       ============================================================ */
+    let msBuilt = false;
+    function renderMapSelect() {
+      $("msVs").textContent = $("player1Select").value + "  VS  " + $("player2Select").value;
+      const list = $("msList");
+      if (!msBuilt) {
+        list.innerHTML = MAP_NAMES.map(n => `<button class="ms-card" data-name="${n}"><canvas width="240" height="120"></canvas><b>${n}</b><small>${MAP_DEFS[n].tag}</small></button>`).join("");
+        list.querySelectorAll(".ms-card").forEach(b => {
+          drawMapPreview(b.querySelector("canvas"), b.dataset.name);
+          b.addEventListener("click", () => { $("mapSelectDropdown").value = b.dataset.name; renderMapSelect(); });
+        });
+        msBuilt = true;
+      }
+      const cur = $("mapSelectDropdown").value;
+      list.querySelectorAll(".ms-card").forEach(b => b.classList.toggle("on", b.dataset.name === cur));
+      drawMapPreview($("msBig"), cur);
+      $("msName").textContent = cur; $("msTag").textContent = MAP_DEFS[cur].tag; $("msDesc").textContent = MAP_DEFS[cur].desc;
+    }
+
+    const _goCS = goToCharacterSelect; goToCharacterSelect = function () { _goCS(); renderCharSelect(); };
+    const _goMS = goToMapSelect;       goToMapSelect = function () { _goMS(); renderMapSelect(); };
+
+    /* ---------- 初期化（非表示の select に値を入れる） ---------- */
+    (function () {
+      CHAR_NAMES.forEach(n => { $("player1Select").add(new Option(n, n)); $("player2Select").add(new Option(n, n)); });
+      MAP_NAMES.forEach(n => $("mapSelectDropdown").add(new Option(n, n)));
+      $("player1Select").value = CHAR_NAMES[0]; $("player2Select").value = CHAR_NAMES[1];
+    })();
   </script>
 </body>
 </html>
