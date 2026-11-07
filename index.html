@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>2D対戦シューティング</title>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -25,13 +26,144 @@
       padding: 5px;
       font-size: 16px;
     }
+
+    /* ===== ここから ver14 追加スタイル ===== */
+    :root {
+      --bg: #070b16;
+      --panel: rgba(16, 24, 46, .82);
+      --line: rgba(0, 229, 255, .35);
+      --cyan: #00e5ff;
+      --pink: #ff2e88;
+      --text: #e8f1ff;
+    }
+    body {
+      background: radial-gradient(ellipse at 20% 0%, #14224a 0%, var(--bg) 55%) fixed;
+      min-height: 100vh;
+      color: var(--text);
+    }
+    #menuBg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; background: transparent; margin: 0; }
+
+    button {
+      color: #fff;
+      background: linear-gradient(135deg, #1b2c52, #121c36);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .2s, border-color .2s;
+    }
+    button:hover:not(:disabled) { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,229,255,.4); transform: translateY(-1px); }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    select, input[type=text] {
+      background: #0e1730; color: #fff; border: 1px solid var(--line); border-radius: 6px;
+    }
+    input[type=text] { padding: 8px 10px; font-size: 18px; }
+    h2 { letter-spacing: .08em; }
+
+    /* --- ホーム --- */
+    .home-wrap { padding: 7vh 16px 40px; max-width: 560px; margin: 0 auto; }
+    .logo-sub { color: var(--cyan); letter-spacing: .55em; font-size: 13px; font-weight: bold; text-shadow: 0 0 10px var(--cyan); }
+    .logo {
+      margin: 10px 0 36px; font-size: clamp(34px, 8vw, 58px); font-style: italic; line-height: 1.15;
+      transform: skewX(-6deg); letter-spacing: .04em;
+      text-shadow: 0 0 18px rgba(0,229,255,.55), 3px 3px 0 var(--pink);
+    }
+    .logo span { display: block; font-size: .62em; color: var(--cyan); text-shadow: 0 0 18px rgba(0,229,255,.8), 2px 2px 0 #000; }
+    .menu-list { display: flex; flex-direction: column; gap: 14px; }
+    .menu-btn {
+      display: flex; align-items: center; gap: 16px; width: 100%; margin: 0; padding: 16px 22px; text-align: left;
+      background: linear-gradient(100deg, rgba(20,34,70,.95), rgba(10,16,34,.9));
+      border-left: 5px solid var(--cyan); clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+      position: relative; overflow: hidden;
+    }
+    .menu-btn::after {
+      content: ""; position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,.18), transparent); transform: skewX(-20deg); transition: left .5s;
+    }
+    .menu-btn:hover:not(:disabled)::after { left: 130%; }
+    .menu-btn:hover:not(:disabled) { transform: translateX(8px); }
+    .menu-btn.online { border-left-color: var(--pink); }
+    .menu-btn.codex { border-left-color: #ffd23f; }
+    .menu-btn .mb-icon { font-size: 30px; width: 40px; text-align: center; }
+    .menu-btn b { display: block; font-size: 21px; letter-spacing: .1em; }
+    .menu-btn small { color: #9db4d8; font-size: 12px; }
+    .ver { margin-top: 30px; color: #5c6f93; font-size: 12px; letter-spacing: .2em; }
+
+    /* --- 共通パネル --- */
+    .panel-screen { max-width: 760px; margin: 0 auto; padding: 24px 16px 40px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      padding: 16px 18px; margin: 14px auto; backdrop-filter: blur(4px);
+    }
+    .card h3 { margin: 0 0 6px; color: var(--cyan); }
+    .card p { margin: 4px 0 10px; color: #9db4d8; font-size: 14px; }
+    .status { min-height: 1.4em; margin-top: 10px; font-size: 14px; color: #ffd23f; }
+    .status.err { color: #ff6b7a; }
+    #roomCodeInput { width: 110px; text-align: center; text-transform: uppercase; letter-spacing: .3em; }
+
+    /* --- ロビー --- */
+    .room-code { font-size: 40px; letter-spacing: .35em; font-weight: bold; color: var(--cyan); text-shadow: 0 0 14px var(--cyan); margin: 4px 0; }
+    .vs-row { display: flex; align-items: stretch; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .slot { flex: 1; min-width: 200px; max-width: 280px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+    .slot.p1 { border-top: 4px solid #3b82f6; }
+    .slot.p2 { border-top: 4px solid #ef4444; }
+    .slot .who { font-size: 12px; letter-spacing: .2em; color: #9db4d8; }
+    .slot img { width: 130px; height: 130px; object-fit: contain; margin: 8px 0; }
+    .slot .nm { font-weight: bold; min-height: 1.4em; }
+    .vs-mark { align-self: center; font-size: 28px; font-weight: bold; font-style: italic; color: var(--pink); text-shadow: 0 0 12px var(--pink); }
+    .keyhelp { font-size: 13px; color: #9db4d8; line-height: 1.8; }
+    kbd { background: #1b2c52; border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px; color: #fff; font-family: inherit; }
+
+    /* --- 図鑑 --- */
+    .codex-wrap { max-width: 980px; margin: 0 auto; padding: 20px 14px 40px; }
+    .codex-main { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; text-align: left; }
+    .codex-grid { flex: 0 0 300px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .cx-item { margin: 0; padding: 6px 4px; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .cx-item img, .cx-ph { width: 62px; height: 62px; object-fit: contain; }
+    .cx-ph { display: flex; align-items: center; justify-content: center; font-size: 28px; background: #0e1730; border-radius: 8px; }
+    .cx-item.active { border-color: var(--pink); box-shadow: 0 0 14px rgba(255,46,136,.55); }
+    .codex-detail { flex: 1; min-width: 300px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+    .cd-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .cd-head img, .cd-head .cx-ph { width: 150px; height: 150px; object-fit: contain; font-size: 60px; }
+    .cd-name { font-size: 26px; font-weight: bold; }
+    .cd-title { color: var(--cyan); font-size: 14px; margin-top: 2px; }
+    .stat { display: grid; grid-template-columns: 90px 1fr 70px; gap: 8px; align-items: center; margin: 7px 0; font-size: 13px; }
+    .stat .bar { height: 10px; border-radius: 6px; background: #0e1730; overflow: hidden; }
+    .stat .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--pink)); }
+    .stat .val { text-align: right; color: #cfe3ff; }
+    .cd-sec { margin-top: 14px; }
+    .cd-sec h4 { margin: 0 0 4px; color: #ffd23f; font-size: 14px; letter-spacing: .1em; }
+    .cd-sec p { margin: 0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
+    .note { font-size: 11px; color: #6f83a8; margin-top: 12px; }
+
+    /* --- 共通 戻るボタン --- */
+    #backBtn { position: fixed; top: 8px; left: 8px; margin: 0; padding: 6px 12px; font-size: 13px; z-index: 50; }
+    #onlineResult h2 { font-size: 34px; text-shadow: 0 0 16px var(--cyan); }
   </style>
 </head>
 <body>
+  <canvas id="menuBg"></canvas>
+
   <!-- ホーム画面 -->
   <div id="homeScreen">
-    <h1>2D対戦シューティング</h1>
-    <button onclick="goToCharacterSelect()">スタート</button>
+    <div class="home-wrap">
+      <div class="logo-sub">1 VS 1 ARENA</div>
+      <h1 class="logo">2D対戦<span>シューティング</span></h1>
+      <div class="menu-list">
+        <button class="menu-btn" onclick="goToCharacterSelect()">
+          <span class="mb-icon">⚔</span>
+          <span><b>オフライン対戦</b><small>1台のPCで2人対戦</small></span>
+        </button>
+        <button class="menu-btn online" onclick="showOnlineMenu()">
+          <span class="mb-icon">🌐</span>
+          <span><b>オンライン対戦</b><small>ルームコードで離れた相手と対戦</small></span>
+        </button>
+        <button class="menu-btn codex" onclick="showCodex()">
+          <span class="mb-icon">📖</span>
+          <span><b>キャラ図鑑</b><small>キャラクターの性能をチェック</small></span>
+        </button>
+      </div>
+      <div class="ver">VER 14</div>
+    </div>
   </div>
 
   <!-- キャラ選択 -->
@@ -121,6 +253,93 @@
   <div id="resultScreen" class="hidden">
     <h2 id="resultText"></h2>
     <button onclick="returnToMenu()">メニューに戻る</button>
+  </div>
+
+  <!-- ===== ここから ver14 追加画面 ===== -->
+  <button id="backBtn" class="hidden" onclick="backToMenu()">← メニュー</button>
+
+  <!-- オンライン：入口 -->
+  <div id="onlineMenu" class="hidden panel-screen">
+    <h2>🌐 オンライン対戦</h2>
+    <div class="card">
+      <h3>ルームを作る</h3>
+      <p>4文字のルームコードが発行されます。相手に伝えてください。</p>
+      <button onclick="onlineCreateRoom()">ルームを作成</button>
+    </div>
+    <div class="card">
+      <h3>ルームに参加する</h3>
+      <p>相手から教えてもらったコードを入力してください。</p>
+      <input type="text" id="roomCodeInput" maxlength="4" placeholder="ABCD" autocomplete="off">
+      <button onclick="onlineJoinRoom()">参加</button>
+    </div>
+    <div id="onlineStatus" class="status"></div>
+  </div>
+
+  <!-- オンライン：ロビー -->
+  <div id="onlineLobby" class="hidden panel-screen">
+    <h2>ロビー</h2>
+    <div class="card">
+      <div class="keyhelp">ルームコード</div>
+      <div class="room-code" id="lobbyCode">----</div>
+      <button onclick="copyRoomCode()" style="margin:4px;padding:5px 12px;font-size:13px;">コードをコピー</button>
+    </div>
+
+    <div class="vs-row">
+      <div class="slot p1">
+        <div class="who">1P（ホスト・青）</div>
+        <img id="lobbyImg1" alt="">
+        <div class="nm" id="lobbyName1">-</div>
+      </div>
+      <div class="vs-mark">VS</div>
+      <div class="slot p2">
+        <div class="who">2P（ゲスト・赤）</div>
+        <img id="lobbyImg2" alt="">
+        <div class="nm" id="lobbyName2">対戦相手を待っています…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div>
+        <label>あなたのキャラ：
+          <select id="lobbyCharSelect"></select>
+        </label>
+      </div>
+      <div>
+        <label>マップ：
+          <select id="lobbyMapSelect"></select>
+        </label>
+        <span id="lobbyMapNote" class="keyhelp"></span>
+      </div>
+      <div>
+        <button id="lobbyReadyBtn" class="hidden" onclick="toggleReady()">準備OK</button>
+        <button id="lobbyStartBtn" class="hidden" onclick="hostStartGame()" disabled>ゲーム開始</button>
+      </div>
+      <div id="lobbyStatus" class="status"></div>
+    </div>
+
+    <div class="card keyhelp">
+      <b style="color:#ffd23f">オンライン操作（両プレイヤー共通）</b><br>
+      移動：<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> または <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>　
+      攻撃：<kbd>F</kbd>　スキル：<kbd>G</kbd>
+    </div>
+  </div>
+
+  <!-- オンライン：リザルト -->
+  <div id="onlineResult" class="hidden panel-screen">
+    <h2 id="onlineResultText"></h2>
+    <button onclick="backToLobby()">ロビーに戻る</button>
+    <button onclick="backToMenu()">メニューに戻る</button>
+  </div>
+
+  <!-- キャラ図鑑 -->
+  <div id="codexScreen" class="hidden">
+    <div class="codex-wrap">
+      <h2>📖 キャラ図鑑</h2>
+      <div class="codex-main">
+        <div class="codex-grid" id="codexGrid"></div>
+        <div class="codex-detail" id="codexDetail"></div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1259,6 +1478,704 @@ if (safeZone.shrinking) {
       document.getElementById("gameScreen").classList.add("hidden");
       document.getElementById("resultScreen").classList.add("hidden");
     }
+  </script>
+
+  <!-- ★キャラ図鑑の紹介文（書き換え用） -->
+  <script>
+    /* ============================================================
+       ★★ キャラ図鑑の紹介文テンプレート ★★
+       ここの文章を自分で書き換えてください。
+       （数値のステータスはゲーム内の設定値から自動で表示されるので、書く必要はありません）
+
+         title  : キャッチコピー（名前の下に小さく表示）
+         intro  : キャラ紹介文
+         attack : 通常攻撃の説明
+         skill  : スキルの説明
+         tips   : 立ち回りのコツ
+       ============================================================ */
+    const CHARACTER_INFO = {
+      "スナイパー太郎": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "白い死神": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "怪盗レッド": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "ガジェットボット": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "アクアファイター": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "ツインブラザーズ": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "聖なる使者": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "ジャンパー": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "ボマー": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "ブーメランボーイ": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "ジョーカー": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      },
+      "サンダーマウス": {
+        title:  "【キャッチコピーをここに】",
+        intro:  "【ここにキャラ紹介文を書いてください】",
+        attack: "【通常攻撃の説明を書いてください】",
+        skill:  "【スキルの説明を書いてください】",
+        tips:   "【立ち回りのコツを書いてください】"
+      }
+    };
+  </script>
+
+  <!-- ver14 追加機能 -->
+  <script>
+    /* ============================================================
+       ver14 追加機能：メニュー演出 / キャラ図鑑 / オンライン対戦
+       ※ 上のオフライン対戦用スクリプトは変更していません。
+         ここでは既存の関数（createPlayer, shootBullet, useSkill, update, draw など）を
+         そのまま再利用しています。
+       ============================================================ */
+
+    /* ---------- 画面管理（新しい画面も隠せるように上書き） ---------- */
+    const ALL_SCREENS = ["homeScreen","characterSelect","mapSelect","gameScreen","resultScreen",
+                         "onlineMenu","onlineLobby","onlineResult","codexScreen"];
+    function hideAllScreens() {
+      ALL_SCREENS.forEach(id => document.getElementById(id).classList.add("hidden"));
+    }
+    function showScreen(id) {
+      hideAllScreens();
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    const _origReturnToMenu = returnToMenu;
+    returnToMenu = function () {
+      onlineCleanup();
+      _origReturnToMenu();
+    };
+
+    function backToMenu() {
+      const inGame = !document.getElementById("gameScreen").classList.contains("hidden");
+      if (inGame && !confirm("対戦を中断してメニューに戻りますか？")) return;
+      onlineCleanup();
+      gameActive = false;
+      returnToMenu();
+    }
+
+    // ホーム以外では「メニューへ」ボタンを表示
+    setInterval(() => {
+      const home = document.getElementById("homeScreen").classList.contains("hidden");
+      document.getElementById("backBtn").classList.toggle("hidden", !home);
+    }, 200);
+
+    /* ---------- ホーム背景アニメーション ---------- */
+    (function () {
+      const c = document.getElementById("menuBg");
+      const g = c.getContext("2d");
+      let W = 0, H = 0;
+      function resize() { W = c.width = innerWidth; H = c.height = innerHeight; }
+      resize(); addEventListener("resize", resize);
+      const streaks = Array.from({ length: 36 }, () => ({
+        x: Math.random() * 2000, y: Math.random() * 1200,
+        len: 40 + Math.random() * 140, sp: 2 + Math.random() * 6,
+        hue: Math.random() < 0.7 ? 190 : 330
+      }));
+      let t = 0;
+      function frame() {
+        requestAnimationFrame(frame);
+        if (!document.getElementById("gameScreen").classList.contains("hidden")) return; // 対戦中は止める
+        t++;
+        g.clearRect(0, 0, W, H);
+        // グリッド
+        g.strokeStyle = "rgba(0,229,255,0.06)"; g.lineWidth = 1;
+        const gs = 48, off = (t * 0.4) % gs;
+        for (let x = -gs + off; x < W; x += gs) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+        for (let y = -gs + off; y < H; y += gs) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+        // 流れる弾道
+        streaks.forEach(s => {
+          s.x += s.sp; s.y -= s.sp * 0.35;
+          if (s.x - s.len > W || s.y < -20) { s.x = -s.len - Math.random() * 400; s.y = Math.random() * H + 100; }
+          const grad = g.createLinearGradient(s.x - s.len, s.y + s.len * 0.35, s.x, s.y);
+          grad.addColorStop(0, `hsla(${s.hue},100%,60%,0)`);
+          grad.addColorStop(1, `hsla(${s.hue},100%,65%,0.75)`);
+          g.strokeStyle = grad; g.lineWidth = 2;
+          g.beginPath(); g.moveTo(s.x - s.len, s.y + s.len * 0.35); g.lineTo(s.x, s.y); g.stroke();
+          g.fillStyle = `hsla(${s.hue},100%,75%,0.9)`;
+          g.beginPath(); g.arc(s.x, s.y, 2.5, 0, Math.PI * 2); g.fill();
+        });
+      }
+      frame();
+    })();
+
+    /* ---------- 共通ヘルパ ---------- */
+    const CHAR_NAMES = Object.keys(characterImages);
+    const MAP_NAMES = ["草原","雪原","都市","火山","宇宙","海辺","ジャングル","工場"];
+
+    function imgOrPlaceholder(name, cls) {
+      const src = characterImages[name];
+      const alt = name.replace(/"/g, "");
+      return src
+        ? `<img src="${src}" alt="${alt}" ${cls ? `class="${cls}"` : ""} onerror="this.outerHTML='<div class=\\'cx-ph\\'>？</div>'">`
+        : `<div class="cx-ph">？</div>`;
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
+    }
+
+    /* ============================================================
+       キャラ図鑑
+       ============================================================ */
+    let codexBuilt = false;
+    function charStats(name) {
+      const p = createPlayer(0, 0, "", name); // ゲーム本体と同じ設定値を取得
+      const shots = p.bulletsPerShot || 1;
+      return {
+        hp: p.hp, speed: p.speed,
+        dmg: p.damage, shots, power: p.damage * shots,
+        ammo: p.maxAmmo, reload: p.reloadTime / 1000,
+        skillCt: isFinite(p.skillCooldown) ? p.skillCooldown / 1000 : Infinity
+      };
+    }
+    function showCodex() {
+      showScreen("codexScreen");
+      if (!codexBuilt) {
+        const grid = document.getElementById("codexGrid");
+        grid.innerHTML = CHAR_NAMES.map(n =>
+          `<button class="cx-item" data-name="${escapeHtml(n)}">${imgOrPlaceholder(n)}<span>${escapeHtml(n)}</span></button>`
+        ).join("");
+        grid.querySelectorAll(".cx-item").forEach(b => b.addEventListener("click", () => selectCodex(b.dataset.name)));
+        codexBuilt = true;
+        selectCodex(CHAR_NAMES[0]);
+      }
+    }
+    function selectCodex(name) {
+      document.querySelectorAll(".cx-item").forEach(b => b.classList.toggle("active", b.dataset.name === name));
+      const st = charStats(name);
+      const all = CHAR_NAMES.map(charStats);
+      const maxSpeed = Math.max(...all.map(s => s.speed));
+      const maxPower = Math.max(...all.map(s => s.power));
+      const finiteAmmo = all.map(s => s.ammo).filter(a => a < 100);
+      const maxAmmo = Math.max(...finiteAmmo);
+      const maxRate = Math.max(...all.map(s => 1 / s.reload));
+      const maxSkill = Math.max(...all.filter(s => isFinite(s.skillCt)).map(s => 1 / s.skillCt));
+
+      const pct = v => Math.max(4, Math.min(100, Math.round(v * 100)));
+      const rows = [
+        ["移動速度", pct(st.speed / maxSpeed), st.speed.toFixed(1)],
+        ["攻撃力",   pct(st.power / maxPower), st.shots > 1 ? `${st.dmg}×${st.shots}` : `${st.dmg}`],
+        ["装弾数",   st.ammo >= 100 ? 100 : pct(st.ammo / maxAmmo), st.ammo >= 100 ? "∞" : `${st.ammo}発`],
+        ["リロード", pct((1 / st.reload) / maxRate), `${st.reload.toFixed(1)}秒`],
+        ["スキル回転", isFinite(st.skillCt) ? pct((1 / st.skillCt) / maxSkill) : 4, isFinite(st.skillCt) ? `${st.skillCt}秒` : "チャージ式"]
+      ];
+      const info = (typeof CHARACTER_INFO !== "undefined" && CHARACTER_INFO[name]) || {};
+      const sec = (label, text) => `<div class="cd-sec"><h4>${label}</h4><p>${escapeHtml(text || "（未設定）")}</p></div>`;
+
+      document.getElementById("codexDetail").innerHTML = `
+        <div class="cd-head">
+          ${imgOrPlaceholder(name)}
+          <div>
+            <div class="cd-name">${escapeHtml(name)}</div>
+            <div class="cd-title">${escapeHtml(info.title || "")}</div>
+            <div class="keyhelp">HP ${st.hp}</div>
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          ${rows.map(r => `<div class="stat"><span>${r[0]}</span><div class="bar"><i style="width:${r[1]}%"></i></div><span class="val">${r[2]}</span></div>`).join("")}
+        </div>
+        ${sec("紹介", info.intro)}
+        ${sec("通常攻撃", info.attack)}
+        ${sec("スキル", info.skill)}
+        ${sec("立ち回りのコツ", info.tips)}
+        <div class="note">※ ステータスはゲーム内の設定値から自動表示（バーは全キャラ中の相対値）。スキルなどの特殊効果は含まれません。</div>`;
+    }
+
+    /* ============================================================
+       オンライン対戦（PeerJS / ホスト権威方式）
+         ホスト = 1P(青)：ゲーム計算を実行し、状態を配信
+         ゲスト = 2P(赤)：入力を送信し、受け取った状態を描画
+       ============================================================ */
+    const PEER_PREFIX = "tsg-battle-v14-";
+    const onl = {
+      peer: null, conn: null, isHost: false, code: "",
+      myChar: CHAR_NAMES[0], oppChar: "", map: MAP_NAMES[0],
+      guestReady: false, running: false,
+      raf: 0, hbTimer: 0, lastTs: 0, acc: 0, lastSend: 0, lastObCount: -1,
+      dirs: { u: false, d: false, l: false, r: false }, lastDirsSent: ""
+    };
+
+    function setOnlineStatus(msg, isErr) {
+      const el = document.getElementById("onlineStatus");
+      el.textContent = msg || "";
+      el.classList.toggle("err", !!isErr);
+    }
+    function setLobbyStatus(msg, isErr) {
+      const el = document.getElementById("lobbyStatus");
+      el.textContent = msg || "";
+      el.classList.toggle("err", !!isErr);
+    }
+    function sendMsg(m) {
+      if (onl.conn && onl.conn.open) { try { onl.conn.send(m); } catch (e) { console.warn(e); } }
+    }
+
+    function onlineCleanup() {
+      onl.running = false;
+      cancelAnimationFrame(onl.raf);
+      clearInterval(onl.hbTimer);
+      document.removeEventListener("keydown", onlineKeyDown);
+      document.removeEventListener("keyup", onlineKeyUp);
+      window.removeEventListener("blur", onlineBlur);
+      const c = onl.conn, p = onl.peer;
+      onl.conn = null; onl.peer = null;
+      try { if (c) c.close(); } catch (e) {}
+      try { if (p) p.destroy(); } catch (e) {}
+      onl.isHost = false; onl.oppChar = ""; onl.guestReady = false; onl.code = "";
+      onl.dirs = { u: false, d: false, l: false, r: false }; onl.lastDirsSent = "";
+    }
+
+    function showOnlineMenu(msg, isErr) {
+      onlineCleanup();
+      showScreen("onlineMenu");
+      setOnlineStatus(msg || "", isErr);
+      if (typeof Peer === "undefined") {
+        setOnlineStatus("通信ライブラリ(PeerJS)を読み込めませんでした。インターネット接続を確認してください。", true);
+      }
+    }
+
+    function randomCode() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let s = "";
+      for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+      return s;
+    }
+
+    /* ----- ルーム作成（ホスト） ----- */
+    function onlineCreateRoom(attempt) {
+      attempt = attempt || 0;
+      if (typeof Peer === "undefined") { setOnlineStatus("通信ライブラリを読み込めていません。", true); return; }
+      if (attempt === 0) onlineCleanup();
+      setOnlineStatus("ルームを作成中…");
+      const code = randomCode();
+      const peer = new Peer(PEER_PREFIX + code);
+      onl.peer = peer;
+      peer.on("open", () => {
+        onl.isHost = true; onl.code = code;
+        onl.myChar = CHAR_NAMES[0]; onl.oppChar = ""; onl.guestReady = false;
+        enterLobby();
+      });
+      peer.on("connection", onHostConnection);
+      peer.on("error", err => {
+        if (onl.peer !== peer) return;
+        if (err.type === "unavailable-id" && attempt < 5) {
+          try { peer.destroy(); } catch (e) {}
+          onl.peer = null;
+          onlineCreateRoom(attempt + 1);
+        } else {
+          setOnlineStatus("ルーム作成に失敗しました（" + err.type + "）", true);
+        }
+      });
+    }
+
+    function onHostConnection(conn) {
+      if (onl.conn && onl.conn.open) { conn.on("open", () => conn.close()); return; } // 満員
+      onl.conn = conn;
+      conn.on("open", () => {
+        sendMsg({ t: "char", v: onl.myChar });
+        sendMsg({ t: "map", v: onl.map });
+        updateLobby();
+      });
+      conn.on("data", onMessage);
+      conn.on("close", () => { if (onl.conn === conn) onPeerLeft(); });
+      conn.on("error", () => { if (onl.conn === conn) onPeerLeft(); });
+    }
+
+    /* ----- ルーム参加（ゲスト） ----- */
+    function onlineJoinRoom() {
+      if (typeof Peer === "undefined") { setOnlineStatus("通信ライブラリを読み込めていません。", true); return; }
+      const code = document.getElementById("roomCodeInput").value.toUpperCase().trim();
+      if (code.length !== 4) { setOnlineStatus("4文字のルームコードを入力してください。", true); return; }
+      onlineCleanup();
+      setOnlineStatus("接続中…");
+      const peer = new Peer();
+      onl.peer = peer;
+      let timer = 0;
+      const fail = msg => { clearTimeout(timer); if (onl.peer === peer) { showOnlineMenu(msg, true); } };
+      peer.on("open", () => {
+        const conn = peer.connect(PEER_PREFIX + code, { reliable: true, serialization: "json" });
+        onl.conn = conn;
+        timer = setTimeout(() => { if (!conn.open) fail("接続がタイムアウトしました。コードを確認してもう一度試してください。"); }, 12000);
+        conn.on("open", () => {
+          clearTimeout(timer);
+          onl.isHost = false; onl.code = code;
+          onl.myChar = CHAR_NAMES[0]; onl.oppChar = ""; onl.guestReady = false;
+          sendMsg({ t: "char", v: onl.myChar });
+          enterLobby();
+        });
+        conn.on("data", onMessage);
+        conn.on("close", () => { if (onl.conn === conn) onPeerLeft(); });
+        conn.on("error", () => { if (onl.conn === conn) onPeerLeft(); });
+      });
+      peer.on("error", err => {
+        if (err.type === "peer-unavailable") fail("ルームが見つかりません。コードを確認してください。");
+        else fail("接続エラー（" + err.type + "）");
+      });
+    }
+
+    function onPeerLeft() {
+      if (onl.isHost) {
+        const wasRunning = onl.running;
+        onl.running = false; gameActive = false;
+        cancelAnimationFrame(onl.raf);
+        document.removeEventListener("keydown", onlineKeyDown);
+        document.removeEventListener("keyup", onlineKeyUp);
+        onl.conn = null; onl.oppChar = ""; onl.guestReady = false;
+        showScreen("onlineLobby");
+        updateLobby();
+        setLobbyStatus(wasRunning ? "相手が切断しました。" : "相手が退出しました。", true);
+      } else {
+        showOnlineMenu("ホストとの接続が切れました。", true);
+      }
+    }
+
+    /* ----- ロビー ----- */
+    function enterLobby() {
+      const cs = document.getElementById("lobbyCharSelect");
+      const ms = document.getElementById("lobbyMapSelect");
+      if (!cs.options.length) {
+        CHAR_NAMES.forEach(n => cs.add(new Option(n, n)));
+        MAP_NAMES.forEach(n => ms.add(new Option(n, n)));
+        cs.addEventListener("change", () => { onl.myChar = cs.value; sendMsg({ t: "char", v: onl.myChar }); updateLobby(); });
+        ms.addEventListener("change", () => { if (onl.isHost) { onl.map = ms.value; sendMsg({ t: "map", v: onl.map }); } });
+      }
+      cs.value = onl.myChar;
+      ms.value = onl.map;
+      setLobbyStatus("");
+      showScreen("onlineLobby");
+      updateLobby();
+    }
+
+    function updateLobby() {
+      const host = onl.isHost;
+      const p1 = host ? onl.myChar : onl.oppChar;
+      const p2 = host ? onl.oppChar : onl.myChar;
+      document.getElementById("lobbyCode").textContent = onl.code || "----";
+      const set = (imgId, nameId, name, wait) => {
+        const img = document.getElementById(imgId);
+        if (name && characterImages[name]) { img.src = characterImages[name]; img.style.visibility = "visible"; }
+        else { img.removeAttribute("src"); img.style.visibility = "hidden"; }
+        document.getElementById(nameId).textContent = name || wait;
+      };
+      set("lobbyImg1", "lobbyName1", p1, "接続中…");
+      set("lobbyImg2", "lobbyName2", p2, "対戦相手を待っています…");
+
+      const ms = document.getElementById("lobbyMapSelect");
+      ms.value = onl.map;
+      ms.disabled = !host;
+      document.getElementById("lobbyMapNote").textContent = host ? "" : "（ホストが選びます）";
+
+      const readyBtn = document.getElementById("lobbyReadyBtn");
+      const startBtn = document.getElementById("lobbyStartBtn");
+      readyBtn.classList.toggle("hidden", host);
+      startBtn.classList.toggle("hidden", !host);
+      readyBtn.textContent = onl.guestReady ? "準備解除" : "準備OK";
+      const connected = !!(onl.conn && onl.conn.open);
+      startBtn.disabled = !(connected && onl.guestReady && onl.oppChar);
+      if (host && connected) {
+        setLobbyStatus(onl.guestReady ? "相手の準備ができました。ゲーム開始できます！" : "相手の準備を待っています…");
+      } else if (!host) {
+        setLobbyStatus(onl.guestReady ? "ホストの開始を待っています…" : "キャラを選んで「準備OK」を押してください。");
+      }
+    }
+
+    function copyRoomCode() {
+      const t = onl.code;
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => setLobbyStatus("コードをコピーしました: " + t), () => {});
+    }
+    function toggleReady() {
+      onl.guestReady = !onl.guestReady;
+      sendMsg({ t: "ready", v: onl.guestReady });
+      updateLobby();
+    }
+    function backToLobby() {
+      onl.running = false; gameActive = false;
+      if (!onl.isHost) { onl.guestReady = false; sendMsg({ t: "ready", v: false }); }
+      showScreen("onlineLobby");
+      updateLobby();
+    }
+
+    /* ----- メッセージ受信 ----- */
+    function onMessage(m) {
+      if (!m || !m.t) return;
+      switch (m.t) {
+        case "char":  onl.oppChar = m.v; updateLobby(); break;
+        case "map":   if (!onl.isHost) { onl.map = m.v; updateLobby(); } break;
+        case "ready": if (onl.isHost) { onl.guestReady = !!m.v; updateLobby(); } break;
+        case "start": if (!onl.isHost) beginMatch(m.p1, m.p2, m.map); break;
+        case "snap":  if (!onl.isHost && onl.running) applySnap(m); break;
+        case "over":  if (!onl.isHost) { finishMatch(m.w); } break;
+        case "in":
+          if (onl.isHost && onl.running) {
+            keys["ArrowUp"] = !!m.u; keys["ArrowDown"] = !!m.d;
+            keys["ArrowLeft"] = !!m.l; keys["ArrowRight"] = !!m.r;
+          }
+          break;
+        case "shoot": if (onl.isHost && onl.running && gameActive) shootBullet(player2, player1); break;
+        case "skill": if (onl.isHost && onl.running && gameActive) useSkill(player2); break;
+      }
+    }
+
+    /* ----- 試合開始 ----- */
+    function hostStartGame() {
+      if (!onl.isHost || !onl.conn || !onl.conn.open || !onl.guestReady) return;
+      sendMsg({ t: "start", p1: onl.myChar, p2: onl.oppChar, map: onl.map });
+      beginMatch(onl.myChar, onl.oppChar, onl.map);
+    }
+
+    function beginMatch(p1Name, p2Name, mapName) {
+      showScreen("gameScreen");
+      const role = onl.isHost ? "1P（青）" : "2P（赤）";
+      document.getElementById("gameInfo").innerText =
+        `1P: ${p1Name} vs 2P: ${p2Name} | マップ: ${mapName} | あなたは ${role}`;
+
+      canvas = document.getElementById("gameCanvas");
+      ctx = canvas.getContext("2d");
+      selectedMap = mapName;
+
+      // オフライン用のキー入力は外す（オンラインは専用ハンドラで統一）
+      document.removeEventListener("keydown", keyDownHandler);
+      document.removeEventListener("keyup", keyUpHandler);
+
+      let p1Y = 300, p2Y = 100;
+      if (mapName === "工場" || mapName === "火山") { p1Y = 0; p2Y = 0; }
+      player1 = createPlayer(100, p1Y, "blue", p1Name);
+      player2 = createPlayer(650, p2Y, "red", p2Name);
+      bullets = []; turrets = []; explosions = []; keys = {};
+      obstacles = onl.isHost ? getObstaclesForMap(mapName) : [];
+      safeZone.x = canvas.width / 2;
+      safeZone.y = canvas.height / 2;
+      safeZone.radius = Math.max(canvas.width, canvas.height);
+      safeZone.shrinking = false;
+
+      onl.dirs = { u: false, d: false, l: false, r: false };
+      onl.lastDirsSent = "";
+      document.addEventListener("keydown", onlineKeyDown);
+      document.addEventListener("keyup", onlineKeyUp);
+      window.addEventListener("blur", onlineBlur);
+
+      onl.running = true;
+      cancelAnimationFrame(onl.raf);
+      clearInterval(onl.hbTimer);
+
+      if (onl.isHost) {
+        gameActive = true;
+        gameStartTime = Date.now();
+        lastPoisonTick = Date.now();
+        onl.acc = 0; onl.lastTs = performance.now(); onl.lastSend = 0; onl.lastObCount = -1;
+        onl.raf = requestAnimationFrame(hostLoop);
+      } else {
+        gameActive = false;
+        onl.lastTs = performance.now();
+        onl.hbTimer = setInterval(() => sendDirs(true), 100); // 入力の再送（取りこぼし対策）
+        onl.raf = requestAnimationFrame(guestLoop);
+      }
+    }
+
+    /* ----- ホスト：ゲームループ（60Hz固定） ----- */
+    function hostLoop(ts) {
+      if (!onl.running) return;
+      onl.acc += Math.min(ts - onl.lastTs, 200);
+      onl.lastTs = ts;
+      const STEP = 1000 / 60;
+      while (onl.acc >= STEP) { update(); onl.acc -= STEP; }
+
+      draw();
+      drawYouMarker();
+
+      if (ts - onl.lastSend >= 33) { sendMsg(buildSnap()); onl.lastSend = ts; }
+
+      if (player1.hp <= 0 || player2.hp <= 0) {
+        gameActive = false;
+        sendMsg(buildSnap());
+        const w = (player1.hp <= 0 && player2.hp <= 0) ? "draw" : (player1.hp <= 0 ? "p2" : "p1");
+        sendMsg({ t: "over", w });
+        finishMatch(w);
+        return;
+      }
+      onl.raf = requestAnimationFrame(hostLoop);
+    }
+
+    function r1(v) { return Math.round((v || 0) * 10) / 10; }
+    function buildSnap() {
+      const now = Date.now();
+      const s = {
+        t: "snap",
+        p: [player1, player2].map(p => ({
+          x: r1(p.x), y: r1(p.y), hp: r1(p.hp),
+          am: p.ammo, mx: p.maxAmmo, md: p.mode || null, sc: p.skillCharge || 0,
+          cd: isFinite(p.skillCooldown) ? p.skillCooldown : null,
+          se: now - p.skillLastUsed
+        })),
+        b: bullets.map(b => [r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.r)]),
+        tu: turrets.map(t => [r1(t.x), r1(t.y)]),
+        ex: explosions.map(e => [r1(e.x), r1(e.y), r1(e.r), e.life]),
+        sz: [safeZone.x, safeZone.y, r1(safeZone.radius), safeZone.shrinking ? 1 : 0]
+      };
+      if (obstacles.length !== onl.lastObCount) {
+        s.ob = obstacles.map(o => [o.x, o.y, o.w, o.h]);
+        onl.lastObCount = obstacles.length;
+      }
+      return s;
+    }
+
+    /* ----- ゲスト：描画ループ ----- */
+    function applySnap(s) {
+      [player1, player2].forEach((p, i) => {
+        const d = s.p[i];
+        if (!p || !d) return;
+        p.tx = d.x; p.ty = d.y;
+        if (p.snapped !== true) { p.x = d.x; p.y = d.y; p.snapped = true; }
+        p.hp = d.hp; p.ammo = d.am; p.maxAmmo = d.mx; p.mode = d.md; p.skillCharge = d.sc;
+        p.skillCooldown = d.cd === null ? Infinity : d.cd;
+        p.skillLastUsed = Date.now() - d.se;
+      });
+      bullets = s.b.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], r: a[4] }));
+      turrets = s.tu.map(a => ({ x: a[0], y: a[1] }));
+      explosions = s.ex.map(a => ({ x: a[0], y: a[1], r: a[2], life: a[3] }));
+      if (s.ob) obstacles = s.ob.map(a => ({ x: a[0], y: a[1], w: a[2], h: a[3] }));
+      safeZone.x = s.sz[0]; safeZone.y = s.sz[1]; safeZone.radius = s.sz[2]; safeZone.shrinking = !!s.sz[3];
+    }
+
+    function guestLoop(ts) {
+      if (!onl.running) return;
+      const dt = Math.min((ts - onl.lastTs) / (1000 / 60), 3);
+      onl.lastTs = ts;
+      bullets.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; }); // 弾は次の状態が来るまで先読み
+      [player1, player2].forEach(p => {
+        if (p.tx === undefined) return;
+        const k = Math.min(1, 0.5 * dt);
+        p.x += (p.tx - p.x) * k; p.y += (p.ty - p.y) * k;
+      });
+      draw();
+      drawYouMarker();
+      onl.raf = requestAnimationFrame(guestLoop);
+    }
+
+    function drawYouMarker() {
+      const me = onl.isHost ? player1 : player2;
+      if (!me || !ctx) return;
+      ctx.save();
+      ctx.fillStyle = onl.isHost ? "#1d4ed8" : "#dc2626";
+      ctx.font = "bold 12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("▼YOU", me.x + me.w / 2, me.y - 26);
+      ctx.restore();
+    }
+
+    /* ----- 試合終了 ----- */
+    function finishMatch(w) {
+      onl.running = false;
+      gameActive = false;
+      cancelAnimationFrame(onl.raf);
+      clearInterval(onl.hbTimer);
+      keys = {};
+      if (onl.isHost) onl.guestReady = false;
+      const me = onl.isHost ? "p1" : "p2";
+      document.getElementById("onlineResultText").textContent =
+        w === "draw" ? "引き分け！" : (w === me ? "あなたの勝ち！ 🎉" : "あなたの負け…");
+      showScreen("onlineResult");
+    }
+
+    /* ----- オンライン用キー入力（両者共通：移動 WASD/矢印, 攻撃 F, スキル G） ----- */
+    const DIR_KEYS = { w: "u", ArrowUp: "u", s: "d", ArrowDown: "d", a: "l", ArrowLeft: "l", d: "r", ArrowRight: "r" };
+    function normKey(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key; }
+
+    function sendDirs(force) {
+      const d = onl.dirs;
+      if (onl.isHost) {
+        keys["w"] = d.u; keys["s"] = d.d; keys["a"] = d.l; keys["d"] = d.r;
+        return;
+      }
+      const sig = [d.u, d.d, d.l, d.r].map(Number).join("");
+      if (force || sig !== onl.lastDirsSent) {
+        sendMsg({ t: "in", u: d.u, d: d.d, l: d.l, r: d.r });
+        onl.lastDirsSent = sig;
+      }
+    }
+    function onlineKeyDown(e) {
+      const k = normKey(e);
+      if (k.startsWith("Arrow") || k === " ") e.preventDefault();
+      if (!onl.running) return;
+      if (DIR_KEYS[k]) { onl.dirs[DIR_KEYS[k]] = true; sendDirs(); return; }
+      if (k === "f") { onl.isHost ? (gameActive && shootBullet(player1, player2)) : sendMsg({ t: "shoot" }); }
+      if (k === "g") { onl.isHost ? (gameActive && useSkill(player1)) : sendMsg({ t: "skill" }); }
+    }
+    function onlineKeyUp(e) {
+      const k = normKey(e);
+      if (!onl.running) return;
+      if (DIR_KEYS[k]) { onl.dirs[DIR_KEYS[k]] = false; sendDirs(); }
+    }
+    function onlineBlur() {
+      onl.dirs = { u: false, d: false, l: false, r: false };
+      sendDirs();
+    }
+
+    // ルームコード入力：Enterで参加
+    document.getElementById("roomCodeInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") onlineJoinRoom();
+    });
+    window.addEventListener("beforeunload", () => { try { if (onl.conn) onl.conn.close(); } catch (e) {} });
   </script>
 </body>
 </html>
