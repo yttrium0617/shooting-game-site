@@ -267,17 +267,18 @@
 
     #touchUI { position: fixed; inset: 0; z-index: 60; pointer-events: none; display: none; }
     body.mobile.ingame #touchUI { display: block; }
-    #touchUI .joy { position: fixed; bottom: max(14px, env(safe-area-inset-bottom)); width: 124px; height: 124px; border-radius: 50%; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.28); touch-action: none; pointer-events: auto; }
+    #touchUI .joy { position: fixed; top: 0; bottom: 0; width: 50%; touch-action: none; pointer-events: auto; }
+    #touchUI .jbase { position: fixed; display: none; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.28); pointer-events: none; }
     #touchUI .knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(255,255,255,.35); border: 2px solid rgba(255,255,255,.65); }
     #touchUI .tbtns { position: fixed; bottom: max(22px, env(safe-area-inset-bottom)); display: flex; gap: 14px; align-items: flex-end; pointer-events: none; }
     #touchUI .tbtn { width: 70px; height: 70px; margin: 0; padding: 0; border-radius: 50%; font-size: 13px; font-weight: 800; touch-action: none; pointer-events: auto; background: rgba(10,16,34,.55); border: 2px solid; transform: none; }
     #touchUI .tbtn.skl { margin-bottom: 26px; }
     #touchUI .tbtn:hover:not(:disabled) { transform: none; box-shadow: none; }
     #touchUI .tbtn.down { filter: brightness(1.8); }
-    #touchUI .tp1 .joy { left: max(14px, env(safe-area-inset-left)); }
+    #touchUI .tp1 .joy { left: 0; }
     #touchUI .tp1 .tbtn { border-color: #3aa0ff; }
     #touchUI .tp1 .tbtns { left: 156px; }
-    #touchUI .tp2 .joy { right: max(14px, env(safe-area-inset-right)); }
+    #touchUI .tp2 .joy { right: 0; }
     #touchUI .tp2 .tbtn { border-color: #ff4d6d; }
     #touchUI .tp2 .tbtns { right: 156px; flex-direction: row-reverse; }
     #touchUI.online .tp2 { display: none; }
@@ -2085,9 +2086,25 @@ function updateSafeZone() {
       peer: null, conn: null, isHost: false, code: "",
       myChar: CHAR_NAMES[0], oppChar: "", map: MAP_NAMES[0],
       guestReady: false, running: false,
-      raf: 0, hbTimer: 0, lastTs: 0, acc: 0, lastSend: 0, lastObCount: -1,
+      raf: 0, hbTimer: 0, keepTimer: 0, lastTs: 0, acc: 0, lastSend: 0, lastObCount: -1,
       dirs: { u: false, d: false, l: false, r: false }, lastDirsSent: ""
     };
+
+    /* 画面スリープ防止／バックグラウンド復帰時にシグナリング再接続（ルームIDを維持） */
+    let wakeLock = null;
+    async function keepAwake() {
+      try { if (navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); } } catch (e) {}
+    }
+    function releaseAwake() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+    function onlineWake() {
+      const p = onl.peer;
+      if (p && onl.isHost && p.disconnected && !p.destroyed) { try { p.reconnect(); } catch (e) {} }
+      if (p) keepAwake();
+    }
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) onlineWake(); });
+    window.addEventListener("online", onlineWake);
+    window.addEventListener("pageshow", onlineWake);
+    window.addEventListener("focus", onlineWake);
 
     function setOnlineStatus(msg, isErr) {
       const el = document.getElementById("onlineStatus");
@@ -2099,11 +2116,20 @@ function updateSafeZone() {
       el.textContent = msg || "";
       el.classList.toggle("err", !!isErr);
     }
+    /* 状態配信：送信バッファが詰まっているときは古い状態を捨てて遅延の蓄積を防ぐ（障害物の更新だけは必ず送る） */
+    function sendSnapMsg(m) {
+      const c = onl.conn;
+      if (!c || !c.open) return;
+      const dc = c.dataChannel;
+      if (dc && dc.bufferedAmount > 8192 && !m.ob) return;
+      try { c.send(m); } catch (e) { console.warn(e); }
+    }
     function sendMsg(m) {
       if (onl.conn && onl.conn.open) { try { onl.conn.send(m); } catch (e) { console.warn(e); } }
     }
 
     function onlineCleanup() {
+      clearInterval(onl.keepTimer); releaseAwake();
       onl.running = false;
       cancelAnimationFrame(onl.raf);
       clearInterval(onl.hbTimer);
@@ -2143,7 +2169,14 @@ function updateSafeZone() {
       const code = randomCode();
       const peer = new Peer(PEER_PREFIX + code);
       onl.peer = peer;
+      let opened = false;
+      const revive = () => { if (onl.peer !== peer || peer.destroyed) return; if (peer.disconnected) { try { peer.reconnect(); } catch (e) {} } };
+      peer.on("disconnected", () => setTimeout(revive, 300));
       peer.on("open", () => {
+        if (opened) return; // 再接続時のopenでは何もしない
+        opened = true;
+        clearInterval(onl.keepTimer); onl.keepTimer = setInterval(revive, 2000);
+        keepAwake();
         onl.isHost = true; onl.code = code;
         onl.myChar = CHAR_NAMES[0]; onl.oppChar = ""; onl.guestReady = false;
         enterLobby();
@@ -2151,6 +2184,7 @@ function updateSafeZone() {
       peer.on("connection", onHostConnection);
       peer.on("error", err => {
         if (onl.peer !== peer) return;
+        if (opened) { setTimeout(revive, 1000); return; } // 作成後の通信エラーは再接続で対処（ルームは維持）
         if (err.type === "unavailable-id" && attempt < 5) {
           try { peer.destroy(); } catch (e) {}
           onl.peer = null;
@@ -2188,6 +2222,7 @@ function updateSafeZone() {
       peer.on("open", () => {
         const conn = peer.connect(PEER_PREFIX + code, { reliable: true, serialization: "json" });
         onl.conn = conn;
+        keepAwake();
         timer = setTimeout(() => { if (!conn.open) fail("接続がタイムアウトしました。コードを確認してもう一度試してください。"); }, 12000);
         conn.on("open", () => {
           clearTimeout(timer);
@@ -2325,7 +2360,7 @@ function updateSafeZone() {
       draw();
       drawYouMarker();
 
-      if (ts - onl.lastSend >= 33) { sendMsg(buildSnap()); onl.lastSend = ts; }
+      if (ts - onl.lastSend >= 16) { sendSnapMsg(buildSnap()); onl.lastSend = ts; }
 
       if (player1.hp <= 0 || player2.hp <= 0) {
         gameActive = false;
@@ -3223,12 +3258,13 @@ function updateSafeZone() {
 
     function makeJoy(el, keyMap, slot) {
       const knob = el.querySelector(".knob"), st = { u: 0, d: 0, l: 0, r: 0 };
-      let id = null;
+      const base = document.createElement("div"); base.className = "jbase"; el.appendChild(base); base.appendChild(knob);
+      let id = null, cx = 0, cy = 0;
       const set = (k, v) => { if (st[k] !== v) { st[k] = v; tkey(v ? "keydown" : "keyup", keyMap[k]); } };
-      const reset = () => { id = null; touchAnalog[slot].x = 0; touchAnalog[slot].y = 0; knob.style.transform = ""; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
+      const reset = () => { id = null; touchAnalog[slot].x = 0; touchAnalog[slot].y = 0; knob.style.transform = ""; base.style.display = "none"; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
       const upd = e => {
-        const r = el.getBoundingClientRect(), R = r.width / 2;
-        const dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R), m = Math.hypot(dx, dy) || 1, c = Math.min(m, R);
+        const R = 62;
+        const dx = e.clientX - cx, dy = e.clientY - cy, m = Math.hypot(dx, dy) || 1, c = Math.min(m, R);
         knob.style.transform = `translate(${dx / m * c * .6}px, ${dy / m * c * .6}px)`;
         const on = m > R * .3, a = m * .38;
         const mag = on ? Math.min(1, (m - R * .3) / (R * .5)) : 0;
@@ -3236,7 +3272,7 @@ function updateSafeZone() {
         set("l", on && dx < -a ? 1 : 0); set("r", on && dx > a ? 1 : 0);
         set("u", on && dy < -a ? 1 : 0); set("d", on && dy > a ? 1 : 0);
       };
-      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} upd(e); e.preventDefault(); });
+      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} cx = e.clientX; cy = e.clientY; base.style.left = cx + "px"; base.style.top = cy + "px"; base.style.display = "block"; upd(e); e.preventDefault(); });
       el.addEventListener("pointermove", e => { if (e.pointerId === id) upd(e); });
       const end = e => { if (e.pointerId === id) reset(); };
       el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
