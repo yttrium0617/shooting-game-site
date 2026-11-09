@@ -86,6 +86,9 @@
     .menu-btn:hover:not(:disabled)::after { left: 130%; }
     .menu-btn:hover:not(:disabled) { transform: translateX(8px); }
     .menu-btn.online { border-left-color: var(--pink); }
+    .menu-btn.cpu { border-left-color: #6dff8a; }
+    body.cpu #touchUI .tp2 { display: none; }
+    body.cpu #touchUI .tp1 .tbtns { left: auto; right: max(18px, env(safe-area-inset-right)); flex-direction: row-reverse; }
     .menu-btn.codex { border-left-color: #ffd23f; }
     .menu-btn .mb-icon { font-size: 30px; width: 40px; text-align: center; }
     .menu-btn b { display: block; font-size: 21px; letter-spacing: .1em; }
@@ -439,11 +442,15 @@
       <h1 class="logo">2D対戦<span>シューティング</span></h1>
       <div class="mode-sel" style="margin:-16px 0 20px"><span>プレイ方法</span><button id="modePC" onclick="setPlayMode('pc', true)">🖥 PC</button><button id="modeMobile" onclick="setPlayMode('mobile', true)">📱 モバイル</button></div>
       <div class="menu-list">
-        <button class="menu-btn" onclick="goToCharacterSelect()">
+        <button class="menu-btn" onclick="cpuMode=false;goToCharacterSelect()">
           <span class="mb-icon">⚔</span>
           <span><b>オフライン対戦</b><small>1台のPCで2人対戦</small></span>
         </button>
-        <button class="menu-btn online" onclick="showOnlineMenu()">
+        <button class="menu-btn cpu" onclick="cpuMode=true;goToCharacterSelect()">
+          <span class="mb-icon">🤖</span>
+          <span><b>CPU対戦</b><small>1人でCPUと対戦（キャラごとに戦法が変わります）</small></span>
+        </button>
+        <button class="menu-btn online" onclick="cpuMode=false;showOnlineMenu()">
           <span class="mb-icon">🌐</span>
           <span><b>オンライン対戦</b><small>ルームコードで離れた相手と対戦</small></span>
         </button>
@@ -453,7 +460,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 19</div>
+      <div class="ver">VER 20</div>
     </div>
   </div>
 
@@ -616,6 +623,8 @@ let lastPoisonTick = 0;
 
     let selectedMap = "草原";
     let gameActive = false;
+    const touchAnalog = { p1: { x: 0, y: 0 }, p2: { x: 0, y: 0 } };
+    const BOMBER_RECOIL = 15; // ボマーのスキル終了後に受ける反動ダメージ
 
     function goToCharacterSelect() {
       hideAllScreens();
@@ -1330,6 +1339,8 @@ if (shooter.charName === "ツインブラザーズ") {
     player.damage = 34;      // 元のダメージ
     player.bulletRadius = 40;
     player.speed = 2.8;
+    // 反動：強化終了後に自分のHPが減る
+    if (gameActive && player.hp > 0) player.hp = Math.max(1, player.hp - BOMBER_RECOIL);
   }, 10000); // 10秒で元に戻る
   return;
 }
@@ -1533,15 +1544,19 @@ if (shooter.charName === "ツインブラザーズ") {
     }
 
     function movePlayer(player, up, down, left, right) {
-      let newX = player.x, newY = player.y;
-      if (keys[up]) newY -= player.speed;
-      if (keys[down]) newY += player.speed;
-      if (keys[left]) newX -= player.speed;
-      if (keys[right]) newX += player.speed;
-      newX = Math.max(0, Math.min(ARENA_W - player.w, newX));
-      newY = Math.max(0, Math.min(ARENA_H - player.h, newY));
-      const newRect = { x: newX, y: newY, w: player.w, h: player.h };
-      if (!collidesWithObstacles(newRect)) { player.x = newX; player.y = newY; }
+      let vx = 0, vy = 0;
+      if (keys[up]) vy -= player.speed;
+      if (keys[down]) vy += player.speed;
+      if (keys[left]) vx -= player.speed;
+      if (keys[right]) vx += player.speed;
+      // モバイルのスティック：倒した方向・倒し具合どおりに動く（オフライン時のみ）
+      const an = player === player1 ? touchAnalog.p1 : touchAnalog.p2;
+      if (an && (an.x || an.y) && !(typeof onl !== "undefined" && onl.running)) { vx = an.x * player.speed; vy = an.y * player.speed; }
+      // 軸ごとに判定：壁に当たっても壁に沿って滑れる
+      const nx = Math.max(0, Math.min(ARENA_W - player.w, player.x + vx));
+      if (!collidesWithObstacles({ x: nx, y: player.y, w: player.w, h: player.h })) player.x = nx;
+      const ny = Math.max(0, Math.min(ARENA_H - player.h, player.y + vy));
+      if (!collidesWithObstacles({ x: player.x, y: ny, w: player.w, h: player.h })) player.y = ny;
     }
 
     function collidesWithObstacles(rect) {
@@ -2460,7 +2475,7 @@ function updateSafeZone() {
       "ツインブラザーズ": "爆発弾と散弾をスキルで切り替え",
       "聖なる使者": "与ダメージを溜めて自分のHPを回復",
       "ジャンパー": "飛ぶほど加速して巨大化する弾",
-      "ボマー": "その場で爆発。スキルで威力と速度が上昇",
+      "ボマー": "その場で爆発。スキルで威力と速度が上昇（終了後に反動でHP-15）",
       "ブーメランボーイ": "戻ってくる弾と、ワープ地点の設置",
       "ジョーカー": "3方向の拡散弾。スキルは運任せの6択",
       "サンダーマウス": "途中で分裂する弾と、短距離ダッシュ"
@@ -3206,16 +3221,18 @@ function updateSafeZone() {
     let playMode = "pc";
     function tkey(type, key) { document.dispatchEvent(new KeyboardEvent(type, { key: key, bubbles: true })); }
 
-    function makeJoy(el, keyMap) {
+    function makeJoy(el, keyMap, slot) {
       const knob = el.querySelector(".knob"), st = { u: 0, d: 0, l: 0, r: 0 };
       let id = null;
       const set = (k, v) => { if (st[k] !== v) { st[k] = v; tkey(v ? "keydown" : "keyup", keyMap[k]); } };
-      const reset = () => { id = null; knob.style.transform = ""; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
+      const reset = () => { id = null; touchAnalog[slot].x = 0; touchAnalog[slot].y = 0; knob.style.transform = ""; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
       const upd = e => {
         const r = el.getBoundingClientRect(), R = r.width / 2;
         const dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R), m = Math.hypot(dx, dy) || 1, c = Math.min(m, R);
         knob.style.transform = `translate(${dx / m * c * .6}px, ${dy / m * c * .6}px)`;
         const on = m > R * .3, a = m * .38;
+        const mag = on ? Math.min(1, (m - R * .3) / (R * .5)) : 0;
+        touchAnalog[slot].x = on ? dx / m * mag : 0; touchAnalog[slot].y = on ? dy / m * mag : 0;
         set("l", on && dx < -a ? 1 : 0); set("r", on && dx > a ? 1 : 0);
         set("u", on && dy < -a ? 1 : 0); set("d", on && dy > a ? 1 : 0);
       };
@@ -3244,8 +3261,8 @@ function updateSafeZone() {
     rot.id = "rotateMsg"; rot.innerHTML = "<b>📱↻</b><div>横向きにしてください</div>";
     document.body.appendChild(rot);
     const joys = [
-      makeJoy(document.getElementById("joy1"), { u: "w", d: "s", l: "a", r: "d" }),
-      makeJoy(document.getElementById("joy2"), { u: "ArrowUp", d: "ArrowDown", l: "ArrowLeft", r: "ArrowRight" })
+      makeJoy(document.getElementById("joy1"), { u: "w", d: "s", l: "a", r: "d" }, "p1"),
+      makeJoy(document.getElementById("joy2"), { u: "ArrowUp", d: "ArrowDown", l: "ArrowLeft", r: "ArrowRight" }, "p2")
     ];
     touchUI.querySelectorAll(".tbtn").forEach(makeBtn);
 
@@ -3315,6 +3332,178 @@ function updateSafeZone() {
       if (saved !== "pc" && saved !== "mobile") saved = (window.matchMedia && matchMedia("(pointer: coarse)").matches) ? "mobile" : "pc";
       setPlayMode(saved, false);
     })();
+  </script>
+
+  <script>
+    /* ============================================================
+       ver20：CPU対戦（2Pをコンピューターが操作）
+       ============================================================ */
+    let cpuMode = false;
+    const cpu = { on: false, ai: null };
+function __makeCpuAI(NOW,RND){
+ let fr=0;const TK=3;
+ const HY=(a,b)=>Math.sqrt(a*a+b*b);
+const GM=4,GR=4;
+const SIDE=[{up:'w',down:'s',left:'a',right:'d'},{up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight'}];
+// ===== 戦略型AI =====
+// range=理想距離 fire=射撃開始距離 pass=壁貫通弾 strafe=横移動 chase=距離維持の強さ tol=照準のゆるさ
+const PROF={
+'スナイパー太郎':{range:350,fire:780},
+'白い死神':{range:300,fire:900,strafe:1},
+'怪盗レッド':{range:290,fire:500},
+'ガジェットボット':{range:280,fire:500,pass:1},
+'アクアファイター':{range:250,fire:400},
+'ツインブラザーズ':{range:300,fire:750,tol:55},
+'聖なる使者':{range:330,fire:720,strafe:4,gm:3,gr:2},
+'ジャンパー':{range:400,fire:720},
+'ボマー':{range:170,fire:40},
+'ブーメランボーイ':{range:130,fire:240,pass:1},
+'ジョーカー':{range:230,fire:420,tol:55},
+'サンダーマウス':{range:250,fire:520}};
+const ai=[{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]}];
+const rect=p=>({x:p.x,y:p.y,w:30,h:30});
+const trapped=p=>collidesWithObstacles(rect(p));
+// 弾が実際に届くか（ゲームと同じ順序：先に標的、次に壁）
+function canHit(ax,ay,t,r,pass,st){const tx=t.x+15,ty=t.y+15,n=Math.max(1,Math.ceil(HY(tx-ax,ty-ay)/st)),dx=(tx-ax)/n,dy=(ty-ay)/n,L=obstacles.length;
+ for(let k=1;k<=n;k++){const x=ax+dx*k,y=ay+dy*k;if(Math.abs(x-tx)<15+r&&Math.abs(y-ty)<15+r)return true;
+  if(!pass)for(let j=0;j<L;j++){const o=obstacles[j];if(x>o.x-r&&x<o.x+o.w+r&&y>o.y-r&&y<o.y+o.h+r)return false}}return true}
+// アクアの壁が敵に重なる（＝敵を埋められる）か
+function wallFor(p,e){const px=p.x+15,py=p.y+15,dx=e.x+15-px,dy=e.y+15-py,m=Math.max(1,HY(dx,dy));return{x:px+dx/m*50-15,y:py+dy/m*50-15,w:30,h:30}}
+function trapOK(p,e){const w=wallFor(p,e);return!collidesWithObstacles(w)&&Math.abs(w.x-e.x)<14&&Math.abs(w.y-e.y)<14}
+function threatR(en){const n=en.charName;if(n==='ボマー')return en.bulletRadius+48;if(n==='ツインブラザーズ'&&en.mode==='S')return 130;if(n==='アクアファイター')return 125;return 0}
+function los(ax,ay,bx,by){const n=Math.ceil(HY(bx-ax,by-ay)/9),dx=(bx-ax)/n,dy=(by-ay)/n,L=obstacles.length;for(let k=1;k<n;k++){const x=ax+dx*k,y=ay+dy*k;for(let j=0;j<L;j++){const o=obstacles[j];if(x>o.x-3&&x<o.x+o.w+3&&y>o.y-3&&y<o.y+o.h+3)return false}}return true}
+function danger(me,px,py,vx,vy){let d=0;for(const b of bullets){if(b.from===me)continue;const v2=b.vx*b.vx+b.vy*b.vy;if(v2<.01)continue;
+ const rx=px-b.x,ry=py-b.y,tc=Math.max(0,Math.min(40,(rx*b.vx+ry*b.vy)/v2)),
+ qx=px+vx*Math.min(tc,12),qy=py+vy*Math.min(tc,12);
+ if(HY(qx-(b.x+b.vx*tc),qy-(b.y+b.vy*tc))<b.r+17)d+=(b.damage||10)*(1.4-tc/40)}return d}
+function think(i){
+ const me=i?player2:player1,en=i?player1:player2,K=SIDE[i],A=ai[i],nm=me.charName,P=PROF[nm],EP=PROF[en.charName];
+ const mx=me.x+15,my=me.y+15,ex=en.x+15,ey=en.y+15,d=HY(ex-mx,ey-my)||1,ux=(ex-mx)/d,uy=(ey-my)/d;
+ if(A.pe)A.ev=[(ex-A.pe[0])/3,(ey-A.pe[1])/3];A.pe=[ex,ey];
+ const el=(NOW()-gameStartTime)/1000,zr=safeZone.shrinking?safeZone.radius:660,sp=me.speed,twin=me.mode==='S';
+ const rdy=NOW()-me.skillLastUsed>=me.skillCooldown,myTrap=trapped(me),enTrap=trapped(en),eTh=threatR(en);
+ const hpLow=me.hp<45,lead=me.hp-en.hp,pass=!!P.pass;
+ let range=P.range,fire=P.fire,chase=P.chase||.04,expoW=pass?8:5;
+ // --- キャラ別の戦略 ---
+ if(nm==='ツインブラザーズ'){range=twin?75:300;fire=twin?105:750;if(twin)chase=.1}
+ if(nm==='ボマー'){fire=me.bulletRadius-6;
+  // 待ち伏せ型：遮蔽に隠れ、敵の弾切れ・強化中・終盤だけ突っ込む
+  if(me.isChargedCreeper||en.ammo<=0||enTrap||en.hp<35||el>42){range=15;chase=.15;expoW=1}else{range=190;chase=.02;expoW=10}}
+ if(nm==='アクアファイター'){
+  if(enTrap){range=220;chase=.05}            // 埋めた後は、壁の死角から安全に削る
+  else if(rdy){range=45;chase=.17;expoW=2}   // スキルが使えるなら埋めにいく
+  else{range=270;chase=.04}}                 // 待機中は距離を取って射撃
+ if(nm!=='ボマー'&&nm!=='アクアファイター'){
+  if(en.ammo<=0&&!EP.pass&&range>110)range=Math.max(110,range*.6);  // 敵の弾切れは好機
+  if(lead>25)range*=.85;else if(lead<-25)range*=1.25;
+  if(me.ammo<=0)range*=1.4}
+ if(hpLow&&nm!=='ボマー'&&nm!=='アクアファイター')range*=1.3;
+ if(enTrap&&!EP.pass&&!eTh)expoW=0;
+ const hide=me.ammo<=0&&nm!=='聖なる使者'&&nm!=='ボマー';if(hide)expoW*=1.6;
+ const cur=danger(me,mx,my,0,0);
+ let pad=null;if(me.hp<=75)for(const p of pads)if(NOW()>=p.next&&(!pad||HY(p.x-mx,p.y-my)<HY(pad.x-mx,pad.y-my)))pad=p;
+ if(RND()<.04)A.side=-A.side;
+ const eFire=en.charName==='ツインブラザーズ'?(en.mode==='S'?105:750):EP.fire;
+ let best=-1e9,bd=[0,0];
+ for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
+  const n=dx&&dy?.7071:1,vx=dx*n*sp,vy=dy*n*sp;let s=0;
+  if(dx||dy){const r1={x:me.x+vx,y:me.y+vy,w:30,h:30};
+   if(r1.x<0||r1.y<0||r1.x>ARENA_W-30||r1.y>ARENA_H-30||collidesWithObstacles(r1))s-=60;
+   else{const r8={x:me.x+vx*8,y:me.y+vy*8,w:30,h:30};if(r8.x<0||r8.y<0||r8.x>ARENA_W-30||r8.y>ARENA_H-30||collidesWithObstacles(r8))s-=6}}
+  const cx=mx+vx*10,cy=my+vy*10,nd=HY(ex-cx,ey-cy);
+  s-=danger(me,mx,my,vx,vy)*2.5;
+  s-=Math.abs(nd-range)*chase;
+  if(eTh&&nd<eTh)s-=(eTh-nd)*.7;                       // 自爆・罠・散弾の間合いに入らない
+  if(el>16)s-=Math.max(0,HY(cx-400,cy-200)-(zr-70))*.35;
+  if(expoW&&en.ammo>0&&nd<eFire&&canHit(ex,ey,{x:cx-15,y:cy-15},5,EP.pass,8))s-=expoW; // 撃たれる位置を避ける
+  if(!pass&&me.ammo>0&&nd<fire&&nm!=='ボマー'&&nm!=='アクアファイター')s+=canHit(cx,cy,en,5,0,8)?(enTrap?8:4):-3;   // 自分の射線を確保
+  if(nm==='アクアファイター'&&enTrap)s+=canHit(cx,cy,en,5,0,8)?7:-4;
+  if(pad)s-=HY(pad.x-cx,pad.y-cy)*.05*(1+(75-me.hp)/25);
+  s+=(P.strafe||3)*(-dx*n*uy+dy*n*ux)*A.side*(enTrap?.2:1);
+  if(dx===A.dir[0]&&dy===A.dir[1])s+=1.2;if(!dx&&!dy)s-=2.5;
+  s+=RND()*1.5;
+  if(s>best){best=s;bd=[dx,dy]}}
+ if(myTrap)bd=[mx<400?1:-1,my<200?1:-1];
+ keys[K.left]=bd[0]<0;keys[K.right]=bd[0]>0;keys[K.up]=bd[1]<0;keys[K.down]=bd[1]>0;A.dir=bd;
+ // ---- スキル運用 ----
+ const hit=canHit(mx,my,en,5,pass,6);let use=false;
+ switch(nm){
+  case'スナイパー太郎':use=rdy&&d<900;break;
+  case'白い死神':use=rdy&&me.ammo>0&&hit&&d<900&&!me.nextShotBonusDamage;break;
+  case'サンダーマウス':use=rdy&&(myTrap||(cur>=10&&(bd[0]||bd[1])));break;
+  case'ボマー':use=rdy&&me.hp>35&&d<280&&(en.ammo<=0||d<200||enTrap);break;
+  case'ジョーカー':use=rdy&&me.hp>40;break;
+  case'ブーメランボーイ':use=rdy&&(me.warpPoint?(myTrap||me.hp<35||(hpLow&&cur>5)):(me.hp>50&&cur<5&&HY(mx-400,my-200)<260));break;
+  case'怪盗レッド':use=rdy&&d>130&&d<520&&hit&&turrets.filter(t=>t.owner===me).length<2;break;
+  case'ガジェットボット':use=rdy&&(myTrap||(hpLow&&cur>5)||(el>35&&HY(mx-400,my-200)>zr-30));break;
+  case'ツインブラザーズ':use=rdy&&((!twin&&d<125)||(twin&&d>210));break;
+  case'ジャンパー':use=rdy&&d<560&&hit;break;
+  case'聖なる使者':use=me.skillCharge>=30&&me.hp<=80;break;}
+ if(use)useSkill(me);
+ // ---- 射撃（敵の横移動を見て、当たるタイミングで撃つ）----
+ const bs=Math.max(1,me.bulletSpeed*(me.bulletSpeedBoost||1)),lat=Math.abs(A.ev[0]*-uy+A.ev[1]*ux)*d/bs,tol=(P.tol||0)+(me.ammo>=me.maxAmmo?34:14);
+ const inWall=!pass&&obstacles.some(o=>circleHitRect({x:mx,y:my,r:5},o));
+ if(me.ammo>0&&fr>=A.nf&&d<fire&&!inWall&&(nm==='ボマー'||(lat<tol&&(pass||canHit(mx,my,en,5,0,6))))){
+  const a0=me.ammo;shootBullet(me,en);if(me.ammo<a0){A.nf=fr+(P.gm!==undefined?P.gm:GM)+Math.floor(RND()*(P.gr!==undefined?P.gr:GR))}}
+}
+ function pre(i){const me=i?player2:player1,en=i?player1:player2;
+  if(me.charName==='アクアファイター'&&NOW()-me.skillLastUsed>=me.skillCooldown&&!trapped(en)&&trapOK(me,en))useSkill(me)}
+ function run(list){fr++;for(const i of list)pre(i);if(fr%TK===1)for(const i of list)think(i)}
+ return{run}
+}
+
+    function cpuSetUI() {
+      document.body.classList.toggle("cpu", cpu.on);
+      const t = document.querySelectorAll(".hud-name .tag");
+      if (t.length >= 2) { t[0].textContent = cpu.on ? "YOU" : "1P"; t[1].textContent = cpu.on ? "CPU" : "2P"; }
+    }
+    /* 2P用キー（矢印・K・L）は CPU 対戦中は無効にする（CPUだけが動かす） */
+    ["keydown", "keyup"].forEach(ev => window.addEventListener(ev, e => {
+      if (cpu.on && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "k", "K", "l", "L"].includes(e.key)) { e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true));
+
+    const _startGame20 = startGame;
+    startGame = function () {
+      _startGame20();
+      cpu.on = cpuMode && !(typeof onl !== "undefined" && onl.running);
+      cpu.ai = cpu.on ? __makeCpuAI(() => Date.now(), Math.random) : null;
+      cpuSetUI();
+    };
+    const _update20 = update;
+    update = function () {
+      if (cpu.on && gameActive && player1 && player2) cpu.ai.run([1]);
+      _update20();
+    };
+    const _showResult20 = showResult;
+    showResult = function () {
+      const w = player1.hp <= 0 && player2.hp <= 0 ? 0 : player1.hp <= 0 ? 2 : 1, was = cpu.on;
+      _showResult20();
+      if (was) document.getElementById("resultText").innerText = w === 0 ? "引き分け！" : w === 1 ? "あなたの勝ち！" : "CPUの勝ち…";
+      cpu.on = false; cpuSetUI();
+    };
+    const _returnToMenu20 = returnToMenu;
+    returnToMenu = function () { cpu.on = false; cpuSetUI(); _returnToMenu20(); };
+
+    const _skillKey20 = skillKey;
+    skillKey = function (i) { return cpu.on ? (i === 1 ? "G" : "") : _skillKey20(i); };
+    const _updateHud20 = updateHud;
+    updateHud = function () {
+      _updateHud20();
+      if (cpu.on) {
+        const c = document.getElementById("controlHelp"), s = "あなた(1P)　移動 WASD ・ 攻撃 F ・ スキル G　　|　　2P は CPU が操作";
+        if (c.textContent !== s) c.textContent = s;
+      }
+    };
+    const _renderCS20 = renderCharSelect;
+    renderCharSelect = function () {
+      _renderCS20();
+      document.getElementById("csTab1").textContent = cpuMode ? "あなたを選ぶ" : "1P を選ぶ";
+      document.getElementById("csTab2").textContent = cpuMode ? "CPU を選ぶ" : "2P を選ぶ";
+      if (cpuMode) {
+        document.querySelectorAll("#csGrid .b1").forEach(e => e.textContent = "YOU");
+        document.querySelectorAll("#csGrid .b2").forEach(e => e.textContent = "CPU");
+      }
+    };
   </script>
 </body>
 </html>
