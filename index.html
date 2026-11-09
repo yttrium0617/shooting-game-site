@@ -277,7 +277,7 @@
     #touchUI.online .tp2 { display: none; }
     #touchUI.online .tp1 .tbtns { left: auto; right: max(18px, env(safe-area-inset-right)); flex-direction: row-reverse; }
 
-    body.mobile.ingame { overflow: hidden; height: 100vh; touch-action: none; }
+    body.mobile.ingame { overflow: hidden; height: var(--app-h, 100vh); touch-action: none; }
     body.mobile.ingame #backBtn { top: auto; bottom: 4px; left: 50%; transform: translateX(-50%); padding: 3px 10px; font-size: 11px; opacity: .75; }
     body.mobile #gameScreen { padding: 4px 8px 2px; }
     body.mobile .hud { grid-template-columns: 1fr 84px 1fr; gap: 6px; margin-bottom: 4px; }
@@ -295,7 +295,135 @@
     body.mobile .zone { font-size: 9px; }
     body.mobile .mapname, body.mobile .ctrl { display: none; }
     body.mobile .arena { width: fit-content; margin: 0 auto; padding: 4px; }
-    body.mobile .arena canvas { width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 84px); max-height: calc(100dvh - 84px); }
+    body.mobile .arena canvas { width: auto; height: auto; max-width: 100%; max-height: calc(var(--app-h, 100vh) - 84px); }
+  
+    /* ===== ver18：ギミック表示 / オンラインロビー / スマホ・小画面の収まり ===== */
+    .gm-chip { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 1px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+    .gm-chip.brk  { color: #ffcf7a; border-color: #c98a4b; background: rgba(201,138,75,.18); }
+    .gm-chip.mir  { color: #9ff3ff; border-color: #4fd0e8; background: rgba(79,208,232,.15); }
+    .gm-chip.warp { color: #d4bcff; border-color: #a07dff; background: rgba(160,125,255,.16); }
+    .gm-chip.pad  { color: #9dffc4; border-color: #3fd283; background: rgba(63,210,131,.15); }
+    .gm-chip.none { color: #9db4d8; border-color: #4a5a7a; background: rgba(120,140,180,.10); }
+    .gm-row { display: flex; gap: 3px; flex-wrap: wrap; }
+    .gm-box { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .gm-line { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cfe3ff; text-align: left; }
+    .ms-card .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .ms-detail { text-align: left; }
+
+    #onlineLobby.select-screen { max-width: 1100px; }
+    .cs-center { min-width: 0; }
+    .lobby-center { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .lobby-who { color: #cfe3ff; font-weight: 800; letter-spacing: .1em; font-size: 14px; }
+    .lobby-maps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .lm-card { margin: 0; padding: 4px; font-size: 11px; display: flex; flex-direction: column; gap: 2px; align-items: center; }
+    .lm-card canvas { width: 100%; height: auto; border-radius: 4px; margin: 0; background: #000; }
+    .lm-card.on { border-color: var(--pink); box-shadow: 0 0 12px rgba(255,46,136,.5); }
+    .lobby-maps.lock .lm-card { cursor: default; }
+    .lobby-maps.lock .lm-card:not(.on) { opacity: .45; }
+    .lobby-mapinfo { font-size: 12px; color: #cfe3ff; text-align: left; line-height: 1.6; }
+    .lobby-mapinfo .dim { color: #8aa0c4; }
+    .lobby-foot { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .lobby-foot .status { width: 100%; margin: 0; }
+    .lobby-keys { margin-top: 8px; }
+    .room-code-sm { color: var(--cyan); letter-spacing: .3em; font-size: 22px; text-shadow: 0 0 10px var(--cyan); margin: 0 6px; }
+    button.mini { margin: 0; padding: 3px 10px; font-size: 12px; }
+
+    /* --- スマホ・横長の小さい画面：すべての画面を1画面に収める（body.compact） --- */
+    body.compact #backBtn { top: 4px; left: 6px; padding: 3px 9px; font-size: 11px; }
+    body.compact .select-screen:not(.hidden) { height: var(--app-h, 100vh); max-width: none; margin: 0; padding: 6px 12px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+    body.compact .sel-head { margin: 0 0 4px 78px; padding-bottom: 2px; gap: 8px; min-height: 22px; flex: 0 0 auto; align-items: center; }
+    body.compact .sel-head h2 { font-size: 15px; }
+    body.compact .sel-head small { font-size: 9px; letter-spacing: .25em; }
+    body.compact .sel-head .vs-sum { font-size: 11px; }
+    body.compact .sel-foot { margin-top: 4px; flex: 0 0 auto; display: flex; justify-content: center; align-items: center; gap: 6px; }
+    body.compact .cta { margin: 0 4px; padding: 6px 24px; font-size: 13px; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+
+    body.compact .cs-layout { grid-template-columns: minmax(118px, .85fr) 2.6fr minmax(118px, .85fr); gap: 8px; flex: 1 1 0; min-height: 0; align-items: stretch; }
+    body.compact .cs-center, body.compact .lobby-center { display: flex; flex-direction: column; justify-content: center; min-height: 0; gap: 4px; }
+    body.compact .cs-side { padding: 6px 8px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-radius: 10px; }
+    body.compact .cs-side .who { font-size: 9px; letter-spacing: .15em; }
+    body.compact .cs-portrait { flex: 1 1 0; min-height: 28px; height: auto; margin: 2px 0; }
+    body.compact .cs-portrait img { max-width: 100%; max-height: 100%; }
+    body.compact .cs-portrait .cx-ph { width: calc(var(--u, 4px) * 13); height: calc(var(--u, 4px) * 13); max-width: 100%; max-height: 100%; font-size: 22px; }
+    body.compact .cs-name { font-size: 13px; line-height: 1.2; }
+    body.compact .cs-tag { font-size: 9px; min-height: 0; margin: 1px 0 3px; line-height: 1.25; max-height: 2.5em; overflow: hidden; }
+    body.compact .cs-side .stat { grid-template-columns: 26px 1fr 38px; gap: 4px; font-size: 9px; margin: 2px 0; }
+    body.compact .stat .bar { height: 6px; }
+    body.compact .cs-tabs { margin-bottom: 2px; }
+    body.compact .cs-tab { padding: 3px 14px; font-size: 11px; }
+    body.compact .cs-grid { grid-template-columns: repeat(6, 1fr); gap: 4px; }
+    body.compact .cs-card { padding: 3px 1px 2px; font-size: 8px; line-height: 1.15; gap: 1px; border-radius: 6px; }
+    body.compact .cs-card img, body.compact .cs-card .cx-ph { width: calc(var(--u, 4px) * 10); height: calc(var(--u, 4px) * 10); max-width: 100%; font-size: 16px; }
+    body.compact .cs-badges i { font-size: 8px; padding: 0 3px; }
+
+    body.compact .ms-layout { flex: 1 1 0; min-height: 0; flex-wrap: nowrap; gap: 8px; align-items: stretch; }
+    body.compact .ms-list { flex: 0 0 47%; grid-template-columns: 1fr 1fr; gap: 4px; align-content: start; }
+    body.compact .ms-card { flex-direction: row; align-items: center; gap: 5px; padding: 3px 4px; font-size: 10px; border-radius: 6px; }
+    body.compact .ms-card canvas { width: 58px; flex: 0 0 58px; border-radius: 3px; }
+    body.compact .ms-card b { font-size: 11px; }
+    body.compact .ms-card small { font-size: 8px; }
+    body.compact .ms-card .txt { gap: 1px; }
+    body.compact .gm-chip { font-size: 8px; padding: 0 4px; }
+    body.compact .ms-detail { flex: 1; min-width: 0; padding: 6px 8px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; }
+    body.compact .ms-detail canvas { width: auto; height: auto; max-width: 100%; max-height: calc(var(--app-h, 100vh) - 205px); align-self: center; }
+    body.compact .ms-detail h3 { font-size: 15px; margin: 4px 0 0; }
+    body.compact .ms-detail .tagline { font-size: 9px; }
+    body.compact .ms-detail p { font-size: 10px; line-height: 1.4; margin: 2px 0 0; }
+    body.compact .gm-box { margin-top: 4px; gap: 2px; }
+    body.compact .gm-line { font-size: 9px; gap: 4px; }
+
+    body.compact .lobby-who { font-size: 10px; }
+    body.compact .lobby-maps { grid-template-columns: repeat(8, 1fr); gap: 3px; }
+    body.compact .lm-card { padding: 2px 1px; font-size: 7px; border-radius: 4px; }
+    body.compact .lobby-mapinfo { font-size: 9px; line-height: 1.3; }
+    body.compact .lobby-mapinfo .gm-line span:last-child { display: none; }
+    body.compact .lobby-keys { display: none; }
+    body.compact .lobby-foot { flex-wrap: nowrap; }
+    body.compact .lobby-foot .status { width: auto; font-size: 11px; margin: 0; }
+    body.compact .room-code-sm { font-size: 14px; margin: 0 4px; }
+    body.compact button.mini { padding: 1px 8px; font-size: 10px; }
+
+    body.compact #homeScreen:not(.hidden) { height: var(--app-h, 100vh); display: flex; align-items: center; justify-content: center; }
+    body.compact .home-wrap { max-width: 860px; width: 100%; margin: 0; padding: 6px 24px; box-sizing: border-box; display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; align-items: center; }
+    body.compact .home-wrap > .logo-sub, body.compact .home-wrap > .logo, body.compact .home-wrap > .mode-sel, body.compact .home-wrap > .ver { grid-column: 1; }
+    body.compact .home-wrap > .menu-list { grid-column: 2; grid-row: 1 / span 4; }
+    body.compact .logo-sub { font-size: 10px; }
+    body.compact .logo { font-size: calc(var(--u, 4px) * 9); margin: 2px 0 8px; }
+    body.compact .mode-sel { margin: 0 0 6px !important; }
+    body.compact .mode-sel button { padding: 5px 12px; font-size: 12px; }
+    body.compact .ver { margin-top: 6px; font-size: 10px; }
+    body.compact .menu-list { gap: 8px; }
+    body.compact .menu-btn { padding: calc(var(--u, 4px) * 1.8) 16px; gap: 12px; }
+    body.compact .menu-btn b { font-size: 16px; }
+    body.compact .menu-btn small { font-size: 10px; }
+    body.compact .menu-btn .mb-icon { font-size: 22px; width: 30px; }
+
+    body.compact #onlineMenu:not(.hidden) { height: var(--app-h, 100vh); box-sizing: border-box; max-width: 820px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-content: center; padding: 30px 20px 6px; }
+    body.compact #onlineMenu > h2 { grid-column: 1 / -1; margin: 0; font-size: 16px; }
+    body.compact #onlineMenu > .status { grid-column: 1 / -1; margin: 0; }
+    body.compact #onlineMenu .card { margin: 0; padding: 10px 12px; }
+    body.compact #onlineMenu .card p { font-size: 11px; margin: 2px 0 8px; }
+    body.compact #onlineMenu .card h3 { font-size: 14px; }
+    body.compact .panel-screen:not(.hidden):not(#onlineMenu) { padding-top: 34px; padding-bottom: 8px; }
+    body.compact .result-wrap { padding-top: 22px; }
+    body.compact #resultText, body.compact #onlineResultText { font-size: 30px; margin: 4px 0 14px; }
+
+    body.compact #codexScreen:not(.hidden) { height: var(--app-h, 100vh); overflow: hidden; }
+    body.compact .codex-wrap { height: 100%; box-sizing: border-box; max-width: none; padding: 4px 10px 6px 84px; display: flex; flex-direction: column; }
+    body.compact .codex-wrap > h2 { margin: 2px 0 4px; font-size: 14px; text-align: left; }
+    body.compact .codex-main { flex: 1 1 0; min-height: 0; flex-wrap: nowrap; gap: 8px; }
+    body.compact .codex-grid { flex: 0 0 38%; grid-template-columns: repeat(4, 1fr); gap: 4px; overflow-y: auto; max-height: 100%; }
+    body.compact .cx-item { padding: 3px 1px; font-size: 8px; }
+    body.compact .cx-item img, body.compact .cx-ph { width: 34px; height: 34px; font-size: 16px; }
+    body.compact .codex-detail { flex: 1; min-width: 0; padding: 8px 10px; overflow-y: auto; max-height: 100%; box-sizing: border-box; }
+    body.compact .cd-head { gap: 10px; }
+    body.compact .cd-head img, body.compact .cd-head .cx-ph { width: 64px; height: 64px; font-size: 28px; }
+    body.compact .cd-name { font-size: 16px; }
+    body.compact .cd-title { font-size: 11px; }
+    body.compact .codex-detail .stat { grid-template-columns: 44px 1fr 52px; font-size: 10px; margin: 3px 0; }
+    body.compact .cd-sec { margin-top: 6px; }
+    body.compact .cd-sec h4 { font-size: 11px; }
+    body.compact .cd-sec p { font-size: 11px; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -306,7 +434,7 @@
     <div class="home-wrap">
       <div class="logo-sub">1 VS 1 ARENA</div>
       <h1 class="logo">2D対戦<span>シューティング</span></h1>
-      <div class="mode-sel" style="margin:-16px 0 20px"><span>プレイ方法</span><button id="modePC" onclick="setPlayMode('pc')">🖥 PC</button><button id="modeMobile" onclick="setPlayMode('mobile')">📱 モバイル</button></div>
+      <div class="mode-sel" style="margin:-16px 0 20px"><span>プレイ方法</span><button id="modePC" onclick="setPlayMode('pc', true)">🖥 PC</button><button id="modeMobile" onclick="setPlayMode('mobile', true)">📱 モバイル</button></div>
       <div class="menu-list">
         <button class="menu-btn" onclick="goToCharacterSelect()">
           <span class="mb-icon">⚔</span>
@@ -322,7 +450,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 17</div>
+      <div class="ver">VER 18</div>
     </div>
   </div>
 
@@ -331,7 +459,7 @@
     <div class="sel-head"><small>STEP 1 / 2</small><h2>CHARACTER SELECT</h2></div>
     <div class="cs-layout">
       <div class="cs-side p1" id="csP1"></div>
-      <div>
+      <div class="cs-center">
         <div class="cs-tabs">
           <button class="cs-tab" id="csTab1" onclick="csSetActive(1)">1P を選ぶ</button>
           <button class="cs-tab" id="csTab2" onclick="csSetActive(2)">2P を選ぶ</button>
@@ -355,6 +483,7 @@
         <h3 id="msName"></h3>
         <div class="tagline" id="msTag"></div>
         <p id="msDesc"></p>
+        <div class="gm-box" id="msGm"></div>
       </div>
     </div>
     <div class="sel-foot">
@@ -422,53 +551,29 @@
     <div id="onlineStatus" class="status"></div>
   </div>
 
-  <!-- オンライン：ロビー -->
-  <div id="onlineLobby" class="hidden panel-screen">
-    <h2>ロビー</h2>
-    <div class="card">
-      <div class="keyhelp">ルームコード</div>
-      <div class="room-code" id="lobbyCode">----</div>
-      <button onclick="copyRoomCode()" style="margin:4px;padding:5px 12px;font-size:13px;">コードをコピー</button>
+  <!-- オンライン：ロビー（キャラ選択はオフラインと同じカード式） -->
+  <div id="onlineLobby" class="hidden select-screen">
+    <div class="sel-head">
+      <small>ONLINE</small><h2>LOBBY</h2>
+      <span class="vs-sum">ROOM <b class="room-code-sm" id="lobbyCode">----</b><button class="mini" onclick="copyRoomCode()">コピー</button></span>
     </div>
-
-    <div class="vs-row">
-      <div class="slot p1">
-        <div class="who">1P（ホスト・青）</div>
-        <img id="lobbyImg1" alt="">
-        <div class="nm" id="lobbyName1">-</div>
+    <div class="cs-layout">
+      <div class="cs-side p1" id="lobbyP1"></div>
+      <div class="lobby-center">
+        <div class="cs-tabs"><span class="lobby-who" id="lobbyWho"></span></div>
+        <div class="cs-grid" id="lobbyGrid"></div>
+        <div class="lobby-maps" id="lobbyMaps"></div>
+        <div class="lobby-mapinfo" id="lobbyMapInfo"></div>
       </div>
-      <div class="vs-mark">VS</div>
-      <div class="slot p2">
-        <div class="who">2P（ゲスト・赤）</div>
-        <img id="lobbyImg2" alt="">
-        <div class="nm" id="lobbyName2">対戦相手を待っています…</div>
-      </div>
+      <div class="cs-side p2" id="lobbyP2"></div>
     </div>
-
-    <div class="card">
-      <div>
-        <label>あなたのキャラ：
-          <select id="lobbyCharSelect"></select>
-        </label>
-      </div>
-      <div>
-        <label>マップ：
-          <select id="lobbyMapSelect"></select>
-        </label>
-        <span id="lobbyMapNote" class="keyhelp"></span>
-        <canvas id="lobbyMapPreview" class="lobby-prev" width="320" height="160"></canvas>
-      </div>
-      <div>
-        <button id="lobbyReadyBtn" class="hidden" onclick="toggleReady()">準備OK</button>
-        <button id="lobbyStartBtn" class="hidden" onclick="hostStartGame()" disabled>ゲーム開始</button>
-      </div>
+    <div class="sel-foot lobby-foot">
+      <button id="lobbyReadyBtn" class="cta hidden" onclick="toggleReady()">準備OK</button>
+      <button id="lobbyStartBtn" class="cta hidden" onclick="hostStartGame()" disabled>ゲーム開始 ▶</button>
       <div id="lobbyStatus" class="status"></div>
     </div>
-
-    <div class="card keyhelp">
-      <b style="color:#ffd23f">オンライン操作（両プレイヤー共通）</b><br>
-      移動：<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> または <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>　
-      攻撃：<kbd>F</kbd>　スキル：<kbd>G</kbd>
+    <div class="keyhelp lobby-keys">
+      操作：移動 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> または <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>　攻撃 <kbd>F</kbd>　スキル <kbd>G</kbd>（モバイルは画面のボタン）
     </div>
   </div>
 
@@ -556,6 +661,7 @@ player1 = createPlayer(SPAWNS.p1.x, SPAWNS.p1.y, "blue", p1Name);
 
 
       obstacles = getObstaclesForMap(selectedMap);
+      initGimmicks(selectedMap);
       bullets = [];
       turrets = [];
       explosions = [];
@@ -737,11 +843,19 @@ lastPoisonTick = Date.now();
       };
     }
 
-    /* ===== ver16：競技マップ（すべて点対称・左右完全公平） =====
-       base に書いた障害物の「180度回転コピー」が自動で反対側に作られます。
-       中央に置いた自己対称の障害物は重複しないよう1つにまとめます。 */
+    /* ===== ver18：競技マップ + ステージギミック（すべて点対称・左右完全公平） =====
+       base / warps / pads に書いたものは「180度回転コピー」が自動で反対側に作られます。
+       ギミックの種類
+         brk   : 壊れる壁。WALL_HP 回当てると壊れる（爆発は2回分）
+         mir   : 反射壁。弾が跳ね返る（最大 MIRROR_BOUNCES 回）
+         warps : ワープ装置。踏むと反対側の対の装置へ移動。弾も通り抜ける
+         pads  : 回復パッド。HPが減っているときに踏むと回復。一定時間で復活 */
     const ARENA_W = 800, ARENA_H = 400;
     const SPAWNS = { p1: { x: 70, y: 185 }, p2: { x: 700, y: 185 } }; // 30x30 の左上座標
+    const WALL_HP = 4, MIRROR_BOUNCES = 3;
+    const WARP_R = 20, WARP_COOLDOWN = 1200;
+    const PAD_R = 18, PAD_HEAL = 25, PAD_RESPAWN = 20000;
+
     const MAP_DEFS = {
       "草原": {
         tag: "ピラー戦",
@@ -766,81 +880,191 @@ lastPoisonTick = Date.now();
       },
       "都市": {
         tag: "ストリート",
-        desc: "ビルで通りが縦に分かれた市街地。中央ブロックを挟んだ読み合いと回り込みが鍵。",
+        desc: "ビルで通りが分かれた市街地。中央ブロックを囲むバリケードを壊して射線を開くか、外周を回り込むか。",
         base: [
           { x: 250, y: 40,  w: 50, h: 110 },
           { x: 250, y: 250, w: 50, h: 60 },
-          { x: 370, y: 170, w: 60, h: 60 }
+          { x: 370, y: 170, w: 60, h: 60 },
+          { x: 330, y: 100, w: 24, h: 56, brk: true },
+          { x: 330, y: 244, w: 24, h: 56, brk: true }
         ]
       },
       "火山": {
         tag: "マグマリフト",
-        desc: "岩壁が中央に対角線の通路を作る。壁際の押し引きとスキル回しの勝負。",
+        desc: "岩壁が戦場を区切る。黒曜石の反射壁に弾を当てて、岩の裏にいる相手を狙え。",
         base: [
           { x: 360, y: 0,   w: 30, h: 120 },
           { x: 200, y: 170, w: 40, h: 60 },
-          { x: 300, y: 310, w: 40, h: 40 }
+          { x: 270, y: 300, w: 90, h: 16, mir: true }
         ]
       },
       "宇宙": {
         tag: "アステロイド",
-        desc: "小さな小惑星が点在。どこからでも視線が通りにくく、位置取りが重要。",
+        desc: "小惑星が点在する宇宙空間。四隅のワープ装置は対角線上の相手側の隅につながる。奇襲にも逃走にも。",
         base: [
-          { x: 150, y: 70,  w: 26, h: 26 },
-          { x: 150, y: 304, w: 26, h: 26 },
+          { x: 150, y: 110, w: 26, h: 26 },
+          { x: 150, y: 264, w: 26, h: 26 },
           { x: 250, y: 150, w: 30, h: 30 },
           { x: 250, y: 220, w: 30, h: 30 },
           { x: 330, y: 90,  w: 34, h: 34 },
           { x: 330, y: 276, w: 34, h: 34 },
           { x: 388, y: 188, w: 24, h: 24 }
-        ]
+        ],
+        warps: [{ x: 220, y: 56 }, { x: 220, y: 344 }]
       },
       "海辺": {
         tag: "ビーチ",
-        desc: "横長の障害物が上下レーンを作る。中央の砂丘を取った側が主導権を握る。",
+        desc: "横長の障害物が上下レーンを作る。中央の回復パッドは奪い合い。HPが減ったときのために取っておくのも手。",
         base: [
           { x: 260, y: 80,  w: 100, h: 20 },
           { x: 260, y: 300, w: 100, h: 20 },
           { x: 350, y: 185, w: 100, h: 30 },
           { x: 140, y: 150, w: 20,  h: 20 }
-        ]
+        ],
+        pads: [{ x: 400, y: 135 }]
       },
       "ジャングル": {
         tag: "グローブ",
-        desc: "木々が点在する森。視線を切りやすく、待ち伏せと奇襲が狙える。",
+        desc: "木々が点在する森。茂みは壊せるので、待ち伏せの場所を潰すことも。上下の泉で回復できる。",
         base: [
           { x: 170, y: 100, w: 34, h: 34 },
           { x: 170, y: 266, w: 34, h: 34 },
-          { x: 260, y: 170, w: 36, h: 36 },
+          { x: 260, y: 170, w: 36, h: 36, brk: true },
           { x: 300, y: 60,  w: 36, h: 36 },
           { x: 300, y: 304, w: 36, h: 36 },
           { x: 382, y: 182, w: 36, h: 36 }
-        ]
+        ],
+        pads: [{ x: 400, y: 90 }]
       },
       "工場": {
         tag: "ファクトリー",
-        desc: "コンテナで作られた通路。中央の狭い通路をどちらが制圧するかが勝負の分かれ目。",
+        desc: "中央のコンテナ通路は壊して広げられる。上下の鋼板は弾を跳ね返すので、バンクショットで裏を取れ。",
         base: [
           { x: 200, y: 80,  w: 90, h: 24 },
           { x: 200, y: 296, w: 90, h: 24 },
-          { x: 340, y: 130, w: 24, h: 70 },
-          { x: 340, y: 240, w: 24, h: 60 }
+          { x: 340, y: 130, w: 24, h: 70, brk: true },
+          { x: 340, y: 240, w: 24, h: 60, brk: true },
+          { x: 430, y: 24,  w: 120, h: 12, mir: true }
         ]
       }
     };
+
+    /* ギミックの説明（マップ選択・ロビーで表示） */
+    const GM_INFO = {
+      brk:  { label: "破壊壁",     text: WALL_HP + "回当てると壊れる（爆発は2回分）。壊して射線を開こう" },
+      mir:  { label: "反射壁",     text: "弾が跳ね返る（最大" + MIRROR_BOUNCES + "回）。壁越しの相手も狙える" },
+      warp: { label: "ワープ",     text: "踏むと反対側の対の装置へ移動。弾も通り抜ける" },
+      pad:  { label: "回復パッド", text: "HPが減っているときに踏むと+" + PAD_HEAL + "回復。使うと" + (PAD_RESPAWN / 1000) + "秒で復活" }
+    };
+    function mapGimmicks(mapName) {
+      const d = MAP_DEFS[mapName] || MAP_DEFS["草原"], out = [];
+      if (d.base.some(o => o.brk)) out.push("brk");
+      if (d.base.some(o => o.mir)) out.push("mir");
+      if (d.warps && d.warps.length) out.push("warp");
+      if (d.pads && d.pads.length) out.push("pad");
+      return out;
+    }
 
     function getObstaclesForMap(mapName) {
       const def = MAP_DEFS[mapName] || MAP_DEFS["草原"];
       const out = [], seen = new Set();
       const push = o => {
         const k = o.x + "," + o.y + "," + o.w + "," + o.h;
-        if (!seen.has(k)) { seen.add(k); out.push({ x: o.x, y: o.y, w: o.w, h: o.h }); }
+        if (seen.has(k)) return;
+        seen.add(k);
+        const n = { x: o.x, y: o.y, w: o.w, h: o.h };
+        if (o.brk) { n.brk = true; n.hp = WALL_HP; }
+        if (o.mir) n.mir = true;
+        out.push(n);
       };
       def.base.forEach(o => {
         push(o);
-        push({ x: ARENA_W - o.x - o.w, y: ARENA_H - o.y - o.h, w: o.w, h: o.h });
+        push({ x: ARENA_W - o.x - o.w, y: ARENA_H - o.y - o.h, w: o.w, h: o.h, brk: o.brk, mir: o.mir });
       });
       return out;
+    }
+
+    /* ワープ・回復パッド（座標は中心）。ワープは「基準位置 ↔ 180度回転した位置」で対になる */
+    function getGimmicksForMap(mapName) {
+      const def = MAP_DEFS[mapName] || MAP_DEFS["草原"];
+      const warps = [], pads = [], seen = new Set();
+      (def.warps || []).forEach((w, k) => {
+        const n = warps.length;
+        warps.push({ x: w.x, y: w.y, pair: k, to: n + 1 });
+        warps.push({ x: ARENA_W - w.x, y: ARENA_H - w.y, pair: k, to: n });
+      });
+      (def.pads || []).forEach(p => {
+        [{ x: p.x, y: p.y }, { x: ARENA_W - p.x, y: ARENA_H - p.y }].forEach(q => {
+          const key = q.x + "," + q.y;
+          if (!seen.has(key)) { seen.add(key); pads.push(q); }
+        });
+      });
+      return { warps, pads };
+    }
+
+    /* ---- ギミックの実行時状態（ホスト/オフラインが計算。ゲストはスナップショットで受け取る） ---- */
+    let warps = [], pads = [];
+    function initGimmicks(mapName) {
+      const g = getGimmicksForMap(mapName);
+      warps = g.warps;
+      pads = g.pads.map(p => ({ x: p.x, y: p.y, next: 0 }));
+    }
+
+    function damageWall(o, n) {
+      if (!o || !o.brk) return;
+      o.hp -= n;
+      if (o.hp <= 0) {
+        const i = obstacles.indexOf(o);
+        if (i >= 0) obstacles.splice(i, 1);
+        explosions.push({ x: o.x + o.w / 2, y: o.y + o.h / 2, r: Math.max(22, Math.max(o.w, o.h) * 0.6), life: 12 });
+      }
+    }
+
+    function reflectBullet(b, o) {
+      const px = b.x - b.vx, py = b.y - b.vy;
+      const inX = px >= o.x - b.r && px <= o.x + o.w + b.r;
+      const inY = py >= o.y - b.r && py <= o.y + o.h + b.r;
+      if (!inX && inY) b.vx = -b.vx;
+      else if (inX && !inY) b.vy = -b.vy;
+      else { b.vx = -b.vx; b.vy = -b.vy; }
+      b.x = px; b.y = py;
+      b.bn = (b.bn || 0) + 1;
+    }
+
+    function warpBullet(b) {
+      if (!warps.length) return;
+      const idx = warps.findIndex(w => Math.hypot(b.x - w.x, b.y - w.y) < WARP_R - 2);
+      if (idx < 0) { b.wlock = false; return; }
+      if (b.wlock) return;
+      const d = warps[warps[idx].to];
+      b.x = d.x; b.y = d.y; b.wlock = true;
+    }
+
+    function updateGimmicks() {
+      if (!warps.length && !pads.length) return;
+      const now = Date.now();
+      [player1, player2].forEach(p => {
+        if (!p || p.hp <= 0) return;
+        if (warps.length) {
+          const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+          const idx = warps.findIndex(w => Math.hypot(cx - w.x, cy - w.y) < WARP_R);
+          if (idx < 0) p.warpLock = false;
+          else if (!p.warpLock && now >= (p.warpUntil || 0)) {
+            const d = warps[warps[idx].to];
+            explosions.push({ x: cx, y: cy, r: 16, life: 8 });
+            p.x = d.x - p.w / 2; p.y = d.y - p.h / 2;
+            p.warpLock = true; p.warpUntil = now + WARP_COOLDOWN;
+            explosions.push({ x: d.x, y: d.y, r: 16, life: 8 });
+          }
+        }
+        pads.forEach(pd => {
+          if (now < pd.next || p.hp >= 100) return;
+          if (circleHitRect({ x: pd.x, y: pd.y, r: PAD_R - 4 }, p)) {
+            p.hp = Math.min(100, p.hp + PAD_HEAL);
+            pd.next = now + PAD_RESPAWN;
+          }
+        });
+      });
     }
 
     function shootBullet(shooter, target) {
@@ -1287,7 +1511,7 @@ if (shooter.charName === "ツインブラザーズ") {
       handleReload(player1);
       handleReload(player2);
       updateSafeZone();
-
+      updateGimmicks();
     }
 
     function handleReload(player) {
@@ -1331,6 +1555,7 @@ if (shooter.charName === "ツインブラザーズ") {
         const b = bullets[i];
         b.x += b.vx; b.y += b.vy;
         b.lifeTime++;
+        warpBullet(b);
         if (b.mario) {
   // 弾が進むにつれて大きく＆速くなる
   b.r = 5 + Math.floor(b.lifeTime / 8);   // 半径が徐々に増える
@@ -1416,9 +1641,16 @@ if (shooter.charName === "ツインブラザーズ") {
           bullets.splice(i, 1);
           continue;
         }
-       if (!b.bulletPassThroughObstacles && circleHitAnyObstacle(b)) {
-          if (b.explosive) explode(b);
-          bullets.splice(i, 1);
+        if (!b.bulletPassThroughObstacles) {
+          const ob = obstacles.find(o => circleHitRect(b, o));
+          if (ob) {
+            if (ob.mir && (b.bn || 0) < MIRROR_BOUNCES) {
+              reflectBullet(b, ob);
+            } else {
+              if (b.explosive) explode(b); else damageWall(ob, 1);
+              bullets.splice(i, 1);
+            }
+          }
         }
       }
 
@@ -1451,6 +1683,8 @@ if (shooter.charName === "ツインブラザーズ") {
 
   // 見た目の爆発エフェクトも radius を使う
   explosions.push({x: bullet.x, y: bullet.y, r: radius, life: 15});
+  // 爆発は壊れる壁に2回分のダメージ
+  obstacles.filter(o => o.brk && circleHitRect({ x: bullet.x, y: bullet.y, r: radius }, o)).forEach(o => damageWall(o, 2));
 }
 
 
@@ -1965,57 +2199,6 @@ function updateSafeZone() {
       }
     }
 
-    /* ----- ロビー ----- */
-    function enterLobby() {
-      const cs = document.getElementById("lobbyCharSelect");
-      const ms = document.getElementById("lobbyMapSelect");
-      if (!cs.options.length) {
-        CHAR_NAMES.forEach(n => cs.add(new Option(n, n)));
-        MAP_NAMES.forEach(n => ms.add(new Option(n, n)));
-        cs.addEventListener("change", () => { onl.myChar = cs.value; sendMsg({ t: "char", v: onl.myChar }); updateLobby(); });
-        ms.addEventListener("change", () => { if (onl.isHost) { onl.map = ms.value; sendMsg({ t: "map", v: onl.map }); } });
-      }
-      cs.value = onl.myChar;
-      ms.value = onl.map;
-      setLobbyStatus("");
-      showScreen("onlineLobby");
-      updateLobby();
-    }
-
-    function updateLobby() {
-      const host = onl.isHost;
-      const p1 = host ? onl.myChar : onl.oppChar;
-      const p2 = host ? onl.oppChar : onl.myChar;
-      document.getElementById("lobbyCode").textContent = onl.code || "----";
-      const set = (imgId, nameId, name, wait) => {
-        const img = document.getElementById(imgId);
-        if (name && characterImages[name]) { img.src = characterImages[name]; img.style.visibility = "visible"; }
-        else { img.removeAttribute("src"); img.style.visibility = "hidden"; }
-        document.getElementById(nameId).textContent = name || wait;
-      };
-      set("lobbyImg1", "lobbyName1", p1, "接続中…");
-      set("lobbyImg2", "lobbyName2", p2, "対戦相手を待っています…");
-
-      const ms = document.getElementById("lobbyMapSelect");
-      ms.value = onl.map;
-      ms.disabled = !host;
-      drawMapPreview(document.getElementById("lobbyMapPreview"), onl.map);
-      document.getElementById("lobbyMapNote").textContent = host ? "" : "（ホストが選びます）";
-
-      const readyBtn = document.getElementById("lobbyReadyBtn");
-      const startBtn = document.getElementById("lobbyStartBtn");
-      readyBtn.classList.toggle("hidden", host);
-      startBtn.classList.toggle("hidden", !host);
-      readyBtn.textContent = onl.guestReady ? "準備解除" : "準備OK";
-      const connected = !!(onl.conn && onl.conn.open);
-      startBtn.disabled = !(connected && onl.guestReady && onl.oppChar);
-      if (host && connected) {
-        setLobbyStatus(onl.guestReady ? "相手の準備ができました。ゲーム開始できます！" : "相手の準備を待っています…");
-      } else if (!host) {
-        setLobbyStatus(onl.guestReady ? "ホストの開始を待っています…" : "キャラを選んで「準備OK」を押してください。");
-      }
-    }
-
     function copyRoomCode() {
       const t = onl.code;
       if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => setLobbyStatus("コードをコピーしました: " + t), () => {});
@@ -2078,6 +2261,7 @@ function updateSafeZone() {
       player2 = createPlayer(SPAWNS.p2.x, SPAWNS.p2.y, "red", p2Name);
       bullets = []; turrets = []; explosions = []; keys = {};
       obstacles = onl.isHost ? getObstaclesForMap(mapName) : [];
+      initGimmicks(mapName);
       safeZone.x = canvas.width / 2;
       safeZone.y = canvas.height / 2;
       safeZone.radius = Math.max(canvas.width, canvas.height);
@@ -2145,11 +2329,13 @@ function updateSafeZone() {
         b: bullets.map(b => [r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.r), b.from === player1 ? 1 : 2]),
         tu: turrets.map(t => [r1(t.x), r1(t.y), t.owner === player1 ? 1 : 2]),
         ex: explosions.map(e => [r1(e.x), r1(e.y), r1(e.r), e.life]),
-        sz: [safeZone.x, safeZone.y, r1(safeZone.radius), safeZone.shrinking ? 1 : 0, now - gameStartTime]
+        sz: [safeZone.x, safeZone.y, r1(safeZone.radius), safeZone.shrinking ? 1 : 0, now - gameStartTime],
+        pd: pads.map(p => Math.max(0, Math.round(p.next - now)))
       };
-      if (obstacles.length !== onl.lastObCount) {
-        s.ob = obstacles.map(o => [o.x, o.y, o.w, o.h]);
-        onl.lastObCount = obstacles.length;
+      const obSig = obstacles.map(o => o.x + "," + o.y + "," + (o.hp || 0)).join(";");
+      if (obSig !== onl.lastObCount) {
+        s.ob = obstacles.map(o => [o.x, o.y, o.w, o.h, o.brk ? 1 : (o.mir ? 2 : 0), o.hp || 0]);
+        onl.lastObCount = obSig;
       }
       return s;
     }
@@ -2168,7 +2354,8 @@ function updateSafeZone() {
       bullets = s.b.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], r: a[4], own: a[5] }));
       turrets = s.tu.map(a => ({ x: a[0], y: a[1], own: a[2] }));
       explosions = s.ex.map(a => ({ x: a[0], y: a[1], r: a[2], life: a[3] }));
-      if (s.ob) obstacles = s.ob.map(a => ({ x: a[0], y: a[1], w: a[2], h: a[3] }));
+      if (s.ob) obstacles = s.ob.map(a => { const o = { x: a[0], y: a[1], w: a[2], h: a[3] }; if (a[4] === 1) { o.brk = true; o.hp = a[5]; } if (a[4] === 2) o.mir = true; return o; });
+      if (s.pd) s.pd.forEach((rem, i) => { if (pads[i]) pads[i].next = Date.now() + rem; });
       safeZone.x = s.sz[0]; safeZone.y = s.sz[1]; safeZone.radius = s.sz[2]; safeZone.shrinking = !!s.sz[3];
       gameStartTime = Date.now() - (s.sz[4] || 0);
     }
@@ -2180,6 +2367,7 @@ function updateSafeZone() {
       bullets.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; }); // 弾は次の状態が来るまで先読み
       [player1, player2].forEach(p => {
         if (p.tx === undefined) return;
+        if (Math.hypot(p.tx - p.x, p.ty - p.y) > 90) { p.x = p.tx; p.y = p.ty; } // ワープは補間せず即移動
         const k = Math.min(1, 0.5 * dt);
         p.x += (p.tx - p.x) * k; p.y += (p.ty - p.y) * k;
       });
@@ -2422,7 +2610,111 @@ function updateSafeZone() {
     }
 
     /* ---------- 障害物（2.5D） ---------- */
+    /* ---------- ver18：ギミックの描画 ---------- */
+    function drawBreakable(g, o) {
+      const hp = o.hp === undefined ? WALL_HP : o.hp, dmg = Math.max(0, WALL_HP - hp);
+      g.save();
+      g.fillStyle = "rgba(0,0,0,.38)"; rrect(g, o.x + 4, o.y + 6, o.w, o.h, 3); g.fill();
+      const D = Math.min(6, o.h * .3), topH = o.h - D;
+      rrect(g, o.x, o.y, o.w, o.h, 3); g.fillStyle = "#6b4423"; g.fill();
+      const gr = g.createLinearGradient(0, o.y, 0, o.y + topH);
+      gr.addColorStop(0, "#e6ab66"); gr.addColorStop(1, "#b9803f");
+      rrect(g, o.x, o.y, o.w, topH, 3); g.fillStyle = gr; g.fill();
+      g.save(); rrect(g, o.x, o.y, o.w, topH, 3); g.clip();
+      g.fillStyle = "rgba(40,24,8,.26)";
+      for (let k = -topH; k < o.w + topH; k += 12) {
+        g.beginPath(); g.moveTo(o.x + k, o.y + topH); g.lineTo(o.x + k + 6, o.y + topH);
+        g.lineTo(o.x + k + 6 + topH, o.y); g.lineTo(o.x + k + topH, o.y); g.closePath(); g.fill();
+      }
+      g.strokeStyle = "rgba(25,12,0,.92)"; g.lineWidth = 1.7; g.lineJoin = "round";
+      for (let k = 0; k < dmg; k++) {
+        const r = rng(hashPos(o, 997) * 31 + k * 101 + 7);
+        let x = o.x + r() * o.w, y = r() < .5 ? o.y : o.y + topH;
+        g.beginPath(); g.moveTo(x, y);
+        for (let s = 0; s < 3; s++) {
+          x += (r() - .5) * Math.max(14, o.w * .5); y += (o.y + topH / 2 - y) * .5 + (r() - .5) * 8;
+          g.lineTo(x, y);
+        }
+        g.stroke();
+      }
+      g.restore();
+      g.lineWidth = 2; g.setLineDash([5, 3]); g.strokeStyle = "#ffd23f";
+      rrect(g, o.x, o.y, o.w, topH, 3); g.stroke(); g.setLineDash([]);
+      if (dmg > 0) {
+        const pw = 5, gap = 2, tw = WALL_HP * pw + (WALL_HP - 1) * gap, bx = o.x + o.w / 2 - tw / 2, by = o.y - 8;
+        g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(bx - 2, by - 2, tw + 4, 7);
+        for (let k = 0; k < WALL_HP; k++) { g.fillStyle = k < hp ? "#ffd23f" : "rgba(255,255,255,.18)"; g.fillRect(bx + k * (pw + gap), by, pw, 3); }
+      }
+      g.restore();
+    }
+
+    function drawMirror(g, o) {
+      g.save();
+      g.fillStyle = "rgba(0,0,0,.35)"; rrect(g, o.x + 3, o.y + 5, o.w, o.h, 3); g.fill();
+      const gr = g.createLinearGradient(o.x, o.y, o.x + o.w, o.y + o.h);
+      gr.addColorStop(0, "rgba(200,252,255,.96)"); gr.addColorStop(.5, "rgba(90,200,235,.88)"); gr.addColorStop(1, "rgba(205,246,255,.96)");
+      rrect(g, o.x, o.y, o.w, o.h, 3); g.fillStyle = gr; g.fill();
+      g.save(); rrect(g, o.x, o.y, o.w, o.h, 3); g.clip();
+      g.strokeStyle = "rgba(255,255,255,.8)"; g.lineWidth = 2;
+      const ph = ((Date.now() / 60) % 24);
+      for (let k = -o.h; k < o.w + o.h; k += 24) {
+        g.beginPath(); g.moveTo(o.x + k + ph, o.y + o.h); g.lineTo(o.x + k + ph + o.h, o.y); g.stroke();
+      }
+      g.restore();
+      g.shadowColor = "#00e5ff"; g.shadowBlur = 10; g.strokeStyle = "#7df3ff"; g.lineWidth = 2;
+      rrect(g, o.x, o.y, o.w, o.h, 3); g.stroke();
+      g.restore();
+    }
+
+    const WARP_COL = ["#b388ff", "#ffb347", "#5dffb0"];
+    function drawWarps(g, list, t) {
+      list.forEach((w, i) => {
+        const c = WARP_COL[w.pair % WARP_COL.length];
+        g.save(); g.translate(w.x, w.y);
+        const gr = g.createRadialGradient(0, 0, 0, 0, 0, WARP_R + 10);
+        gr.addColorStop(0, "rgba(5,5,20,.95)"); gr.addColorStop(.65, "rgba(5,5,20,.7)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = gr; g.beginPath(); g.arc(0, 0, WARP_R + 10, 0, TAU); g.fill();
+        g.shadowColor = c; g.shadowBlur = 14; g.strokeStyle = c; g.lineWidth = 3;
+        g.beginPath(); g.arc(0, 0, WARP_R - 1, 0, TAU); g.stroke();
+        g.shadowBlur = 0; g.lineWidth = 2.2; g.lineCap = "round";
+        for (let k = 0; k < 3; k++) {
+          const a = t * 2.2 * (i % 2 ? -1 : 1) + k * TAU / 3;
+          g.beginPath(); g.arc(0, 0, WARP_R - 8, a, a + 1.3); g.stroke();
+        }
+        g.fillStyle = c; g.beginPath(); g.arc(0, 0, 4 + Math.sin(t * 4) * 1.2, 0, TAU); g.fill();
+        g.restore();
+      });
+    }
+
+    function drawPads(g, list, now) {
+      list.forEach(p => {
+        const ready = now >= p.next;
+        g.save(); g.translate(p.x, p.y);
+        g.shadowColor = ready ? "#5dff9b" : "transparent"; g.shadowBlur = ready ? 14 : 0;
+        g.fillStyle = ready ? "rgba(30,120,70,.78)" : "rgba(40,48,60,.72)";
+        g.beginPath(); g.arc(0, 0, PAD_R, 0, TAU); g.fill();
+        g.lineWidth = 3; g.strokeStyle = ready ? "#5dff9b" : "#6a7388"; g.stroke(); g.shadowBlur = 0;
+        if (ready) {
+          const s = 1 + Math.sin(now / 260) * .06;
+          g.fillStyle = "#eafff2"; g.fillRect(-3 * s, -9 * s, 6 * s, 18 * s); g.fillRect(-9 * s, -3 * s, 18 * s, 6 * s);
+        } else {
+          const f = Math.max(0, Math.min(1, (p.next - now) / PAD_RESPAWN));
+          g.strokeStyle = "#9fb0cc"; g.lineWidth = 3;
+          g.beginPath(); g.arc(0, 0, PAD_R - 6, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - f)); g.stroke();
+        }
+        g.restore();
+      });
+    }
+
+    function drawGimmickPreview(g, mapName) {
+      const gm = getGimmicksForMap(mapName);
+      drawWarps(g, gm.warps, .6);
+      drawPads(g, gm.pads.map(p => ({ x: p.x, y: p.y, next: 0 })), Date.now());
+    }
+
     function drawObstacle(g, o, th) {
+      if (o.brk) return drawBreakable(g, o);
+      if (o.mir) return drawMirror(g, o);
       const s = th.obs, cx = o.x + o.w / 2, cy = o.y + o.h / 2;
       g.save();
       g.fillStyle = "rgba(0,0,0,.38)";
@@ -2496,6 +2788,7 @@ function updateSafeZone() {
       g.clearRect(0, 0, cv.width, cv.height);
       g.save(); g.scale(k, k);
       g.drawImage(getBg(mapName), 0, 0);
+      drawGimmickPreview(g, mapName);
       getObstaclesForMap(mapName).forEach(o => drawObstacle(g, o, th));
       g.font = "bold 22px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
       [[1, SPAWNS.p1], [2, SPAWNS.p2]].forEach(([i, s]) => {
@@ -2647,6 +2940,7 @@ function updateSafeZone() {
       ctx.save();
       if (fx.shake > .3) { ctx.translate((Math.random() - .5) * fx.shake, (Math.random() - .5) * fx.shake); fx.shake *= .85; } else fx.shake = 0;
       ctx.drawImage(getBg(selectedMap), 0, 0);
+      drawPads(ctx, pads, Date.now()); drawWarps(ctx, warps, performance.now() / 1000);
       obstacles.forEach(o => drawObstacle(ctx, o, th));
       drawZone();
       turrets.forEach(drawTurret);
@@ -2782,11 +3076,22 @@ function updateSafeZone() {
        マップ選択
        ============================================================ */
     let msBuilt = false;
+    function gmChips(name) {
+      const g = mapGimmicks(name);
+      return '<span class="gm-row">' + (g.length
+        ? g.map(k => `<span class="gm-chip ${k}">${GM_INFO[k].label}</span>`).join("")
+        : '<span class="gm-chip none">ギミックなし</span>') + "</span>";
+    }
+    function gmDetailHtml(name) {
+      const g = mapGimmicks(name);
+      if (!g.length) return '<div class="gm-line"><span class="gm-chip none">ギミックなし</span><span>シンプルな撃ち合い。腕前勝負のマップ</span></div>';
+      return g.map(k => `<div class="gm-line"><span class="gm-chip ${k}">${GM_INFO[k].label}</span><span>${GM_INFO[k].text}</span></div>`).join("");
+    }
     function renderMapSelect() {
       $("msVs").textContent = $("player1Select").value + "  VS  " + $("player2Select").value;
       const list = $("msList");
       if (!msBuilt) {
-        list.innerHTML = MAP_NAMES.map(n => `<button class="ms-card" data-name="${n}"><canvas width="240" height="120"></canvas><b>${n}</b><small>${MAP_DEFS[n].tag}</small></button>`).join("");
+        list.innerHTML = MAP_NAMES.map(n => `<button class="ms-card" data-name="${n}"><canvas width="240" height="120"></canvas><span class="txt"><b>${n}</b><small>${MAP_DEFS[n].tag}</small>${gmChips(n)}</span></button>`).join("");
         list.querySelectorAll(".ms-card").forEach(b => {
           drawMapPreview(b.querySelector("canvas"), b.dataset.name);
           b.addEventListener("click", () => { $("mapSelectDropdown").value = b.dataset.name; renderMapSelect(); });
@@ -2797,6 +3102,81 @@ function updateSafeZone() {
       list.querySelectorAll(".ms-card").forEach(b => b.classList.toggle("on", b.dataset.name === cur));
       drawMapPreview($("msBig"), cur);
       $("msName").textContent = cur; $("msTag").textContent = MAP_DEFS[cur].tag; $("msDesc").textContent = MAP_DEFS[cur].desc;
+      $("msGm").innerHTML = gmDetailHtml(cur);
+    }
+
+    /* ============================================================
+       オンライン ロビー（キャラ選択はオフラインと同じカード式）
+       ============================================================ */
+    let lobbyBuilt = false;
+    function buildLobby() {
+      if (lobbyBuilt) return;
+      lobbyBuilt = true;
+      const grid = $("lobbyGrid");
+      grid.innerHTML = CHAR_NAMES.map(n => `<button class="cs-card" data-name="${escapeHtml(n)}">${imgOrPlaceholder(n)}<span>${escapeHtml(n)}</span><span class="cs-badges"></span></button>`).join("");
+      grid.querySelectorAll(".cs-card").forEach(b => b.addEventListener("click", () => lobbyPickChar(b.dataset.name)));
+      const maps = $("lobbyMaps");
+      maps.innerHTML = MAP_NAMES.map(n => `<button class="lm-card" data-name="${n}"><canvas width="160" height="80"></canvas><span>${n}</span></button>`).join("");
+      maps.querySelectorAll(".lm-card").forEach(b => {
+        drawMapPreview(b.querySelector("canvas"), b.dataset.name);
+        b.addEventListener("click", () => lobbyPickMap(b.dataset.name));
+      });
+    }
+    function lobbyPickChar(n) { onl.myChar = n; sendMsg({ t: "char", v: n }); updateLobby(); }
+    function lobbyPickMap(n) { if (!onl.isHost) return; onl.map = n; sendMsg({ t: "map", v: n }); updateLobby(); }
+
+    function enterLobby() {
+      buildLobby();
+      setLobbyStatus("");
+      showScreen("onlineLobby");
+      updateLobby();
+    }
+
+    function renderLobbySide(id, idx, name, isMe) {
+      const el = $(id);
+      const tag = idx + "P ・ " + (idx === 1 ? "BLUE" : "RED") + (isMe ? "（あなた）" : "");
+      if (!name) {
+        const wait = (onl.conn && onl.conn.open) ? "選択中…" : "対戦相手を待っています…";
+        el.innerHTML = `<div class="who">${tag}</div><div class="cs-portrait"><div class="cx-ph">?</div></div><div class="cs-name" style="font-size:15px">${wait}</div>`;
+        return;
+      }
+      renderSidePanel(id, idx, name);
+      el.querySelector(".who").textContent = tag;
+    }
+
+    function updateLobby() {
+      const host = onl.isHost;
+      $("lobbyCode").textContent = onl.code || "----";
+      const p1 = host ? onl.myChar : onl.oppChar;
+      const p2 = host ? onl.oppChar : onl.myChar;
+      renderLobbySide("lobbyP1", 1, p1, host);
+      renderLobbySide("lobbyP2", 2, p2, !host);
+      $("lobbyGrid").querySelectorAll(".cs-card").forEach(b => {
+        const n = b.dataset.name;
+        b.classList.toggle("sel1", n === p1); b.classList.toggle("sel2", n === p2);
+        b.querySelector(".cs-badges").innerHTML = (n === p1 ? '<i class="b1">1P</i>' : "") + (n === p2 ? '<i class="b2">2P</i>' : "");
+      });
+      $("lobbyWho").textContent = (host ? "あなたは 1P（青）" : "あなたは 2P（赤）") + "　キャラを選んでください";
+
+      const maps = $("lobbyMaps");
+      maps.classList.toggle("lock", !host);
+      maps.querySelectorAll(".lm-card").forEach(b => b.classList.toggle("on", b.dataset.name === onl.map));
+      const d = MAP_DEFS[onl.map] || MAP_DEFS[MAP_NAMES[0]];
+      $("lobbyMapInfo").innerHTML = `<b>${escapeHtml(onl.map)}</b>｜${escapeHtml(d.tag)}` + (host ? "" : ' <span class="dim">（マップはホストが選びます）</span>') + gmDetailHtml(onl.map);
+
+      const readyBtn = $("lobbyReadyBtn"), startBtn = $("lobbyStartBtn");
+      readyBtn.classList.toggle("hidden", host);
+      startBtn.classList.toggle("hidden", !host);
+      readyBtn.textContent = onl.guestReady ? "準備解除" : "準備OK";
+      const connected = !!(onl.conn && onl.conn.open);
+      startBtn.disabled = !(connected && onl.guestReady && onl.oppChar);
+      if (host && connected) {
+        setLobbyStatus(onl.guestReady ? "相手の準備ができました。ゲーム開始できます！" : "相手の準備を待っています…");
+      } else if (host) {
+        setLobbyStatus("対戦相手を待っています…");
+      } else {
+        setLobbyStatus(onl.guestReady ? "ホストの開始を待っています…" : "キャラを選んで「準備OK」を押してください。");
+      }
     }
 
     const _goCS = goToCharacterSelect; goToCharacterSelect = function () { _goCS(); renderCharSelect(); };
@@ -2865,35 +3245,51 @@ function updateSafeZone() {
       try { if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
       try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape"); } catch (e) {}
     }
-    function armLandscapeLock() {
-      const once = () => { if (playMode === "mobile") lockLandscape(); };
-      document.addEventListener("pointerdown", once, { once: true });
+    function unlockFullscreen() {
+      try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (e) {}
     }
-    function setPlayMode(m) {
+    /* 画面の高さに合わせて、メニューを1画面に収めるための変数とクラスを更新 */
+    function updateViewport() {
+      const h = window.innerHeight, root = document.documentElement;
+      root.style.setProperty("--app-h", h + "px");
+      root.style.setProperty("--u", (h / 100) + "px");
+      document.body.classList.toggle("compact", playMode === "mobile" || h < 520);
+    }
+    function setPlayMode(m, byUser) {
       playMode = m === "mobile" ? "mobile" : "pc";
       document.body.classList.toggle("mobile", playMode === "mobile");
       document.getElementById("modePC").classList.toggle("on", playMode === "pc");
       document.getElementById("modeMobile").classList.toggle("on", playMode === "mobile");
       try { localStorage.setItem("playMode", playMode); } catch (e) {}
-      if (playMode === "mobile") { lockLandscape(); armLandscapeLock(); }
-      else {
-        joys.forEach(j => j.release());
-        try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
-        try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (e) {}
-      }
+      if (playMode === "mobile") { if (byUser) lockLandscape(); }
+      else { joys.forEach(j => j.release()); unlockFullscreen(); }
+      updateViewport();
     }
+    window.addEventListener("resize", updateViewport);
+    window.addEventListener("orientationchange", updateViewport);
+    document.addEventListener("fullscreenchange", updateViewport);
+
+    /* メニュー（ホーム画面）で何かを押したら全画面＋横向き固定。ホームに戻ったら解除 */
+    document.getElementById("homeScreen").addEventListener("click", e => {
+      if (playMode === "mobile" && e.target.closest("button")) lockLandscape();
+    });
+    let wasHome = true;
     setInterval(() => {
       const ig = !document.getElementById("gameScreen").classList.contains("hidden");
       document.body.classList.toggle("ingame", ig);
       touchUI.classList.toggle("online", !!(typeof onl !== "undefined" && onl.running));
       if (!ig || playMode !== "mobile") joys.forEach(j => j.release());
+      const home = !document.getElementById("homeScreen").classList.contains("hidden");
+      if (home && !wasHome && playMode === "mobile") unlockFullscreen();
+      wasHome = home;
     }, 150);
 
     (function () {
       let saved = "";
       try { saved = localStorage.getItem("playMode") || ""; } catch (e) {}
       if (saved !== "pc" && saved !== "mobile") saved = (window.matchMedia && matchMedia("(pointer: coarse)").matches) ? "mobile" : "pc";
-      setPlayMode(saved);
+      setPlayMode(saved, false);
     })();
   </script>
 </body>
