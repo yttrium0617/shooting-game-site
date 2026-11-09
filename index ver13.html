@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>2D対戦シューティング</title>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
@@ -450,7 +453,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 18</div>
+      <div class="ver">VER 19</div>
     </div>
   </div>
 
@@ -1697,18 +1700,23 @@ if (shooter.charName === "ツインブラザーズ") {
         }
       });
     }
+const ZONE_SPEED = 18;    // 縮小速度（px/秒）。従来は約30px/秒。小さいほどゆっくり
+const ZONE_START_R = 660; // 縮小開始時の半径（アリーナの端がこの付近）
 function updateSafeZone() {
   const now = Date.now();
   const elapsed = (now - gameStartTime) / 1000; // 秒
 
-  // 25秒経過後に縮小開始
-  if (elapsed > 25) {
+  // 25秒経過後に縮小開始（画面に円が見え始めるまでの時間は従来どおり）
+  if (elapsed > 25 && !safeZone.shrinking) {
     safeZone.shrinking = true;
+    safeZone.radius = Math.min(safeZone.radius, ZONE_START_R);
   }
 
-  // 縮小中
+  // 縮小中：フレーム数ではなく経過時間で縮める（60Hz/120Hzで同じ速さ）
+  const zdt = Math.min(100, now - (safeZone.lastTs || now)) / 1000;
+  safeZone.lastTs = now;
   if (safeZone.shrinking && safeZone.radius > 50) {
-    safeZone.radius -= 0.5; // 縮小スピード（調整可）
+    safeZone.radius = Math.max(50, safeZone.radius - ZONE_SPEED * zdt);
   }
 
  // プレイヤーごとに判定
@@ -3241,13 +3249,28 @@ function updateSafeZone() {
     ];
     touchUI.querySelectorAll(".tbtn").forEach(makeBtn);
 
+    const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+    function fsSupported() { const e = document.documentElement; return !!(e.requestFullscreen || e.webkitRequestFullscreen); }
+    let fsHintShown = false;
+    function fsHint() {
+      if (fsHintShown) return; fsHintShown = true;
+      const d = document.createElement("div");
+      d.style.cssText = "position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:300;max-width:92vw;padding:8px 14px;border-radius:10px;background:rgba(10,16,34,.92);border:1px solid #00e5ff;color:#fff;font-size:12px;line-height:1.5;text-align:center;pointer-events:none";
+      d.textContent = "このブラウザは全画面表示に対応していません。「共有」→「ホーム画面に追加」から開くと全画面で遊べます。";
+      document.body.appendChild(d); setTimeout(() => d.remove(), 7000);
+    }
+    /* ユーザーの操作の中で同期的に呼ぶこと（全画面は操作直後でないと許可されない） */
     async function lockLandscape() {
-      try { if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
-      try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape"); } catch (e) {}
+      const e = document.documentElement;
+      if (!fsSupported()) { fsHint(); }
+      else if (!fsEl()) {
+        try { await (e.requestFullscreen ? e.requestFullscreen() : e.webkitRequestFullscreen()); } catch (x) {}
+      }
+      try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape"); } catch (x) {}
     }
     function unlockFullscreen() {
       try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
-      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (e) {}
+      try { if (fsEl()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } } catch (e) {}
     }
     /* 画面の高さに合わせて、メニューを1画面に収めるための変数とクラスを更新 */
     function updateViewport() {
@@ -3269,11 +3292,12 @@ function updateSafeZone() {
     window.addEventListener("resize", updateViewport);
     window.addEventListener("orientationchange", updateViewport);
     document.addEventListener("fullscreenchange", updateViewport);
+    document.addEventListener("webkitfullscreenchange", updateViewport);
 
     /* メニュー（ホーム画面）で何かを押したら全画面＋横向き固定。ホームに戻ったら解除 */
-    document.getElementById("homeScreen").addEventListener("click", e => {
-      if (playMode === "mobile" && e.target.closest("button")) lockLandscape();
-    });
+    document.addEventListener("click", e => {
+      if (playMode === "mobile" && e.target.closest && e.target.closest("#homeScreen button:not(#modePC):not(#modeMobile)")) lockLandscape();
+    }, true);
     let wasHome = true;
     setInterval(() => {
       const ig = !document.getElementById("gameScreen").classList.contains("hidden");
