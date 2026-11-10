@@ -2958,7 +2958,8 @@ function updateSafeZone() {
 
     function drawTurret(t) {
       const idx = t.own || (t.owner === player1 ? 1 : 2), T = TEAM[idx], foe = idx === 1 ? player2 : player1;
-      const ang = Math.atan2(foe.y + foe.h / 2 - t.y, foe.x + foe.w / 2 - t.x);
+      const tp = window.turretAimPoint ? window.turretAimPoint(t) : null;   // ver28：召喚物ペットも狙う
+      const ang = tp ? Math.atan2(tp.y - t.y, tp.x - t.x) : Math.atan2(foe.y + foe.h / 2 - t.y, foe.x + foe.w / 2 - t.x);
       ctx.save(); ctx.translate(t.x, t.y);
       ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(2, 6, 11, 5, 0, 0, TAU); ctx.fill();
       ctx.shadowColor = T.main; ctx.shadowBlur = 10; ctx.fillStyle = "#171d33"; ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
@@ -2993,7 +2994,8 @@ function updateSafeZone() {
       fx.flash[idx - 1] = Math.max(0, flash - .08);
       ctx.lineWidth = 3; ctx.strokeStyle = T.main; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
       // 照準の向き（相手方向）
-      const a = Math.atan2(foe.y + foe.h / 2 - cy, foe.x + foe.w / 2 - cx);
+      const aT = window.aimTarget ? window.aimTarget(p, foe) : foe;   // ver28：召喚物ペットが近ければそちらを向く
+      const a = Math.atan2(aT.y + aT.h / 2 - cy, aT.x + aT.w / 2 - cx);
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.fillStyle = T.light;
       ctx.beginPath(); ctx.moveTo(R + 9, 0); ctx.lineTo(R + 2, -4); ctx.lineTo(R + 2, 4); ctx.closePath(); ctx.fill(); ctx.restore();
       // HP・弾数バー
@@ -3499,6 +3501,11 @@ function think(i){
   else if(hst){range=40;fire=120;chase=.2;expoW=2}           // 加速中は接近を狙う
   else{range=240;fire=200;chase=.05;expoW=Math.max(expoW,7)}} // 通常時は牽制しつつ弾避け
  if(nm==='不死鳥'){if(me.rv){expoW=Math.max(expoW,7);range=en.ammo<=0?55:250}else{expoW=0;range=120;chase=.12}} // 蘇生前は被弾覚悟で攻め、蘇生後は避けつつ隙に突っ込む
+ // ver28：エイムは人間と同じ（一番近い敵／ペット／タレット）。ダメージを気にしないキャラは、エイムが本体に向くまで詰める
+ const ignoreDmg=nm==='ボマー'||(nm==='不死鳥'&&!me.rv)||(nm==='ツインブラザーズ'&&twin)||(nm==='既視感のあるGAY'&&((en.stunUntil||0)>NOW()||(me.hasteUntil||0)>NOW()));
+ let pt=null,pd=1e9;
+ for(const m of (window.TAMER_MINS||[])){if(m.o===me)continue;const dd=HY(m.x+10-mx,m.y+10-my);if(dd<pd){pd=dd;pt=m}}
+ const at=window.aimTarget?window.aimTarget(me,en):en,aimOther=at!==en;
  if(enTrap&&!EP.pass&&!eTh)expoW=0;
  const hide=me.ammo<=0&&nm!=='聖なる使者'&&nm!=='ボマー';if(hide)expoW*=1.6;
  const cur=danger(me,mx,my,0,0);
@@ -3513,6 +3520,9 @@ function think(i){
    else{const r8={x:me.x+vx*8,y:me.y+vy*8,w:30,h:30};if(r8.x<0||r8.y<0||r8.x>ARENA_W-30||r8.y>ARENA_H-30||collidesWithObstacles(r8))s-=6}}
   const cx=mx+vx*10,cy=my+vy*10,nd=HY(ex-cx,ey-cy);
   s-=danger(me,mx,my,vx,vy)*2.5;
+  if(pt){const npd=HY(pt.x+10-cx,pt.y+10-cy);
+   if(ignoreDmg){if(nd>=npd)s-=(nd-npd)*.08+2}            // ペットより敵本体が近い位置まで詰めて、エイムを本体に向ける
+   else if(npd<110)s-=(110-npd)*.5}                       // 迫るペットから距離を取りつつ撃つ
   s-=Math.abs(nd-range)*chase;
   if(eTh&&nd<eTh)s-=(eTh-nd)*.7;                       // 自爆・罠・散弾の間合いに入らない
   if(el>16)s-=Math.max(0,HY(cx-400,cy-200)-(zr-70))*.35;
@@ -3550,6 +3560,11 @@ function think(i){
  // ---- 射撃（敵の横移動を見て、当たるタイミングで撃つ）----
  const bs=Math.max(1,me.bulletSpeed*(me.bulletSpeedBoost||1)),lat=Math.abs(A.ev[0]*-uy+A.ev[1]*ux)*d/bs,tol=(P.tol||0)+(me.ammo>=me.maxAmmo?34:14);
  const inWall=!pass&&obstacles.some(o=>circleHitRect({x:mx,y:my,r:5},o));
+ if(aimOther&&ignoreDmg)return;   // エイムがペットに向いている間は撃たない（詰める）
+ if(aimOther&&me.ammo>0&&fr>=A.nf&&HY(at.x+15-mx,at.y+15-my)<Math.max(fire,160)&&!inWall&&(pass||canHit(mx,my,at,5,0,6))){
+  const a0=me.ammo;shootBullet(me,at);
+  if(me.ammo<a0){A.nf=fr+(P.gm!==undefined?P.gm:GM)+Math.floor(RND()*(P.gr!==undefined?P.gr:GR))}
+  return}
  if(me.ammo>0&&fr>=A.nf&&d<fire&&!inWall&&(nm==='ボマー'||(lat<tol&&(pass||canHit(mx,my,en,5,0,6))))){
   const a0=me.ammo;shootBullet(me,en);if(me.ammo<a0){A.nf=fr+(P.gm!==undefined?P.gm:GM)+Math.floor(RND()*(P.gr!==undefined?P.gr:GR))}}
 }
@@ -4018,7 +4033,7 @@ function think(i){
         ring(x, y, cols[0], 26, 14);
       }
       function muzzleFx(p, foe) {
-        const d = FXD[p.charName] || { c: ["#fff"], sh: "dot" }, [ux, uy] = aim(p, foe), x = p.x + 15 + ux * 22, y = p.y + 15 + uy * 22, a0 = Math.atan2(uy, ux);
+        const d = FXD[p.charName] || { c: ["#fff"], sh: "dot" }, [ux, uy] = aim(p, window.aimTarget ? window.aimTarget(p, foe) : foe), x = p.x + 15 + ux * 22, y = p.y + 15 + uy * 22, a0 = Math.atan2(uy, ux);
         P(x, y, { life: 5, s: 8, c: "#ffffff", sh: "dot" });
         for (let i = 0; i < 5; i++) {
           const a = a0 + (Math.random() - .5) * .8, sp = 2 + Math.random() * 3;
@@ -4026,12 +4041,12 @@ function think(i){
         }
       }
       function castFx(p, foe) {
-        const e = p.element | 0, [ux, uy] = aim(p, foe), x = p.x + 15 + ux * 46, y = p.y + 15 + uy * 46;
+        const e = p.element | 0, [ux, uy] = aim(p, window.aimTarget ? window.aimTarget(p, foe) : foe), x = p.x + 15 + ux * 46, y = p.y + 15 + uy * 46;
         burst(x, y, 8, [EL_COL[e], EL_COL2[e], "#fff"], { sp: 3, sh: ["dot", "snow", "bolt"][e], life: 18 });
         ring(x, y, EL_COL[e], 26, 12);
       }
       function elemFx(p, foe) {
-        const e = p.element | 0, [ux, uy] = aim(p, foe), x = p.x + 15 + ux * 46, y = p.y + 15 + uy * 46;
+        const e = p.element | 0, [ux, uy] = aim(p, window.aimTarget ? window.aimTarget(p, foe) : foe), x = p.x + 15 + ux * 46, y = p.y + 15 + uy * 46;
         ring(x, y, EL_COL[e], 34, 18); ring(x, y, "#ffffff", 20, 12);
         burst(x, y, 12, [EL_COL[e], EL_COL2[e], "#fff"], { sp: 2.6, sh: ["star", "snow", "bolt"][e], life: 26 });
       }
@@ -4374,7 +4389,7 @@ function think(i){
          ============================================================ */
       function drawMageCircle(p, foe, i, now) {
         const e = p.element | 0, col = EL_COL[e], col2 = EL_COL2[e], t = now / 1000;
-        const cx = p.x + 15, cy = p.y + 15, dx = foe.x + 15 - cx, dy = foe.y + 15 - cy, m = Math.hypot(dx, dy) || 1;
+        const cx = p.x + 15, cy = p.y + 15, aT = window.aimTarget ? window.aimTarget(p, foe) : foe, dx = aT.x + (aT.w || 30) / 2 - cx, dy = aT.y + (aT.h || 30) / 2 - cy, m = Math.hypot(dx, dy) || 1;
         const ox = cx + dx / m * 46, oy = cy + dy / m * 46, can = (p.mana || 0) >= EL_COST[e];
         const pul = Math.max(0, 1 - (now - S.castT[i]) / 260), R = 17 * (1 + .3 * pul);
         ctx.save();
@@ -4761,7 +4776,10 @@ function think(i){
       const T = "ペット＆テイマー", now = () => Date.now(), isT = p => p && p.charName === T;
       const COL = ["#ff4a4a", "#4aa8ff", "#ffd93a"], DMG = [15, 10, 10], mins = [];
       const foe = p => p === player1 ? player2 : player1, rnd = () => Math.floor(Math.random() * 3);
-      const spawn = (p, t, r) => mins.push({ x: p.x + 5, y: p.y + 5, o: p, t, hp: 15, r, nx: now() + 1000 });
+      const PET_SPEED = 2.6;      // 召喚物ペットの移動速度（ver27は3.6）
+      const PET_STAGGER = 700;    // スキルの3匹が歩き出すまでの時間差(ms)：0 → 700 → 1400
+      const spawn = (p, t, r, delay) => mins.push({ x: p.x + 5, y: p.y + 5, o: p, t, hp: 15, r, nx: now() + 1000, go: now() + (delay || 0) });
+      window.TAMER_MINS = mins;   // CPUがペットを狙うために公開
       const _cp = createPlayer;
       createPlayer = function (x, y, c, n) {
         const p = _cp(x, y, c, n); mins.length = 0;
@@ -4789,7 +4807,7 @@ function think(i){
         const t = now();
         if ((p.stunUntil || 0) > t || p.pets.length < 3 || t - p.skillLastUsed < p.skillCooldown) return;
         p.skillLastUsed = t;
-        for (let r = -1; r <= 1; r++) spawn(p, p.pets.pop(), r);
+        for (let r = -1; r <= 1; r++) spawn(p, p.pets.pop(), r, (r + 1) * PET_STAGGER);
         p.ammo = p.pets.length;
       };
       const _isr = isSkillReady;
@@ -4800,6 +4818,137 @@ function think(i){
         if ((p.slowUntil || 0) > now()) { const b = p.speed; p.speed = b * .6; try { _mp(p, u, d, l, r); } finally { p.speed = b; } }
         else _mp(p, u, d, l, r);
       };
+      /* ---- ペットを「キャラ」として扱う：弾・魔法・雷が当たってHPが減る ---- */
+      const sweepHit = (b, m) => {   // 1フレーム前の位置から今の位置までを区切って判定（高速弾のすり抜け防止）
+        const px = b.x - (b.vx || 0), py = b.y - (b.vy || 0), box = { x: m.x, y: m.y, w: 20, h: 20 };
+        for (let k = 0; k <= 4; k++) if (circleHitRect({ x: px + (b.x - px) * k / 4, y: py + (b.y - py) * k / 4, r: b.r || 4 }, box)) return true;
+        return false;
+      };
+      const petTakeHits = m => {
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j]; if (b.from === m.o || !sweepHit(b, m)) continue;
+          if (b.explosive) {   // 爆発弾は範囲内の敵ペット全員にダメージ
+            const rad = b.explosiveRadius || b.r || (b.from && b.from.bulletRadius) || 20;
+            explode(b);
+            mins.forEach(o => { if (o.o !== b.from && Math.hypot(o.x + 10 - b.x, o.y + 10 - b.y) < rad + 10) o.hp -= b.damage; });
+          } else m.hp -= b.damage;
+          bullets.splice(j, 1);
+        }
+        const X = window.X21;   // ゲイ・元素の魔女の弾（ウェーブ＝スタンは対象外）
+        if (X) {
+          for (let j = X.xb.length - 1; j >= 0; j--) {
+            const b = X.xb[j]; if (b.from === m.o || b.type === "wave" || !sweepHit(b, m)) continue;
+            m.hp -= b.dmg || b.damage || 0; X.xb.splice(j, 1);
+          }
+          const on = m.o === player1 ? 1 : 2;   // 雷が壁を伝う攻撃
+          X.arcs.forEach(a => {
+            if (a.own === on) return;
+            a.ph = a.ph || new Set();
+            if (!a.ph.has(m) && m.x < a.x + a.w + 4 && m.x + 20 > a.x - 4 && m.y < a.y + a.h + 4 && m.y + 20 > a.y - 4) { a.ph.add(m); m.hp -= 15; }
+          });
+        }
+      };
+      // 近接攻撃などが「相手.hp」を直接減らしても、ペットのHPに反映されるラッパー
+      const petProxy = m => ({ get x() { return m.x - 5; }, set x(v) { m.x = v + 5; }, get y() { return m.y - 5; }, set y(v) { m.y = v + 5; }, w: 30, h: 30, get hp() { return m.hp; }, set hp(v) { m.hp = v; }, pet: m });
+
+      /* ---- ペットの経路探索：壁を避けて回り込む（10pxグリッド＋幅優先探索） ---- */
+      const CELL = 10, GW = Math.ceil(ARENA_W / CELL), GH = Math.ceil(ARENA_H / CELL);
+      let blocked = null, blockedAt = -1e9;
+      const fields = new Map();
+      const petBox = (cx, cy) => ({ x: cx - 10, y: cy - 10, w: 20, h: 20 });
+      const petFree = (cx, cy) => cx >= 10 && cy >= 10 && cx <= ARENA_W - 10 && cy <= ARENA_H - 10 && !collidesWithObstacles(petBox(cx, cy));
+      const refreshBlocked = t => {
+        if (blocked && t - blockedAt < 250) return;
+        blockedAt = t; blocked = new Uint8Array(GW * GH); fields.clear();
+        for (let gy = 0; gy < GH; gy++) for (let gx = 0; gx < GW; gx++) blocked[gy * GW + gx] = petFree(gx * CELL + CELL / 2, gy * CELL + CELL / 2) ? 0 : 1;
+      };
+      const getField = (o, e, t) => {
+        let f = fields.get(o);
+        if (f && t - f.t < 200) return f;
+        const dist = new Int16Array(GW * GH).fill(-1), q = [];
+        const ex = Math.floor((e.x + 15) / CELL), ey = Math.floor((e.y + 15) / CELL);
+        [1, 3].forEach(rad => {
+          if (q.length) return;
+          for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+            const gx = ex + dx, gy = ey + dy;
+            if (gx < 0 || gy < 0 || gx >= GW || gy >= GH || blocked[gy * GW + gx]) continue;
+            dist[gy * GW + gx] = 0; q.push(gy * GW + gx);
+          }
+        });
+        for (let h = 0; h < q.length; h++) {
+          const c = q[h], cx = c % GW, cy = (c / GW) | 0, dc = dist[c];
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const nx = cx + dx, ny = cy + dy;
+            if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+            const n = ny * GW + nx;
+            if (blocked[n] || dist[n] >= 0) continue;
+            if (dx && dy && (blocked[cy * GW + nx] || blocked[ny * GW + cx])) continue;   // 角のかすめ抜け禁止
+            dist[n] = dc + 1; q.push(n);
+          }
+        }
+        f = { t, dist }; fields.set(o, f); return f;
+      };
+      const clearLine = (x0, y0, x1, y1) => {   // ペットの体(20x20)で壁にぶつからず直進できるか
+        const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 5));
+        for (let k = 1; k <= n; k++) if (collidesWithObstacles(petBox(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n))) return false;
+        return true;
+      };
+      const follow = (f, cx, cy) => {   // 経路を数マス先まで辿り、まっすぐ行ける一番遠い地点を目標にする
+        const dist = f.dist;
+        let wx = Math.min(GW - 1, Math.max(0, Math.floor(cx / CELL))), wy = Math.min(GH - 1, Math.max(0, Math.floor(cy / CELL))), cur = dist[wy * GW + wx];
+        if (cur < 0) {
+          let bd = 1e9, bx = -1, by = -1;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            const nx = wx + dx, ny = wy + dy;
+            if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+            const dd = dist[ny * GW + nx]; if (dd >= 0 && dd < bd) { bd = dd; bx = nx; by = ny; }
+          }
+          if (bx < 0) return null;
+          wx = bx; wy = by; cur = bd;
+        }
+        let best = null, first = null;
+        for (let k = 0; k < 8 && cur > 0; k++) {
+          let bx = -1, by = -1, bd = cur;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const nx = wx + dx, ny = wy + dy;
+            if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+            const dd = dist[ny * GW + nx];
+            if (dd < 0 || dd >= bd) continue;
+            if (dx && dy && (blocked[wy * GW + nx] || blocked[ny * GW + wx])) continue;
+            bd = dd; bx = nx; by = ny;
+          }
+          if (bx < 0) break;
+          wx = bx; wy = by; cur = bd;
+          const px = wx * CELL + CELL / 2, py = wy * CELL + CELL / 2;
+          if (!first) first = [px, py];
+          if (clearLine(cx, cy, px, py)) best = [px, py];
+        }
+        return best || first;
+      };
+      const movePet = (m, e, t) => {
+        const cx = m.x + 10, cy = m.y + 10, ex = e.x + 15, ey = e.y + 15, d = Math.hypot(ex - cx, ey - cy) || 1;
+        refreshBlocked(t);
+        let tx = ex, ty = ey;
+        if (clearLine(cx, cy, ex, ey)) {   // 見通しが良い：3匹で別々の弧を描いて接近
+          const a = Math.atan2(ey - cy, ex - cx) + m.r * .9 * Math.min(1, d / 260);
+          const px = cx + Math.cos(a) * 30, py = cy + Math.sin(a) * 30;
+          if (clearLine(cx, cy, px, py)) { tx = px; ty = py; }
+        } else {                           // 壁が間にある：経路に沿って回り込む
+          const g = follow(getField(m.o, e, t), cx, cy);
+          if (g) { tx = g[0]; ty = g[1]; }
+        }
+        const L = Math.hypot(tx - cx, ty - cy) || 1;
+        let vx = (tx - cx) / L * PET_SPEED, vy = (ty - cy) / L * PET_SPEED;
+        mins.forEach(o => {                // 仲間のペットと団子にならないよう軽く離す
+          if (o === m || o.o !== m.o) return;
+          const sx = cx - (o.x + 10), sy = cy - (o.y + 10), sd = Math.hypot(sx, sy);
+          if (sd > 0 && sd < 16) { vx += sx / sd * .6; vy += sy / sd * .6; }
+        });
+        [[vx, 0], [0, vy]].forEach(([ax, ay]) => { if (!collidesWithObstacles({ x: m.x + ax, y: m.y + ay, w: 20, h: 20 })) { m.x += ax; m.y += ay; } });
+      };
+
       const _up = update;
       update = function () {
         const t = now(), tb = bullets.filter(b => b.tp !== undefined);
@@ -4812,12 +4961,11 @@ function think(i){
         for (let i = mins.length - 1; i >= 0; i--) { // 召喚物ペット
           const m = mins[i], e = foe(m.o);
           if (t >= m.nx) { m.hp--; m.nx += 1000; }
-          for (let j = bullets.length - 1; j >= 0; j--) { const b = bullets[j]; if (b.from !== m.o && circleHitRect(b, { x: m.x, y: m.y, w: 20, h: 20 })) { m.hp -= b.damage; bullets.splice(j, 1); } }
+          petTakeHits(m);   // ver28：全ての弾・魔法・雷の壁を判定（すり抜け防止の線分判定）
           if (m.hp <= 0) { mins.splice(i, 1); continue; }
           const cx = m.x + 10, cy = m.y + 10, dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
           if (d < 22) { e.hp -= 5; explosions.push({ x: cx, y: cy, r: 22, life: 8 }); mins.splice(i, 1); continue; }
-          const a = Math.atan2(dy, dx) + m.r * .9 * Math.min(1, d / 260), vx = Math.cos(a) * 3.6, vy = Math.sin(a) * 3.6;
-          [[vx, 0], [0, vy]].forEach(([ax, ay]) => { if (!collidesWithObstacles({ x: m.x + ax, y: m.y + ay, w: 20, h: 20 })) { m.x += ax; m.y += ay; } });
+          if (t >= (m.go || 0)) movePet(m, e, t);   // 歩き出しまでは待機
         }
         for (let i = turrets.length - 1; i >= 0; i--) { // タレット：HP80（自動減少なし）
           const u = turrets[i]; if (u.hp === undefined) u.hp = 80;
@@ -4864,17 +5012,23 @@ function think(i){
       const near = (s, t) => { // 最も近い敵プレイヤー／召喚物（ペット・タレット）を狙う
         const e = foe(s); if (t !== e) return t;
         const cx = s.x + 15, cy = s.y + 15; let best = t, bd = Math.hypot(e.x + 15 - cx, e.y + 15 - cy);
-        const chk = (x, y) => { const d = Math.hypot(x - cx, y - cy); if (d < bd) { bd = d; best = { x: x - 15, y: y - 15, w: 30, h: 30 }; } };
-        mins.forEach(m => { if (m.o !== s) chk(m.x + 10, m.y + 10); });
+        const chk = (x, y, o) => { const d = Math.hypot(x - cx, y - cy); if (d < bd) { bd = d; best = o || { x: x - 15, y: y - 15, w: 30, h: 30 }; } };
+        mins.forEach(m => { if (m.o !== s) chk(m.x + 10, m.y + 10, petProxy(m)); });
         turrets.forEach(u => { if (u.owner !== s) chk(u.x, u.y); });
         return best;
       };
+      window.aimTarget = near;   // エイム矢印・魔法陣・演出が、実際に撃つ相手（ペット含む）を向くように
       const _sb2 = shootBullet;
       shootBullet = function (s, t) { return _sb2(s, near(s, t)); };
-      turretShoot = function (u) { // タレットも最も近い敵プレイヤー／召喚物ペットを撃つ
+      const turretTarget = u => { // タレットが狙う点：最も近い敵プレイヤー／召喚物ペット
+        const o = u.owner || (u.own === 1 ? player1 : player2), e = foe(o); let tx = e.x + 15, ty = e.y + 15, bd = Math.hypot(tx - u.x, ty - u.y);
+        mins.forEach(m => { if (m.o === o) return; const d = Math.hypot(m.x + 10 - u.x, m.y + 10 - u.y); if (d < bd) { bd = d; tx = m.x + 10; ty = m.y + 10; } });
+        return { x: tx, y: ty };
+      };
+      window.turretAimPoint = turretTarget;
+      turretShoot = function (u) {
         if (!gameActive) return;
-        const e = foe(u.owner); let tx = e.x + 15, ty = e.y + 15, bd = Math.hypot(tx - u.x, ty - u.y);
-        mins.forEach(m => { if (m.o === u.owner) return; const d = Math.hypot(m.x + 10 - u.x, m.y + 10 - u.y); if (d < bd) { bd = d; tx = m.x + 10; ty = m.y + 10; } });
+        const q = turretTarget(u), tx = q.x, ty = q.y;
         const dx = tx - u.x, dy = ty - u.y, mag = Math.hypot(dx, dy) || 1;
         bullets.push({ x: u.x, y: u.y, r: 5, vx: dx / mag * 6, vy: dy / mag * 6, from: u.owner, damage: 5, lifeTime: 0, maxLifeTime: 1000, hasReflected: false });
       };
