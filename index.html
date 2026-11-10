@@ -461,7 +461,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 24</div>
+      <div class="ver">VER 25</div>
     </div>
   </div>
 
@@ -649,7 +649,9 @@ const characterImages = {
   "既視感のあるGAY": "images/dejavu.png",
   "元素の魔女": "images/witch.png",
   "パイハークン": "images/paihakun.png",
-  "怪獣王": "images/kaijuou.png"
+  "怪獣王": "images/kaijuou.png",
+  "不死鳥": "images/phoenix.png",
+  "ペット＆テイマー": "images/pettamer.png"
 };
 
 
@@ -1833,88 +1835,88 @@ function updateSafeZone() {
        ============================================================ */
     const CHARACTER_INFO = {
       "スナイパー太郎": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "高速2連射の狙撃手",
+        intro:  "正確な射撃で敵を撃ち抜く、腕利きのスナイパー。",
+        attack: "1回の攻撃で弾を2発同時に撃つ（1発8ダメージ）。マガジン4発、リロード1秒。",
+        skill:  "使うたびに弾の速さが上がっていく。クールタイム15秒。",
+        tips:   "弾が速いので、中〜遠距離から当て続けよう。"
       },
       "白い死神": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "一撃必殺の狙撃手",
+        intro:  "音もなく現れ、一瞬で勝負を決める白き狙撃手。",
+        attack: "超高速の弾を1発撃つ（20ダメージ）。弾数1発、リロード2秒。移動は遅め。",
+        skill:  "次の1発が大威力（+50ダメージ）になる。クールタイム30秒。",
+        tips:   "スキルを溜めて、確実に当てられる場面で撃とう。"
       },
       "怪盗レッド": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "俊足の怪盗",
+        intro:  "身軽な動きで敵を翻弄する怪盗。",
+        attack: "標準的な弾を撃つ（10ダメージ、弾数3発）。移動速度が速い。",
+        skill:  "自動で敵を撃つタレットを設置する（最大2基）。クールタイム23秒。",
+        tips:   "タレットで牽制しつつ、素早く動いて弾を避けよう。"
       },
       "ガジェットボット": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "壁を貫く機械兵",
+        intro:  "最新装備を詰め込んだロボット。",
+        attack: "壁を貫通する大きめの弾（15ダメージ、弾数3発）。移動はやや遅い。",
+        skill:  "マップ内のランダムな場所にワープする。クールタイム7秒。",
+        tips:   "壁越しに撃ち、ピンチはワープで逃げよう。"
       },
       "アクアファイター": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "水の連射戦士",
+        intro:  "水を自在に操る戦士。",
+        attack: "10発の連射型（1発4ダメージ、リロード1秒）。",
+        skill:  "敵の方向に壁を作り出す。クールタイム8秒。",
+        tips:   "連射で押しつつ、壁で弾を防ごう。"
       },
       "ツインブラザーズ": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "爆発と散弾の兄弟",
+        intro:  "息の合った兄弟が、2つの戦い方を使い分ける。",
+        attack: "爆発弾モード（15ダメージ）と散弾モード（1発5ダメージ）がある。",
+        skill:  "爆発弾と散弾のモードを切り替える。クールタイム10秒。",
+        tips:   "遠くは爆発弾、近づかれたら散弾に切り替えよう。"
       },
       "聖なる使者": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "癒やしの使者",
+        intro:  "傷を力に変える、聖なる使い。",
+        attack: "弾速が速く射程の長い弾（5ダメージ）。撃ち切るとリロード（5秒）。",
+        skill:  "与えたダメージが30溜まるたびに、HPを20回復できる。",
+        tips:   "当て続けてダメージを溜め、回復して粘ろう。"
       },
       "ジャンパー": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "巨大化する弾",
+        intro:  "跳ねるように戦う陽気な戦士。",
+        attack: "飛ぶほど加速して大きくなる弾（最初は7ダメージ、弾数5発）。",
+        skill:  "壁を貫通する3方向の高速弾（各20ダメージ）。クールタイム30秒。",
+        tips:   "遠くから撃って弾を育て、スキルは近距離で当てよう。"
       },
       "ボマー": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "爆発の使い手",
+        intro:  "自爆も辞さない、爆弾好きの戦士。",
+        attack: "その場で爆発する（34ダメージ、壁貫通）。リロード0.3秒。",
+        skill:  "一定時間、爆発の威力・範囲・移動速度が上がる。終了後に反動でHP-15。クールタイム20秒。",
+        tips:   "敵に近づいて爆発させよう。スキル後の反動に注意。"
       },
       "ブーメランボーイ": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "戻ってくる弾",
+        intro:  "投げた弾が手元に戻ってくる、不思議な少年。",
+        attack: "ブーメラン弾を1発投げる（12ダメージ）。戻ってくると弾が回復する。",
+        skill:  "1回目でワープ地点を設置、2回目でそこへワープ。クールタイム12秒。",
+        tips:   "行きと帰りで2回当てよう。ワープで逃げ道を作れる。"
       },
       "ジョーカー": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "運任せの道化師",
+        intro:  "勝負を運に委ねる、気まぐれな道化師。",
+        attack: "3方向に拡散する弾（1発15ダメージ、弾数3発）。",
+        skill:  "6つの効果のどれかがランダムで発動（HP50回復／加速／双方HP-20／100ダメージの貫通弾／双方50回復／次のダメージを反射）。クールタイム15秒。",
+        tips:   "近距離で拡散弾を当て、スキルの運に賭けよう。"
       },
       "サンダーマウス": {
-        title:  "【キャッチコピーをここに】",
-        intro:  "【ここにキャラ紹介文を書いてください】",
-        attack: "【通常攻撃の説明を書いてください】",
-        skill:  "【スキルの説明を書いてください】",
-        tips:   "【立ち回りのコツを書いてください】"
+        title:  "稲妻のネズミ",
+        intro:  "素早く走り回る、小さな雷使い。",
+        attack: "途中で分裂する弾（20ダメージ、弾数4発）。リロード1.8秒。",
+        skill:  "入力した方向に短距離ダッシュする。クールタイム4秒。",
+        tips:   "ダッシュで弾を避けつつ、分裂弾を当てよう。"
       },
       "既視感のあるGAY": {
         title:  "至近距離で圧倒する、既視感の塊",
@@ -1929,6 +1931,20 @@ function updateSafeZone() {
         attack: "遅い大玉を撃ち、もう一度攻撃ボタンを押すと破裂して24発の小さな球が全方向に飛ぶ（大玉が破裂するまで次は撃てない。壁や射程の端でも自動で破裂）。大玉20ダメージ、小球は1発6ダメージ。",
         skill:  "周囲の敵を爆風で吹き飛ばす。壁越しでもノックバックする。クールタイムは長め。",
         tips:   "敵の近くで破裂させて小球を当て続けよう。近づかれたらスキルで距離を取る。遠距離の撃ち合いは苦手。"
+      },
+      "不死鳥": {
+        title:  "不屈の炎",
+        intro:  "HPが初期で低い代わりに、不屈の体を手に入れた。",
+        attack: "HPが減るほど弾のダメージ（10→最大50）・弾速・移動速度が上がり、リロードが遅くなる。HP1の時だけ青白い炎の弾になり、通った跡が1秒間燃え、踏んだ敵に火傷（0.8秒ごとに2ダメージ×3回、重複なし）。",
+        skill:  "1試合に1度、死ぬダメージを受けるとHP1で生き残り、状態異常を回復して敵をノックバック。その後、1回だけ全ダメージを無効化するシールドを得る。",
+        tips:   "HPが高いうちは弱い。蘇生後はシールドを活かして一気に攻めよう。回復パッドの回復量は上限70まで。"
+      },
+      "ペット＆テイマー": {
+        title:  "雑なテイマー",
+        intro:  "HPが初期で低い代わりに、不屈の体を手に入れた。",
+        attack: "3秒ごとに赤・青・黄のペットがランダムで貯まる（最大8匹・初期3匹）。新しい個体から弾として消費。赤=15ダメージ+火傷、青=10ダメージ+スロー、黄=10ダメージ+壁貫通。ペットが多いほど移動が遅くなる（4匹で標準）。8匹の時は6秒ごとに召喚物ペットが1匹出る。",
+        skill:  "最新のペット3匹（3匹以上で使用可）を召喚物にして別々のルートで敵へ突撃させる。触れると5ダメージ。HP15で毎秒1減り、敵の弾で倒せる。クールタイム30秒。",
+        tips:   "頭上とHUDの色の並びで、貯蓄中のペットと次に撃つペット（右端・白枠）が分かる。遠距離の撃ち合いは苦手。召喚物を盾に近づこう。"
       },
       "怪獣王": {
         title:  "恐怖の対象",
@@ -2549,7 +2565,9 @@ function updateSafeZone() {
       "既視感のあるGAY": "至近距離で最大30ダメージ。ハートの衝撃波で敵をスタンさせる",
       "元素の魔女": "マナで撃つ炎・氷・雷。スキルで魔法を切り替え",
       "パイハークン": "大玉を撃ち、もう一度押すと24発に破裂。スキルで敵を吹き飛ばす",
-      "怪獣王": "近距離の薙ぎ払い。チャージして壁も貫く青白い熱線を放つ"
+      "怪獣王": "近距離の薙ぎ払い。チャージして壁も貫く青白い熱線を放つ",
+      "不死鳥": "HPが減るほど強く速くなる。一度だけ死なずに蘇る",
+      "ペット＆テイマー": "3色のペットを貯めて撃つ。スキルで3匹を突撃させる"
     };
 
     /* ---------- マップのテーマ ---------- */
@@ -3435,7 +3453,9 @@ const PROF={
 '既視感のあるGAY':{range:240,fire:200},
 '元素の魔女':{range:300,fire:720,strafe:2},
 'パイハークン':{range:200,fire:300},
-'怪獣王':{range:300,fire:100}};
+'怪獣王':{range:300,fire:100},
+'不死鳥':{range:200,fire:350},
+'ペット＆テイマー':{range:230,fire:300}};
 const ai=[{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]}];
 const rect=p=>({x:p.x,y:p.y,w:30,h:30});
 const trapped=p=>collidesWithObstacles(rect(p));
@@ -3478,10 +3498,11 @@ function think(i){
   if(stn){range=14;fire=110;chase=.22;expoW=0}              // スタン中は一気に詰めて近距離で通常を当てる
   else if(hst){range=40;fire=120;chase=.2;expoW=2}           // 加速中は接近を狙う
   else{range=240;fire=200;chase=.05;expoW=Math.max(expoW,7)}} // 通常時は牽制しつつ弾避け
+ if(nm==='不死鳥'){if(me.rv){expoW=Math.max(expoW,7);range=en.ammo<=0?55:250}else{expoW=0;range=120;chase=.12}} // 蘇生前は被弾覚悟で攻め、蘇生後は避けつつ隙に突っ込む
  if(enTrap&&!EP.pass&&!eTh)expoW=0;
  const hide=me.ammo<=0&&nm!=='聖なる使者'&&nm!=='ボマー';if(hide)expoW*=1.6;
  const cur=danger(me,mx,my,0,0);
- let pad=null;if(me.hp<=75)for(const p of pads)if(NOW()>=p.next&&(!pad||HY(p.x-mx,p.y-my)<HY(pad.x-mx,pad.y-my)))pad=p;
+ let pad=null;if(me.hp<=75&&!me.rv)for(const p of pads)if(NOW()>=p.next&&(!pad||HY(p.x-mx,p.y-my)<HY(pad.x-mx,pad.y-my)))pad=p;
  if(RND()<.04)A.side=-A.side;
  const eFire=en.charName==='ツインブラザーズ'?(en.mode==='S'?105:750):EP.fire;
  let best=-1e9,bd=[0,0];
@@ -3522,6 +3543,7 @@ function think(i){
   case'既視感のあるGAY':use=rdy&&d<430&&d>60;break;
   case'パイハークン':use=rdy&&d<120;break;
   case'怪獣王':if(me.kc){const h=NOW()-me.kc;use=h>=6800||(h>=2000&&d<95)}else use=rdy&&d>160;break;
+  case'ペット＆テイマー':use=rdy&&me.pets.length>=3&&(en.ammo<=0||d<230);break;
   case'元素の魔女':{const mn=me.mana||0,want=mn<60?0:d<220?1:mn>240?2:0;use=rdy&&(me.element|0)!==want;break}}
  if(use)useSkill(me);
  if(nm==='パイハークン'&&me.pieB&&bullets.indexOf(me.pieB)>=0){if(HY(me.pieB.x-ex,me.pieB.y-ey)<75)shootBullet(me,en);return}
@@ -4652,6 +4674,222 @@ function think(i){
         const t = now();
         if (s.kk) { fxK.length = 0; s.kk.forEach(a => fxK.push({ k: a[0], x: a[1], y: a[2], a: a[3], w: a[4], until: t + a[5] })); }
         if (s.kc) [player1, player2].forEach((p, i) => { p.kc = s.kc[i] >= 0 ? t - s.kc[i] : 0; });
+      };
+    })();
+  </script>
+  <script>
+    /* ver25：新キャラ「不死鳥」 */
+    (function () {
+      const PX = "不死鳥", now = () => Date.now(), isP = p => p && p.charName === PX, zones = [];
+      const foe = p => p === player1 ? player2 : player1;
+      const _cp = createPlayer;
+      createPlayer = function (x, y, c, n) {
+        const p = _cp(x, y, c, n);
+        if (n === PX) { p.hp = 70; p._ph = 70; p.maxAmmo = 3; p.ammo = 3; p.bulletRadius = 4; p.skillCooldown = Infinity; }
+        return p;
+      };
+      const dmgOf = h => h <= 1.001 ? 50 : 10 + 20 * (70 - h) / 68;   // HP70:10 / HP2:30 / HP1:50
+      const _sb = shootBullet;
+      shootBullet = function (s, t) {
+        if (!isP(s)) return _sb(s, t);
+        if (!gameActive || s.ammo <= 0 || (s.stunUntil || 0) > now()) return;
+        const dx = t.x - s.x, dy = t.y - s.y, m = Math.hypot(dx, dy) || 1, v = s.bulletSpeed;
+        bullets.push({ x: s.x + 15, y: s.y + 15, r: 4, vx: dx / m * v, vy: dy / m * v, from: s, damage: s.damage, lifeTime: 0, maxLifeTime: 65, ph: s.hp <= 1.001 ? 2 : 1, pl: (s.damage - 10) / 40, lx: s.x + 15, ly: s.y + 15 });
+        s.ammo--; s.lastReload = now();
+      };
+      const _up = update;
+      update = function () {
+        [player1, player2].forEach(p => { // HPに応じた能力
+          if (!isP(p)) return;
+          const r = Math.max(0, Math.min(1, (70 - Math.max(p.hp, 1)) / 69));
+          p.damage = dmgOf(p.hp); p.speed = 2.8 + 1.8 * r; p.bulletSpeed = 5.5 + 1.5 * r; p.reloadTime = 1200 + 1400 * r;
+        });
+        _up();
+        const t = now();
+        bullets.forEach(b => { if (b.ph === 2 && Math.hypot(b.x - b.lx, b.y - b.ly) >= 8) { zones.push({ x: b.x, y: b.y, o: b.from, u: t + 1000 }); b.lx = b.x; b.ly = b.y; } });
+        for (let i = zones.length - 1; i >= 0; i--) if (zones[i].u <= t) zones.splice(i, 1);
+        [player1, player2].forEach(p => { // 火傷
+          if (!p.burn) { for (const z of zones) if (z.o !== p && Math.hypot(p.x + 15 - z.x, p.y + 15 - z.y) < 26) { p.burn = { n: 3, nx: t + 800 }; break; } }
+          else if (t >= p.burn.nx) { p.hp -= 2; p.burn.nx += 800; if (--p.burn.n <= 0) p.burn = null; }
+        });
+        [player1, player2].forEach(p => {
+          if (!isP(p)) return;
+          if (p.hp <= 0 && !p.rv) { // 不屈：蘇生
+            p.rv = 1; p.hp = 1; p._ph = 1; p.shield = true; p.stunUntil = 0; p.hasteUntil = 0; p.burn = null;
+            const e = foe(p), cx = p.x + 15, cy = p.y + 15, dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
+            explosions.push({ x: cx, y: cy, r: 120, life: 15 });
+            if (d < 200) for (let k = 0; k < 30; k++) {
+              const nx = Math.max(0, Math.min(ARENA_W - 30, e.x + dx / d * 5)), ny = Math.max(0, Math.min(ARENA_H - 30, e.y + dy / d * 5));
+              if (collidesWithObstacles({ x: nx, y: ny, w: 30, h: 30 })) break;
+              e.x = nx; e.y = ny;
+            }
+            return;
+          }
+          if (p.hp > 70) p.hp = 70;
+          if (p.shield && p.hp < p._ph - .001) { p.hp = p._ph; p.shield = false; explosions.push({ x: p.x + 15, y: p.y + 15, r: 30, life: 8 }); }
+          p._ph = p.hp;
+        });
+      };
+      function flame(x, y, r, a, blue, b) {
+        const c = blue ? ["255,255,255", "120,200,255", "60,100,255"] : ["255,255,200", "255,150,40", "255,60,0"];
+        for (let i = 0; i <= (b ? 3 : 0); i++) {
+          const f = r * (1 - i * .22) * (.85 + Math.random() * .3) * 2, ox = b ? x - b.vx * i * .9 : x, oy = b ? y - b.vy * i * .9 : y - Math.random() * 3;
+          const g = ctx.createRadialGradient(ox, oy, 0, ox, oy, f);
+          g.addColorStop(0, `rgba(${c[0]},${a})`); g.addColorStop(.4, `rgba(${c[1]},${a * .8})`); g.addColorStop(1, `rgba(${c[2]},0)`);
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ox, oy, f, 0, 6.283); ctx.fill();
+        }
+      }
+      const _dr = draw;
+      draw = function () {
+        _dr();
+        try {
+          if (!ctx) return;
+          const t = now();
+          zones.forEach(z => flame(z.x, z.y, 9, Math.max(0, (z.u - t) / 1000), true));
+          bullets.forEach(b => { if (b.ph) flame(b.x, b.y, 5 + 9 * b.pl + (b.ph === 2 ? 4 : 0), 1, b.ph === 2, b); });
+          [player1, player2].forEach(p => {
+            if (p.burn) flame(p.x + 15, p.y, 8, 1, false);
+            if (isP(p) && p.shield) { ctx.save(); ctx.strokeStyle = "rgba(120,220,255,.9)"; ctx.lineWidth = 3; ctx.shadowColor = "#6cf"; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(p.x + 15, p.y + 15, 24, 0, 6.283); ctx.stroke(); ctx.restore(); }
+          });
+        } catch (e) { }
+      };
+    })();
+  </script>
+  <script>
+    /* ver26：新キャラ「ペット＆テイマー」 */
+    (function () {
+      const T = "ペット＆テイマー", now = () => Date.now(), isT = p => p && p.charName === T;
+      const COL = ["#ff4a4a", "#4aa8ff", "#ffd93a"], DMG = [15, 10, 10], mins = [];
+      const foe = p => p === player1 ? player2 : player1, rnd = () => Math.floor(Math.random() * 3);
+      const spawn = (p, t, r) => mins.push({ x: p.x + 5, y: p.y + 5, o: p, t, hp: 15, r, nx: now() + 1000 });
+      const _cp = createPlayer;
+      createPlayer = function (x, y, c, n) {
+        const p = _cp(x, y, c, n); mins.length = 0;
+        if (n === T) { p.maxAmmo = 8; p.pets = [rnd(), rnd(), rnd()]; p.ammo = 3; p.tt = now(); p.damage = 15; p.bulletSpeed = 8; p.reloadTime = 3000; p.skillCooldown = 30000; }
+        return p;
+      };
+      const _hr = handleReload;
+      handleReload = function (p) { // 3秒に1匹貯蓄／満タン時は6秒に1匹召喚
+        if (!isT(p)) return _hr(p);
+        const t = now(), n = p.pets.length;
+        if (t - p.tt >= (n < 8 ? 3000 : 6000)) { p.tt = t; if (n < 8) p.pets.push(rnd()); else spawn(p, rnd(), 0); }
+        p.ammo = p.pets.length;
+      };
+      const _sb = shootBullet;
+      shootBullet = function (s, t) { // 最新のペットから消費
+        if (!isT(s)) return _sb(s, t);
+        if (!gameActive || !s.pets.length || (s.stunUntil || 0) > now()) return;
+        const k = s.pets.pop(), dx = t.x - s.x, dy = t.y - s.y, m = Math.hypot(dx, dy) || 1;
+        bullets.push({ x: s.x + 15, y: s.y + 15, r: 4, vx: dx / m * 8, vy: dy / m * 8, from: s, damage: DMG[k], lifeTime: 0, maxLifeTime: 40, tp: k, bulletPassThroughObstacles: k === 2 });
+        s.ammo = s.pets.length;
+      };
+      const _us = useSkill;
+      useSkill = function (p) {
+        if (!isT(p)) return _us(p);
+        const t = now();
+        if ((p.stunUntil || 0) > t || p.pets.length < 3 || t - p.skillLastUsed < p.skillCooldown) return;
+        p.skillLastUsed = t;
+        for (let r = -1; r <= 1; r++) spawn(p, p.pets.pop(), r);
+        p.ammo = p.pets.length;
+      };
+      const _isr = isSkillReady;
+      isSkillReady = function (p, t) { return isT(p) ? p.pets.length >= 3 && _isr(p, t) : _isr(p, t); };
+      const _mp = movePlayer;
+      movePlayer = function (p, u, d, l, r) { // ペットが多いほど遅い（4匹で標準）／スロー
+        if (isT(p)) p.speed = 3 + (4 - p.pets.length) * .2;
+        if ((p.slowUntil || 0) > now()) { const b = p.speed; p.speed = b * .6; try { _mp(p, u, d, l, r); } finally { p.speed = b; } }
+        else _mp(p, u, d, l, r);
+      };
+      const _up = update;
+      update = function () {
+        const t = now(), tb = bullets.filter(b => b.tp !== undefined);
+        _up();
+        tb.forEach(b => { // 命中効果（赤:火傷 青:スロー）
+          if (bullets.includes(b)) return;
+          const e = foe(b.from);
+          if (e && circleHitRect(b, e)) { if (b.tp === 0 && !e.burn) e.burn = { n: 3, nx: t + 800 }; if (b.tp === 1) e.slowUntil = t + 2000; }
+        });
+        for (let i = mins.length - 1; i >= 0; i--) { // 召喚物ペット
+          const m = mins[i], e = foe(m.o);
+          if (t >= m.nx) { m.hp--; m.nx += 1000; }
+          for (let j = bullets.length - 1; j >= 0; j--) { const b = bullets[j]; if (b.from !== m.o && circleHitRect(b, { x: m.x, y: m.y, w: 20, h: 20 })) { m.hp -= b.damage; bullets.splice(j, 1); } }
+          if (m.hp <= 0) { mins.splice(i, 1); continue; }
+          const cx = m.x + 10, cy = m.y + 10, dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
+          if (d < 22) { e.hp -= 5; explosions.push({ x: cx, y: cy, r: 22, life: 8 }); mins.splice(i, 1); continue; }
+          const a = Math.atan2(dy, dx) + m.r * .9 * Math.min(1, d / 260), vx = Math.cos(a) * 3.6, vy = Math.sin(a) * 3.6;
+          [[vx, 0], [0, vy]].forEach(([ax, ay]) => { if (!collidesWithObstacles({ x: m.x + ax, y: m.y + ay, w: 20, h: 20 })) { m.x += ax; m.y += ay; } });
+        }
+        for (let i = turrets.length - 1; i >= 0; i--) { // タレット：HP80（自動減少なし）
+          const u = turrets[i]; if (u.hp === undefined) u.hp = 80;
+          for (let j = bullets.length - 1; j >= 0; j--) { const b = bullets[j]; if (b.from !== u.owner && circleHitRect(b, { x: u.x - 10, y: u.y - 10, w: 20, h: 20 })) { u.hp -= b.damage; bullets.splice(j, 1); } }
+          if (u.hp <= 0) turrets.splice(i, 1);
+        }
+      };
+      const dot = (x, y, r, k) => { ctx.fillStyle = COL[k]; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill(); };
+      const _dr = draw;
+      draw = function () {
+        _dr();
+        try {
+          if (!ctx) return;
+          bullets.forEach(b => { if (b.tp !== undefined) dot(b.x, b.y, b.r + 1, b.tp); });
+          turrets.forEach(u => { if (u.hp !== undefined) { ctx.fillStyle = "#000"; ctx.fillRect(u.x - 12, u.y - 18, 24, 3); ctx.fillStyle = "#4f4"; ctx.fillRect(u.x - 12, u.y - 18, 24 * Math.max(0, u.hp) / 80, 3); } });
+          mins.forEach(m => {
+            dot(m.x + 10, m.y + 10, 10, m.t);
+            ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = "#000"; ctx.fillRect(m.x, m.y - 6, 20, 3);
+            ctx.fillStyle = "#4f4"; ctx.fillRect(m.x, m.y - 6, 20 * Math.max(0, m.hp) / 15, 3);
+          });
+          [player1, player2].forEach(p => { // 頭上：貯蓄ペット（右端の白枠が次に消費）
+            if (!isT(p)) return;
+            const n = p.pets.length;
+            p.pets.forEach((k, i) => {
+              const x = p.x + 15 + (i - (n - 1) / 2) * 9, y = p.y - 8;
+              dot(x, y, i === n - 1 ? 4.5 : 3.5, k);
+              if (i === n - 1) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); }
+            });
+          });
+        } catch (e) { }
+      };
+      const _uh = updateHud;
+      updateHud = function () { // HUD：貯蓄ペットの色の並び（右端の白枠が次に消費）
+        _uh();
+        [player1, player2].forEach((p, k) => {
+          const pips = $("hudAmmo" + (k + 1)); if (!pips) return;
+          if (!isT(p)) { if (pips.dataset.pt) { delete pips.dataset.pt; hudState.mx[k] = -1; } return; }
+          const n = p.pets.length;
+          const h = Array.from({ length: 8 }, (_, i) => `<span style="display:inline-block;width:10px;height:10px;margin:0 1px;border-radius:50%;background:${i < n ? COL[p.pets[i]] : "rgba(255,255,255,.15)"};${i === n - 1 ? "box-shadow:0 0 0 2px #fff;transform:scale(1.25)" : ""}"></span>`).join("");
+          if (pips.dataset.pt !== h) { pips.dataset.pt = h; pips.className = "pips"; pips.innerHTML = h; }
+        });
+      };
+      const near = (s, t) => { // 最も近い敵プレイヤー／召喚物（ペット・タレット）を狙う
+        const e = foe(s); if (t !== e) return t;
+        const cx = s.x + 15, cy = s.y + 15; let best = t, bd = Math.hypot(e.x + 15 - cx, e.y + 15 - cy);
+        const chk = (x, y) => { const d = Math.hypot(x - cx, y - cy); if (d < bd) { bd = d; best = { x: x - 15, y: y - 15, w: 30, h: 30 }; } };
+        mins.forEach(m => { if (m.o !== s) chk(m.x + 10, m.y + 10); });
+        turrets.forEach(u => { if (u.owner !== s) chk(u.x, u.y); });
+        return best;
+      };
+      const _sb2 = shootBullet;
+      shootBullet = function (s, t) { return _sb2(s, near(s, t)); };
+      turretShoot = function (u) { // タレットも最も近い敵プレイヤー／召喚物ペットを撃つ
+        if (!gameActive) return;
+        const e = foe(u.owner); let tx = e.x + 15, ty = e.y + 15, bd = Math.hypot(tx - u.x, ty - u.y);
+        mins.forEach(m => { if (m.o === u.owner) return; const d = Math.hypot(m.x + 10 - u.x, m.y + 10 - u.y); if (d < bd) { bd = d; tx = m.x + 10; ty = m.y + 10; } });
+        const dx = tx - u.x, dy = ty - u.y, mag = Math.hypot(dx, dy) || 1;
+        bullets.push({ x: u.x, y: u.y, r: 5, vx: dx / mag * 6, vy: dy / mag * 6, from: u.owner, damage: 5, lifeTime: 0, maxLifeTime: 1000, hasReflected: false });
+      };
+      const _bs = buildSnap;
+      buildSnap = function () {
+        const s = _bs();
+        s.pt = [player1, player2].map(p => p.pets || null);
+        s.mn = mins.map(m => [Math.round(m.x), Math.round(m.y), m.t, m.hp, m.o === player1 ? 1 : 2]);
+        return s;
+      };
+      const _as = applySnap;
+      applySnap = function (s) {
+        _as(s);
+        if (s.pt) [player1, player2].forEach((p, i) => { if (s.pt[i]) { p.pets = s.pt[i]; p.ammo = p.pets.length; } });
+        if (s.mn) { mins.length = 0; s.mn.forEach(a => mins.push({ x: a[0], y: a[1], t: a[2], hp: a[3], o: a[4] === 1 ? player1 : player2 })); }
       };
     })();
   </script>
