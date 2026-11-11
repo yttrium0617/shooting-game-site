@@ -442,6 +442,7 @@
       <div class="logo-sub">1 VS 1 ARENA</div>
       <h1 class="logo">2D対戦<span>シューティング</span></h1>
       <div class="mode-sel" style="margin:-16px 0 20px"><span>プレイ方法</span><button id="modePC" onclick="setPlayMode('pc', true)">🖥 PC</button><button id="modeMobile" onclick="setPlayMode('mobile', true)">📱 モバイル</button></div>
+      <div class="accbar">👤 <b id="accName">ゲスト</b><button id="accBtn" onclick="Account_open()">ログイン</button><span id="accBadge"></span></div>
       <div class="menu-list">
         <button class="menu-btn" onclick="cpuMode=false;goToCharacterSelect()">
           <span class="mb-icon">⚔</span>
@@ -454,6 +455,10 @@
         <button class="menu-btn online" onclick="cpuMode=false;showOnlineMenu()">
           <span class="mb-icon">🌐</span>
           <span><b>オンライン対戦</b><small>ルームコードで離れた相手と対戦</small></span>
+        </button>
+        <button class="menu-btn" onclick="Account_open('friends')">
+          <span class="mb-icon">👥</span>
+          <span><b>フレンド</b><small>ログイン・フレンド登録・招待</small></span>
         </button>
         <button class="menu-btn codex" onclick="showCodex()">
           <span class="mb-icon">📖</span>
@@ -566,7 +571,7 @@
   <div id="onlineLobby" class="hidden select-screen">
     <div class="sel-head">
       <small>ONLINE</small><h2>LOBBY</h2>
-      <span class="vs-sum">ROOM <b class="room-code-sm" id="lobbyCode">----</b><button class="mini" onclick="copyRoomCode()">コピー</button></span>
+      <span class="vs-sum">ROOM <b class="room-code-sm" id="lobbyCode">----</b><button class="mini" onclick="copyRoomCode()">コピー</button><button class="mini" onclick="Account_open('friends')">👥 フレンドを招待</button></span>
     </div>
     <div class="cs-layout">
       <div class="cs-side p1" id="lobbyP1"></div>
@@ -1409,8 +1414,12 @@ if (shooter.charName === "ツインブラザーズ") {
 }
 
 
-      if (player.charName === "白い死神") {
-        player.nextShotBonusDamage = 50;
+      if (player.charName === "白い死神") {   // ver28：弾数を消費せず、強化弾（+50）をその場で発射
+        const en = player === player1 ? player2 : player1, tg = window.aimTarget ? window.aimTarget(player, en) : en;
+        const a0 = player.ammo, lr = player.lastReload;
+        player.nextShotBonusDamage = 50; player.ammo = Math.max(1, a0);
+        shootBullet(player, tg);
+        player.nextShotBonusDamage = 0; player.ammo = a0; player.lastReload = lr;
         return;
       }
       
@@ -1499,7 +1508,7 @@ if (shooter.charName === "ツインブラザーズ") {
       const wallW = 30, wallH = 30, distance = 50;
       const wallX = px + dirX * distance - wallW / 2;
       const wallY = py + dirY * distance - wallH / 2;
-      const newWall = { x: wallX, y: wallY, w: wallW, h: wallH };
+      const newWall = { x: wallX, y: wallY, w: wallW, h: wallH, aq: player };
       if (!collidesWithObstacles(newWall)) obstacles.push(newWall);
     }
 
@@ -1845,7 +1854,7 @@ function updateSafeZone() {
         title:  "一撃必殺の狙撃手",
         intro:  "音もなく現れ、一瞬で勝負を決める白き狙撃手。",
         attack: "超高速の弾を1発撃つ（20ダメージ）。弾数1発、リロード2秒。移動は遅め。",
-        skill:  "次の1発が大威力（+50ダメージ）になる。クールタイム30秒。",
+        skill:  "弾数を消費せず、大威力（+50ダメージ）の弾をその場で撃つ。クールタイム30秒。",
         tips:   "スキルを溜めて、確実に当てられる場面で撃とう。"
       },
       "怪盗レッド": {
@@ -2129,6 +2138,7 @@ function updateSafeZone() {
          ホスト = 1P(青)：ゲーム計算を実行し、状態を配信
          ゲスト = 2P(赤)：入力を送信し、受け取った状態を描画
        ============================================================ */
+    function myName() { return (window.Account && window.Account.name && window.Account.name()) || "ゲスト"; }
     const PEER_PREFIX = "tsg-battle-v14-";
     const onl = {
       peer: null, conn: null, isHost: false, code: "",
@@ -2188,7 +2198,8 @@ function updateSafeZone() {
       onl.conn = null; onl.peer = null;
       try { if (c) c.close(); } catch (e) {}
       try { if (p) p.destroy(); } catch (e) {}
-      onl.isHost = false; onl.oppChar = ""; onl.guestReady = false; onl.code = "";
+      onl.isHost = false; onl.oppChar = ""; onl.oppName = ""; onl.guestReady = false; onl.code = "";
+      try { if (window.Account && window.Account.dropInvites) window.Account.dropInvites(); } catch (e) {}
       onl.dirs = { u: false, d: false, l: false, r: false }; onl.lastDirsSent = "";
     }
 
@@ -2248,6 +2259,7 @@ function updateSafeZone() {
       onl.conn = conn;
       conn.on("open", () => {
         sendMsg({ t: "char", v: onl.myChar });
+        sendMsg({ t: "name", v: myName() });
         sendMsg({ t: "map", v: onl.map });
         updateLobby();
       });
@@ -2277,6 +2289,7 @@ function updateSafeZone() {
           onl.isHost = false; onl.code = code;
           onl.myChar = CHAR_NAMES[0]; onl.oppChar = ""; onl.guestReady = false;
           sendMsg({ t: "char", v: onl.myChar });
+          sendMsg({ t: "name", v: myName() });
           enterLobby();
         });
         conn.on("data", onMessage);
@@ -2326,6 +2339,7 @@ function updateSafeZone() {
       if (!m || !m.t) return;
       switch (m.t) {
         case "char":  onl.oppChar = m.v; updateLobby(); break;
+        case "name":  onl.oppName = String(m.v || "ゲスト").slice(0, 16); updateLobby(); break;
         case "map":   if (!onl.isHost) { onl.map = m.v; updateLobby(); } break;
         case "ready": if (onl.isHost) { onl.guestReady = !!m.v; updateLobby(); } break;
         case "start": if (!onl.isHost) beginMatch(m.p1, m.p2, m.map); break;
@@ -2551,7 +2565,7 @@ function updateSafeZone() {
 
     const CHAR_TAGS = {
       "スナイパー太郎": "高速の2連射。スキルで弾速が上がっていく",
-      "白い死神": "超高速の一撃。スキルで次の弾が大威力に",
+      "白い死神": "超高速の一撃。スキルで弾数消費なしの大威力弾を撃つ",
       "怪盗レッド": "俊足の撃ち手。自動で撃つタレットを設置",
       "ガジェットボット": "壁を貫通する弾。ランダムワープで回避",
       "アクアファイター": "10発の連射型。スキルで壁を作り出す",
@@ -3248,10 +3262,10 @@ function updateSafeZone() {
 
     function renderLobbySide(id, idx, name, isMe) {
       const el = $(id);
-      const tag = idx + "P ・ " + (idx === 1 ? "BLUE" : "RED") + (isMe ? "（あなた）" : "");
+      const tag = idx + "P ・ " + (idx === 1 ? "BLUE" : "RED") + (isMe ? "（あなた）" : "") + (isMe || name ? " ｜ " + (isMe ? myName() : (onl.oppName || "ゲスト")) : "");
       if (!name) {
         const wait = (onl.conn && onl.conn.open) ? "選択中…" : "対戦相手を待っています…";
-        el.innerHTML = `<div class="who">${tag}</div><div class="cs-portrait"><div class="cx-ph">?</div></div><div class="cs-name" style="font-size:15px">${wait}</div>`;
+        el.innerHTML = `<div class="who">${escapeHtml(tag)}</div><div class="cs-portrait"><div class="cx-ph">?</div></div><div class="cs-name" style="font-size:15px">${wait}</div>`;
         return;
       }
       renderSidePanel(id, idx, name);
@@ -3540,7 +3554,7 @@ function think(i){
  const hit=canHit(mx,my,en,5,pass,6);let use=false;
  switch(nm){
   case'スナイパー太郎':use=rdy&&d<900;break;
-  case'白い死神':use=rdy&&me.ammo>0&&hit&&d<900&&!me.nextShotBonusDamage;break;
+  case'白い死神':use=rdy&&hit&&d<900;break;
   case'サンダーマウス':use=rdy&&(myTrap||(cur>=10&&(bd[0]||bd[1])));break;
   case'ボマー':use=rdy&&me.hp>35&&d<280&&(en.ammo<=0||d<200||enTrap);break;
   case'ジョーカー':use=rdy&&me.hp>40;break;
@@ -3649,14 +3663,15 @@ function think(i){
       const GAY_RELOAD = 2400, GAY_AMMO = 2;    // リロード(ms)・マガジン
       const GAY_CD = 22000;                     // スキルのクールタイム(ms)
       const GAY_CD_PER_HP = 60;                 // 被ダメージ1につき短くなるクールタイム(ms)
-      const WAVE_SPEED = 8, WAVE_R = 18;        // ハート衝撃波の速さ・大きさ
-      const STUN_MS = 1000;                     // スタン時間
+      const WAVE_SPEED = 9.5, WAVE_R = 28;        // ハート衝撃波の速さ・大きさ
+      const STUN_MS = 1500;                     // スタン時間
       const HASTE_MS = 3000, HASTE_MUL = 1.6;   // スキル後の加速（時間・倍率）
       // 元素の魔女
       const MAGE_MAX = 300, MAGE_START = 150, MAGE_REGEN = 10;   // マナ上限・初期値・毎秒回復
       const EL = ["fire", "ice", "thunder"], EL_NAME = ["炎", "氷", "雷"];
       const EL_COST = [10, 25, 25];             // 消費マナ
       const EL_DMG = [20, 20, 15];              // ダメージ
+      const EL_SPD = [10, 7.5, 10];              // 弾速（炎・氷・雷。ver28は全属性6）
       const EL_DELAY = [700, 1100, 1300];       // 連射の間隔(ms)
       const EL_COL = ["#ff6a2a", "#6fdcff", "#ffe14d"], EL_COL2 = ["#ffd23f", "#e8fbff", "#ffffff"];
       const EL_RGB = ["255,106,42", "111,220,255", "255,225,77"];
@@ -3774,7 +3789,7 @@ function think(i){
         if (now < (p.nextCastAt || 0) || p.mana < EL_COST[e]) return;
         p.mana -= EL_COST[e]; p.nextCastAt = now + EL_DELAY[e]; p.ammo = 0; p.lastReload = now;
         const [ux, uy] = aim(p, t), cx = p.x + p.w / 2, cy = p.y + p.h / 2;
-        xb.push({ type: EL[e], x: cx, y: cy, vx: ux * p.bulletSpeed, vy: uy * p.bulletSpeed, r: 6, dmg: EL_DMG[e], damage: EL_DMG[e], own: p === player1 ? 1 : 2, from: p, age: 0 });
+        xb.push({ type: EL[e], x: cx, y: cy, vx: ux * EL_SPD[e], vy: uy * EL_SPD[e], r: 6, dmg: EL_DMG[e], damage: EL_DMG[e], own: p === player1 ? 1 : 2, from: p, age: 0 });
       }
 
       const _useSkill = useSkill;
@@ -4717,7 +4732,7 @@ function think(i){
         [player1, player2].forEach(p => { // HPに応じた能力
           if (!isP(p)) return;
           const r = Math.max(0, Math.min(1, (70 - Math.max(p.hp, 1)) / 69));
-          p.damage = dmgOf(p.hp); p.speed = 2.8 + 1.8 * r; p.bulletSpeed = 5.5 + 1.5 * r; p.reloadTime = 1200 + 1400 * r;
+          p.damage = dmgOf(p.hp); p.speed = 2.8 + 1.8 * r; p.bulletSpeed = 6.5 + 1.8 * r; p.reloadTime = 1200 + 1400 * r;
         });
         _up();
         const t = now();
@@ -4783,14 +4798,14 @@ function think(i){
       const _cp = createPlayer;
       createPlayer = function (x, y, c, n) {
         const p = _cp(x, y, c, n); mins.length = 0;
-        if (n === T) { p.maxAmmo = 8; p.pets = [rnd(), rnd(), rnd()]; p.ammo = 3; p.tt = now(); p.damage = 15; p.bulletSpeed = 8; p.reloadTime = 3000; p.skillCooldown = 30000; }
+        if (n === T) { p.maxAmmo = 8; p.pets = [rnd(), rnd(), rnd()]; p.ammo = 3; p.tt = now(); p.damage = 15; p.bulletSpeed = 8; p.reloadTime = 1500; p.skillCooldown = 15000; }
         return p;
       };
       const _hr = handleReload;
-      handleReload = function (p) { // 3秒に1匹貯蓄／満タン時は6秒に1匹召喚
+      handleReload = function (p) { // 1.5秒に1匹貯蓄／満タン時は4秒に1匹召喚
         if (!isT(p)) return _hr(p);
         const t = now(), n = p.pets.length;
-        if (t - p.tt >= (n < 8 ? 3000 : 6000)) { p.tt = t; if (n < 8) p.pets.push(rnd()); else spawn(p, rnd(), 0); }
+        if (t - p.tt >= (n < 8 ? 1500 : 4000)) { p.tt = t; if (n < 8) p.pets.push(rnd()); else spawn(p, rnd(), 0); }
         p.ammo = p.pets.length;
       };
       const _sb = shootBullet;
@@ -4798,7 +4813,7 @@ function think(i){
         if (!isT(s)) return _sb(s, t);
         if (!gameActive || !s.pets.length || (s.stunUntil || 0) > now()) return;
         const k = s.pets.pop(), dx = t.x - s.x, dy = t.y - s.y, m = Math.hypot(dx, dy) || 1;
-        bullets.push({ x: s.x + 15, y: s.y + 15, r: 4, vx: dx / m * 8, vy: dy / m * 8, from: s, damage: DMG[k], lifeTime: 0, maxLifeTime: 40, tp: k, bulletPassThroughObstacles: k === 2 });
+        bullets.push({ x: s.x + 15, y: s.y + 15, r: 7, vx: dx / m * 8, vy: dy / m * 8, from: s, damage: DMG[k], lifeTime: 0, maxLifeTime: 40, tp: k, bulletPassThroughObstacles: k === 2 });
         s.ammo = s.pets.length;
       };
       const _us = useSkill;
@@ -4814,7 +4829,7 @@ function think(i){
       isSkillReady = function (p, t) { return isT(p) ? p.pets.length >= 3 && _isr(p, t) : _isr(p, t); };
       const _mp = movePlayer;
       movePlayer = function (p, u, d, l, r) { // ペットが多いほど遅い（4匹で標準）／スロー
-        if (isT(p)) p.speed = 3 + (4 - p.pets.length) * .2;
+        if (isT(p)) { const k = 4 - p.pets.length; p.speed = 3 + k * (k < 0 ? .1 : .2); }   // 貯蓄が多い時の減速は半分
         if ((p.slowUntil || 0) > now()) { const b = p.speed; p.speed = b * .6; try { _mp(p, u, d, l, r); } finally { p.speed = b; } }
         else _mp(p, u, d, l, r);
       };
@@ -5046,6 +5061,301 @@ function think(i){
         if (s.mn) { mins.length = 0; s.mn.forEach(a => mins.push({ x: a[0], y: a[1], t: a[2], hp: a[3], o: a[4] === 1 ? player1 : player2 })); }
       };
     })();
+  
+    /* ver28：アクアファイターの壁で敵または自分が埋まった時だけ、次のスキルが使えるようになった時点で壁を撤去 */
+    (function () {
+      const _up = update;
+      update = function () {
+        _up();
+        const t = Date.now(), ov = (p, o) => p.x < o.x + o.w && p.x + p.w > o.x && p.y < o.y + o.h && p.y + p.h > o.y;
+        [player1, player2].forEach(a => {
+          if (!a || a.charName !== "アクアファイター" || t - a.skillLastUsed < a.skillCooldown) return;
+          const e = a === player1 ? player2 : player1;
+          for (let i = obstacles.length - 1; i >= 0; i--) { const o = obstacles[i]; if (o.aq === a && (ov(a, o) || ov(e, o))) obstacles.splice(i, 1); }
+        });
+      };
+    })();
+  </script>
+
+  <!-- ===== ver30：アカウント／フレンド／招待（Firebase） ===== -->
+  <style>
+    .accbar { display:flex; align-items:center; justify-content:center; gap:8px; margin:-8px 0 16px; font-size:14px; color:#dfe6ff; }
+    .accbar b { color:#fff; }
+    .accbar button { margin:0; padding:4px 12px; font-size:13px; }
+    #accBadge { display:none; background:#ff4a6a; color:#fff; border-radius:10px; padding:0 7px; font-size:12px; }
+    #accModal { position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.72); display:none; align-items:center; justify-content:center; padding:12px; }
+    #accModal.on { display:flex; }
+    #accPanel { background:#1b2038; color:#eef; width:100%; max-width:440px; max-height:92vh; overflow:auto; border-radius:14px; padding:16px 16px 20px; box-shadow:0 10px 40px #000a; font-size:14px; text-align:left; }
+    #accPanel h3 { margin:14px 0 6px; font-size:15px; color:#9fb4ff; }
+    #accPanel h2 { margin:0 0 6px; font-size:18px; }
+    #accPanel input[type=text], #accPanel input[type=email], #accPanel input[type=password] { width:100%; box-sizing:border-box; margin:4px 0; padding:9px; border-radius:8px; border:1px solid #445; background:#0f1426; color:#fff; font-size:15px; }
+    #accPanel button { margin:4px 4px 4px 0; padding:8px 12px; font-size:14px; }
+    #accPanel .row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid #2c3354; }
+    #accPanel .row span.n { flex:1; word-break:break-all; }
+    #accPanel .dim { color:#9aa3c7; font-size:12px; }
+    #accPanel .code { font-size:22px; letter-spacing:.18em; font-weight:bold; color:#fff; }
+    #accMsg { min-height:18px; margin:8px 0 0; color:#ffd36a; font-size:13px; }
+    #accClose { float:right; margin:0 !important; }
+    #inviteToast { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:9500; background:#243066; color:#fff; border:2px solid #7f9bff; border-radius:12px; padding:10px 14px; display:none; max-width:92vw; text-align:center; box-shadow:0 6px 24px #000a; }
+    #inviteToast button { margin:6px 4px 0; padding:6px 14px; }
+  </style>
+
+  <div id="accModal"><div id="accPanel"></div></div>
+  <div id="inviteToast"></div>
+
+  <script>
+    function Account_open(tab) {
+      if (window.Account) window.Account.open(tab);
+      else alert("ログイン機能を読み込めませんでした。通信状況を確認して、ページを再読み込みしてください。");
+    }
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAXg27T4ZNPS3KzdIfFQpPOBcJSHT4Vgtc",
+      authDomain: "dshooting-login.firebaseapp.com",
+      projectId: "dshooting-login",
+      storageBucket: "dshooting-login.firebasestorage.app",
+      messagingSenderId: "179617344446",
+      appId: "1:179617344446:web:7a302d677a72eefa35e7ef"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app); auth.languageCode = "ja";
+    const db = getFirestore(app);
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    let user = null, profile = null, state = "guest", friends = [], reqs = [], unsubs = [], sent = new Set(), curInv = null;
+    const myName = () => (profile && profile.name) || "ゲスト";
+    const inRoomAsHost = () => { try { return !!(onl && onl.code && onl.isHost); } catch (e) { return false; } };
+
+    const ERR = {
+      "auth/invalid-credential": "メールアドレスかパスワードが違います。",
+      "auth/wrong-password": "メールアドレスかパスワードが違います。",
+      "auth/user-not-found": "メールアドレスかパスワードが違います。",
+      "auth/email-already-in-use": "このメールアドレスはすでに登録されています。ログインしてください。",
+      "auth/weak-password": "パスワードは6文字以上にしてください。",
+      "auth/invalid-email": "メールアドレスの形式が正しくありません。",
+      "auth/too-many-requests": "試行回数が多すぎます。しばらく待ってからもう一度お試しください。",
+      "auth/network-request-failed": "通信に失敗しました。接続を確認してください。",
+      "auth/unauthorized-domain": "このサイトのドメインがFirebaseの承認済みドメインに登録されていません。",
+      "permission-denied": "権限がありません（Firestoreのルールを確認してください）。"
+    };
+    const errText = e => ERR[e.code] || ("エラー：" + (e.code || e.message));
+    const setMsg = t => { const m = $("accMsg"); if (m) m.textContent = t || ""; };
+
+    /* ---------- ヘッダーの表示 ---------- */
+    function setChip() {
+      const n = $("accName"), b = $("accBtn"), g = $("accBadge");
+      if (n) n.textContent = myName();
+      if (b) b.textContent = state === "user" ? "アカウント" : "ログイン";
+      if (g) { g.textContent = reqs.length; g.style.display = reqs.length ? "inline-block" : "none"; }
+    }
+
+    /* ---------- プロフィール（フレンドコード付き） ---------- */
+    const CH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const genCode = () => Array.from({ length: 6 }, () => CH[Math.floor(Math.random() * CH.length)]).join("");
+    async function ensureProfile(u) {
+      const ref = doc(db, "users", u.uid), snap = await getDoc(ref);
+      if (snap.exists()) return snap.data();
+      const name = String(u.displayName || (u.email || "").split("@")[0] || "プレイヤー").slice(0, 16);
+      for (let i = 0; i < 8; i++) {
+        const code = genCode(), cref = doc(db, "codes", code);
+        try {
+          await runTransaction(db, async tx => {
+            if ((await tx.get(cref)).exists()) throw new Error("dup");
+            tx.set(cref, { uid: u.uid });
+            tx.set(ref, { name, code, createdAt: Date.now() });
+          });
+          return { name, code, createdAt: Date.now() };
+        } catch (e) { if (e.message !== "dup") throw e; }
+      }
+      throw new Error("フレンドコードを作れませんでした");
+    }
+
+    /* ---------- ログイン状態の切り替え ---------- */
+    function detach() { unsubs.forEach(f => { try { f(); } catch (e) {} }); unsubs = []; }
+    async function handleUser(u) {
+      detach(); user = u; profile = null; friends = []; reqs = [];
+      if (!u) { state = "guest"; setChip(); build(); return; }
+      const pw = u.providerData.some(p => p.providerId === "password") && !u.providerData.some(p => p.providerId === "google.com");
+      if (pw && !u.emailVerified) { state = "verify"; setChip(); build(); return; }
+      state = "loading"; build();
+      try { profile = await ensureProfile(u); }
+      catch (e) { state = "error"; build(); setMsg("プロフィールの読み込みに失敗しました（" + (e.code || e.message) + "）"); return; }
+      state = "user"; setChip(); attach(); build();
+    }
+    onAuthStateChanged(auth, handleUser);
+
+    function attach() {
+      const uid = user.uid;
+      unsubs.push(onSnapshot(collection(db, "users", uid, "friends"), s => {
+        friends = s.docs.map(d => ({ uid: d.id, name: d.data().name || "?" })).sort((a, b) => a.name.localeCompare(b.name));
+        renderLists();
+      }, e => console.warn(e)));
+      unsubs.push(onSnapshot(query(collection(db, "friendRequests"), where("to", "==", uid)), s => {
+        reqs = s.docs.map(d => ({ id: d.id, ...d.data() })); setChip(); renderLists();
+      }, e => console.warn(e)));
+      unsubs.push(onSnapshot(query(collection(db, "invites"), where("to", "==", uid)), s => {
+        s.docChanges().forEach(ch => {
+          if (ch.type === "removed") { if (curInv && curInv.id === ch.doc.id) hideToast(); return; }
+          const d = ch.doc.data();
+          if (Date.now() - d.at > 180000) { deleteDoc(ch.doc.ref).catch(() => {}); return; }
+          showToast(ch.doc.id, d);
+        });
+      }, e => console.warn(e)));
+    }
+
+    /* ---------- 招待の通知 ---------- */
+    function showToast(id, d) {
+      curInv = { id, ...d };
+      const t = $("inviteToast");
+      t.innerHTML = "<div>🎮 <b>" + esc(d.fromName || "フレンド") + "</b> さんから対戦の招待が届きました</div><button id=\"invOk\">参加する</button><button id=\"invNo\">無視</button>";
+      t.style.display = "block";
+      $("invOk").onclick = () => joinInvite();
+      $("invNo").onclick = () => { deleteDoc(doc(db, "invites", id)).catch(() => {}); hideToast(); };
+    }
+    function hideToast() { curInv = null; $("inviteToast").style.display = "none"; }
+    function joinInvite() {
+      const inv = curInv; if (!inv) return;
+      deleteDoc(doc(db, "invites", inv.id)).catch(() => {});
+      hideToast(); closeModal();
+      try { cpuMode = false; } catch (e) {}
+      showOnlineMenu();
+      $("roomCodeInput").value = inv.code;
+      onlineJoinRoom();
+    }
+
+    /* ---------- モーダルUI ---------- */
+    function openModal() { $("accModal").classList.add("on"); build(); }
+    function closeModal() { $("accModal").classList.remove("on"); }
+    function head(t) { return '<button id="accClose" data-act="close">✕ 閉じる</button><h2>' + t + "</h2>"; }
+    function build() {
+      const p = $("accPanel"); if (!p) return;
+      if (state === "guest") {
+        p.innerHTML = head("👤 ログイン") +
+          '<div class="dim">ログインしなくても、今までどおり遊べます（名前は「ゲスト」）。ログインするとフレンド登録と招待が使えます。</div>' +
+          '<h3>Googleアカウント</h3><button data-act="google">Googleでログイン</button>' +
+          '<h3>メールアドレス</h3>' +
+          '<input type="text" id="accDisp" placeholder="表示名（新規登録時・16文字まで）" maxlength="16">' +
+          '<input type="email" id="accEmail" placeholder="メールアドレス" autocomplete="email">' +
+          '<input type="password" id="accPass" placeholder="パスワード（6文字以上）" autocomplete="current-password">' +
+          '<button data-act="login">ログイン</button><button data-act="signup">新規登録</button><button data-act="reset">パスワードを忘れた</button>' +
+          '<div id="accMsg"></div>';
+      } else if (state === "verify") {
+        p.innerHTML = head("✉ メールの確認") +
+          "<div>" + esc(user.email) + " に確認メールを送りました。メール内のリンクを開いたあと、下の「確認しました」を押してください。</div>" +
+          '<div class="dim">届かないときは迷惑メールフォルダも確認してください。</div>' +
+          '<button data-act="verified">確認しました</button><button data-act="resend">メールを再送</button><button data-act="logout">ログアウト</button><div id="accMsg"></div>';
+      } else if (state === "loading") {
+        p.innerHTML = head("👤 アカウント") + "<div>読み込み中…</div>";
+      } else if (state === "error") {
+        p.innerHTML = head("👤 アカウント") + '<div id="accMsg"></div><button data-act="logout">ログアウト</button>';
+      } else {
+        p.innerHTML = head("👤 " + esc(profile.name)) +
+          '<h3>表示名</h3><input type="text" id="accEditName" maxlength="16" value="' + esc(profile.name) + '"><button data-act="saveName">変更</button>' +
+          '<h3>あなたのフレンドコード</h3><div><span class="code">' + esc(profile.code) + '</span> <button data-act="copyCode">コピー</button></div>' +
+          '<div class="dim">このコードを友達に教えると、フレンド申請してもらえます。</div>' +
+          '<h3>フレンドを追加</h3><input type="text" id="accAddCode" maxlength="6" placeholder="相手のフレンドコード" style="text-transform:uppercase"><button data-act="addFriend">申請を送る</button>' +
+          '<div id="accReqsBox"></div><h3>フレンド</h3><div id="accFriends"></div>' +
+          '<div id="accMsg"></div><button data-act="logout" style="margin-top:14px">ログアウト</button>';
+        renderLists();
+      }
+    }
+    function renderLists() {
+      const rb = $("accReqsBox"), fb = $("accFriends");
+      if (rb) rb.innerHTML = reqs.length ? "<h3>届いている申請</h3>" + reqs.map(r => '<div class="row"><span class="n">' + esc(r.fromName || "?") + '</span><span><button data-act="accept" data-id="' + esc(r.id) + '">承認</button><button data-act="decline" data-id="' + esc(r.id) + '">拒否</button></span></div>').join("") : "";
+      if (fb) {
+        const host = inRoomAsHost();
+        fb.innerHTML = friends.length ? friends.map(f => '<div class="row"><span class="n">' + esc(f.name) + '</span><span>' + (host ? '<button data-act="inv" data-id="' + esc(f.uid) + '">招待</button>' : "") + '<button data-act="del" data-id="' + esc(f.uid) + '">削除</button></span></div>').join("") : '<div class="dim">まだフレンドがいません。</div>' +
+          "";
+        if (!host && friends.length) fb.insertAdjacentHTML("beforeend", '<div class="dim" style="margin-top:6px">招待するには、オンライン対戦で「ルームを作成」してロビーを開いてください。</div>');
+      }
+    }
+
+    /* ---------- 操作 ---------- */
+    async function act(a, el) {
+      try {
+        if (a === "close") return closeModal();
+        if (a === "google") {
+          const pr = new GoogleAuthProvider();
+          try { await signInWithPopup(auth, pr); }
+          catch (e) {
+            if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") await signInWithRedirect(auth, pr);
+            else if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") setMsg(errText(e));
+          }
+          return;
+        }
+        if (a === "login") { await signInWithEmailAndPassword(auth, $("accEmail").value.trim(), $("accPass").value); return; }
+        if (a === "signup") {
+          const c = await createUserWithEmailAndPassword(auth, $("accEmail").value.trim(), $("accPass").value);
+          const dn = ($("accDisp").value || "").trim().slice(0, 16);
+          if (dn) await updateProfile(c.user, { displayName: dn });
+          await sendEmailVerification(c.user);
+          return;
+        }
+        if (a === "reset") {
+          const m = $("accEmail").value.trim(); if (!m) return setMsg("メールアドレスを入力してください。");
+          await sendPasswordResetEmail(auth, m); return setMsg("パスワード再設定のメールを送りました。");
+        }
+        if (a === "resend") { await sendEmailVerification(auth.currentUser); return setMsg("確認メールを再送しました。"); }
+        if (a === "verified") {
+          await auth.currentUser.reload(); await auth.currentUser.getIdToken(true);
+          if (auth.currentUser.emailVerified) return handleUser(auth.currentUser);
+          return setMsg("まだ確認できていません。メールのリンクを開いてください。");
+        }
+        if (a === "logout") { await signOut(auth); return; }
+        if (a === "copyCode") { try { await navigator.clipboard.writeText(profile.code); setMsg("コピーしました。"); } catch (e) { setMsg("コード：" + profile.code); } return; }
+        if (a === "saveName") {
+          const n = ($("accEditName").value || "").trim().slice(0, 16); if (!n) return setMsg("名前を入力してください。");
+          await updateDoc(doc(db, "users", user.uid), { name: n });
+          const b = writeBatch(db); friends.forEach(f => b.update(doc(db, "users", f.uid, "friends", user.uid), { name: n }));
+          if (friends.length) await b.commit().catch(() => {});
+          profile.name = n; setChip(); build(); return setMsg("名前を変更しました。");
+        }
+        if (a === "addFriend") {
+          const code = ($("accAddCode").value || "").toUpperCase().trim(); if (code.length !== 6) return setMsg("6文字のフレンドコードを入力してください。");
+          const c = await getDoc(doc(db, "codes", code)); if (!c.exists()) return setMsg("そのコードは見つかりません。");
+          const to = c.data().uid; if (to === user.uid) return setMsg("自分自身には申請できません。");
+          if (friends.some(f => f.uid === to)) return setMsg("すでにフレンドです。");
+          await setDoc(doc(db, "friendRequests", user.uid + "_" + to), { from: user.uid, to, fromName: myName(), at: Date.now() });
+          $("accAddCode").value = ""; return setMsg("フレンド申請を送りました。");
+        }
+        if (a === "accept") {
+          const r = reqs.find(x => x.id === el.dataset.id); if (!r) return;
+          const b = writeBatch(db);
+          b.set(doc(db, "users", user.uid, "friends", r.from), { name: r.fromName || "?" });
+          b.set(doc(db, "users", r.from, "friends", user.uid), { name: myName() });
+          b.delete(doc(db, "friendRequests", r.id));
+          await b.commit(); return setMsg((r.fromName || "") + " さんとフレンドになりました。");
+        }
+        if (a === "decline") { await deleteDoc(doc(db, "friendRequests", el.dataset.id)); return; }
+        if (a === "del") {
+          const f = friends.find(x => x.uid === el.dataset.id); if (!f || !confirm(f.name + " さんをフレンドから削除しますか？")) return;
+          const b = writeBatch(db); b.delete(doc(db, "users", user.uid, "friends", f.uid)); b.delete(doc(db, "users", f.uid, "friends", user.uid)); await b.commit(); return;
+        }
+        if (a === "inv") {
+          if (!inRoomAsHost()) return setMsg("先にルームを作成してください。");
+          const id = user.uid + "_" + el.dataset.id;
+          await setDoc(doc(db, "invites", id), { from: user.uid, to: el.dataset.id, fromName: myName(), code: onl.code, mode: "1v1", slots: 2, at: Date.now() });
+          sent.add(id); return setMsg("招待を送りました。");
+        }
+      } catch (e) { console.warn(e); setMsg(errText(e)); }
+    }
+    $("accPanel").addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (b) act(b.dataset.act, b); });
+    $("accModal").addEventListener("click", e => { if (e.target.id === "accModal") closeModal(); });
+
+    window.Account = {
+      open(tab) { openModal(); },
+      name: myName,
+      loggedIn: () => state === "user",
+      dropInvites() { sent.forEach(id => deleteDoc(doc(db, "invites", id)).catch(() => {})); sent.clear(); }
+    };
+    setChip(); build();
   </script>
 </body>
 </html>
