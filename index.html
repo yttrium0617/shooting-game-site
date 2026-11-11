@@ -1950,7 +1950,7 @@ function updateSafeZone() {
       },
       "ペット＆テイマー": {
         title:  "雑なテイマー",
-        intro:  "数々の相棒と連携で敵を欺く。",
+        intro:  "HPが初期で低い代わりに、不屈の体を手に入れた。",
         attack: "3秒ごとに赤・青・黄のペットがランダムで貯まる（最大8匹・初期3匹）。新しい個体から弾として消費。赤=15ダメージ+火傷、青=10ダメージ+スロー、黄=10ダメージ+壁貫通。ペットが多いほど移動が遅くなる（4匹で標準）。8匹の時は6秒ごとに召喚物ペットが1匹出る。",
         skill:  "最新のペット3匹（3匹以上で使用可）を召喚物にして別々のルートで敵へ突撃させる。触れると5ダメージ。HP15で毎秒1減り、敵の弾で倒せる。クールタイム30秒。",
         tips:   "頭上とHUDの色の並びで、貯蓄中のペットと次に撃つペット（右端・白枠）が分かる。遠距離の撃ち合いは苦手。召喚物を盾に近づこう。"
@@ -5096,12 +5096,41 @@ function think(i){
     #accPanel .code { font-size:22px; letter-spacing:.18em; font-weight:bold; color:#fff; }
     #accMsg { min-height:18px; margin:8px 0 0; color:#ffd36a; font-size:13px; }
     #accClose { float:right; margin:0 !important; }
+
+    #fdDock { position:fixed; right:0; top:40%; z-index:8500; width:46px; height:66px; background:#2b3a8c; color:#fff; border-radius:14px 0 0 14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:22px; cursor:pointer; box-shadow:-3px 3px 14px #0008; user-select:none; }
+    #fdDock .bd { font-size:11px; border-radius:9px; padding:0 6px; line-height:16px; display:none; }
+    #fdOn { background:#2ecc71; color:#042; } #fdReq { background:#ff4a6a; color:#fff; }
+    #fdDrawer { position:fixed; top:0; right:0; bottom:0; width:min(340px,100vw); z-index:8600; background:#141a33; color:#eef; transform:translateX(105%); transition:transform .25s; box-shadow:-6px 0 28px #000b; display:flex; flex-direction:column; font-size:14px; text-align:left; }
+    #fdDrawer.on { transform:translateX(0); }
+    #fdIn { display:flex; flex-direction:column; height:100%; }
+    .fdHead { display:flex; align-items:center; gap:10px; padding:12px; background:#1e2750; }
+    .fdAv { width:42px; height:42px; border-radius:50%; background:#5b7cff; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:18px; flex:none; }
+    .fdHead .nm { font-weight:bold; font-size:16px; word-break:break-all; }
+    .fdHead .id { font-size:12px; color:#aab4e0; }
+    .fdHead button, .fdTabs button, #fdDrawer .sm { margin:0; padding:5px 10px; font-size:13px; }
+    .fdTabs { display:flex; gap:4px; padding:8px 8px 0; background:#1e2750; }
+    .fdTabs button { flex:1; border-radius:8px 8px 0 0; background:#2a3466; color:#cfd6ff; border:0; padding:8px 4px; }
+    .fdTabs button.on { background:#141a33; color:#fff; font-weight:bold; }
+    #fdBody { flex:1; overflow:auto; padding:10px 12px; }
+    #fdBody h4 { margin:10px 0 4px; font-size:12px; color:#8fa0e8; letter-spacing:.05em; }
+    .fdRow { display:flex; align-items:center; gap:9px; padding:7px 4px; border-bottom:1px solid #252d57; }
+    .fdRow.off { opacity:.55; }
+    .fdRow .dot { width:10px; height:10px; border-radius:50%; background:#667; flex:none; }
+    .fdRow.on .dot { background:#2ecc71; box-shadow:0 0 6px #2ecc71; }
+    .fdRow .nm { flex:1; word-break:break-all; }
+    .fdRow .sub { font-size:11px; color:#9aa3c7; display:block; }
+    #fdBody input { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #445; background:#0f1426; color:#fff; font-size:16px; text-transform:uppercase; letter-spacing:.2em; text-align:center; }
+    #fdBody .big { font-size:30px; letter-spacing:.22em; font-weight:bold; text-align:center; margin:8px 0; }
+    #fdMsg { padding:6px 12px 10px; min-height:18px; color:#ffd36a; font-size:13px; }
+    .fdEmpty { color:#9aa3c7; font-size:13px; padding:10px 2px; }
     #inviteToast { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:9500; background:#243066; color:#fff; border:2px solid #7f9bff; border-radius:12px; padding:10px 14px; display:none; max-width:92vw; text-align:center; box-shadow:0 6px 24px #000a; }
     #inviteToast button { margin:6px 4px 0; padding:6px 14px; }
   </style>
 
   <div id="accModal"><div id="accPanel"></div></div>
   <div id="inviteToast"></div>
+  <div id="fdDock" onclick="Account_open('friends')"><span>👥</span><span id="fdOn" class="bd"></span><span id="fdReq" class="bd"></span></div>
+  <div id="fdDrawer"><div id="fdIn"></div></div>
 
   <script>
     function Account_open(tab) {
@@ -5130,6 +5159,10 @@ function think(i){
     const $ = id => document.getElementById(id);
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     let user = null, profile = null, state = "guest", friends = [], reqs = [], unsubs = [], sent = new Set(), curInv = null;
+    let tab = "list", drawerOpen = false, hb = 0; const pres = new Map(), live = {};
+    const HB_MS = 180000, ONLINE_MS = 400000;   // 3分ごとに生存通知／6分半以内ならオンライン表示
+    const isOn = id => live[id] && Date.now() - (live[id].lastSeen || 0) < ONLINE_MS;
+    const ago = ms => { const m = Math.floor((Date.now() - ms) / 60000); return m < 60 ? Math.max(1, m) + "分前" : m < 1440 ? Math.floor(m / 60) + "時間前" : Math.floor(m / 1440) + "日前"; };
     const myName = () => (profile && profile.name) || "ゲスト";
     const inRoomAsHost = () => { try { return !!(onl && onl.code && onl.isHost); } catch (e) { return false; } };
 
@@ -5146,7 +5179,7 @@ function think(i){
       "permission-denied": "権限がありません（Firestoreのルールを確認してください）。"
     };
     const errText = e => ERR[e.code] || ("エラー：" + (e.code || e.message));
-    const setMsg = t => { const m = $("accMsg"); if (m) m.textContent = t || ""; };
+    const setMsg = t => { ["accMsg", "fdMsg"].forEach(i => { const m = $(i); if (m) m.textContent = t || ""; }); };
 
     /* ---------- ヘッダーの表示 ---------- */
     function setChip() {
@@ -5154,6 +5187,10 @@ function think(i){
       if (n) n.textContent = myName();
       if (b) b.textContent = state === "user" ? "アカウント" : "ログイン";
       if (g) { g.textContent = reqs.length; g.style.display = reqs.length ? "inline-block" : "none"; }
+      const on = friends.filter(f => isOn(f.uid)).length, o = $("fdOn"), r = $("fdReq"), tr = $("fdTabReq");
+      if (o) { o.textContent = on; o.style.display = on ? "block" : "none"; }
+      if (r) { r.textContent = reqs.length; r.style.display = reqs.length ? "block" : "none"; }
+      if (tr) tr.textContent = reqs.length ? "申請(" + reqs.length + ")" : "申請";
     }
 
     /* ---------- プロフィール（フレンドコード付き） ---------- */
@@ -5178,7 +5215,24 @@ function think(i){
     }
 
     /* ---------- ログイン状態の切り替え ---------- */
-    function detach() { unsubs.forEach(f => { try { f(); } catch (e) {} }); unsubs = []; }
+    function detach() {
+      unsubs.forEach(f => { try { f(); } catch (e) {} }); unsubs = [];
+      pres.forEach(f => { try { f(); } catch (e) {} }); pres.clear(); Object.keys(live).forEach(k => delete live[k]);
+      clearInterval(hb); closeDrawer();
+    }
+    /* ---------- オンライン表示（3分ごとの生存通知＋フレンドの状態を監視） ---------- */
+    async function beat() { if (state !== "user" || document.visibilityState !== "visible") return; try { await updateDoc(doc(db, "users", user.uid), { lastSeen: Date.now() }); } catch (e) {} }
+    function syncPres() {
+      const ids = new Set(friends.map(f => f.uid));
+      pres.forEach((u, id) => { if (!ids.has(id)) { u(); pres.delete(id); delete live[id]; } });
+      friends.slice(0, 50).forEach(f => {
+        if (pres.has(f.uid)) return;
+        pres.set(f.uid, onSnapshot(doc(db, "users", f.uid), s => { if (s.exists()) live[f.uid] = { name: s.data().name, lastSeen: s.data().lastSeen || 0 }; setChip(); renderDrawer(true); }, () => {}));
+      });
+    }
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") beat(); });
+    window.addEventListener("pagehide", () => { if (state === "user") updateDoc(doc(db, "users", user.uid), { lastSeen: 0 }).catch(() => {}); });
+    setInterval(() => { if (state === "user") { setChip(); renderDrawer(true); } }, 30000);
     async function handleUser(u) {
       detach(); user = u; profile = null; friends = []; reqs = [];
       if (!u) { state = "guest"; setChip(); build(); return; }
@@ -5187,7 +5241,8 @@ function think(i){
       state = "loading"; build();
       try { profile = await ensureProfile(u); }
       catch (e) { state = "error"; build(); setMsg("プロフィールの読み込みに失敗しました（" + (e.code || e.message) + "）"); return; }
-      state = "user"; setChip(); attach(); build();
+      state = "user"; setChip(); attach(); build(); hb = setInterval(beat, HB_MS); beat();
+      if ($("accModal").classList.contains("on")) { closeModal(); openDrawer(); }   // ログイン直後はフレンドパネルを開く
     }
     onAuthStateChanged(auth, handleUser);
 
@@ -5195,10 +5250,10 @@ function think(i){
       const uid = user.uid;
       unsubs.push(onSnapshot(collection(db, "users", uid, "friends"), s => {
         friends = s.docs.map(d => ({ uid: d.id, name: d.data().name || "?" })).sort((a, b) => a.name.localeCompare(b.name));
-        renderLists();
+        syncPres(); setChip(); renderDrawer(true);
       }, e => console.warn(e)));
       unsubs.push(onSnapshot(query(collection(db, "friendRequests"), where("to", "==", uid)), s => {
-        reqs = s.docs.map(d => ({ id: d.id, ...d.data() })); setChip(); renderLists();
+        reqs = s.docs.map(d => ({ id: d.id, ...d.data() })); setChip(); renderDrawer(true);
       }, e => console.warn(e)));
       unsubs.push(onSnapshot(query(collection(db, "invites"), where("to", "==", uid)), s => {
         s.docChanges().forEach(ch => {
@@ -5256,24 +5311,45 @@ function think(i){
       } else if (state === "error") {
         p.innerHTML = head("👤 アカウント") + '<div id="accMsg"></div><button data-act="logout">ログアウト</button>';
       } else {
-        p.innerHTML = head("👤 " + esc(profile.name)) +
+        p.innerHTML = head("⚙ アカウント設定") +
           '<h3>表示名</h3><input type="text" id="accEditName" maxlength="16" value="' + esc(profile.name) + '"><button data-act="saveName">変更</button>' +
-          '<h3>あなたのフレンドコード</h3><div><span class="code">' + esc(profile.code) + '</span> <button data-act="copyCode">コピー</button></div>' +
-          '<div class="dim">このコードを友達に教えると、フレンド申請してもらえます。</div>' +
-          '<h3>フレンドを追加</h3><input type="text" id="accAddCode" maxlength="6" placeholder="相手のフレンドコード" style="text-transform:uppercase"><button data-act="addFriend">申請を送る</button>' +
-          '<div id="accReqsBox"></div><h3>フレンド</h3><div id="accFriends"></div>' +
-          '<div id="accMsg"></div><button data-act="logout" style="margin-top:14px">ログアウト</button>';
-        renderLists();
+          '<h3>ログイン中</h3><div class="dim">' + esc(user.email || "Googleアカウント") + '</div>' +
+          '<div id="accMsg"></div><button data-act="friendsOpen" style="margin-top:10px">👥 フレンド画面を開く</button><button data-act="logout">ログアウト</button>';
       }
     }
-    function renderLists() {
-      const rb = $("accReqsBox"), fb = $("accFriends");
-      if (rb) rb.innerHTML = reqs.length ? "<h3>届いている申請</h3>" + reqs.map(r => '<div class="row"><span class="n">' + esc(r.fromName || "?") + '</span><span><button data-act="accept" data-id="' + esc(r.id) + '">承認</button><button data-act="decline" data-id="' + esc(r.id) + '">拒否</button></span></div>').join("") : "";
-      if (fb) {
-        const host = inRoomAsHost();
-        fb.innerHTML = friends.length ? friends.map(f => '<div class="row"><span class="n">' + esc(f.name) + '</span><span>' + (host ? '<button data-act="inv" data-id="' + esc(f.uid) + '">招待</button>' : "") + '<button data-act="del" data-id="' + esc(f.uid) + '">削除</button></span></div>').join("") : '<div class="dim">まだフレンドがいません。</div>' +
-          "";
-        if (!host && friends.length) fb.insertAdjacentHTML("beforeend", '<div class="dim" style="margin-top:6px">招待するには、オンライン対戦で「ルームを作成」してロビーを開いてください。</div>');
+
+    /* ---------- 右側のフレンドパネル ---------- */
+    function openDrawer() { drawerOpen = true; $("fdDrawer").classList.add("on"); tab = "list"; renderDrawer(false); }
+    function closeDrawer() { drawerOpen = false; $("fdDrawer").classList.remove("on"); }
+    function renderDrawer(soft) {
+      if (!drawerOpen || state !== "user") return;
+      if (soft) return renderBody();
+      const T = (k, t, id) => '<button data-act="tab" data-id="' + k + '" class="' + (tab === k ? "on" : "") + '"' + (id ? ' id="' + id + '"' : "") + ">" + t + "</button>";
+      $("fdIn").innerHTML =
+        '<div class="fdHead"><div class="fdAv">' + esc(profile.name.slice(0, 1)) + '</div><div style="flex:1;min-width:0"><div class="nm">' + esc(profile.name) + '</div><div class="id">ID：<b>' + esc(profile.code) + '</b></div></div>' +
+        '<button data-act="settings" title="設定">⚙</button><button data-act="drawerClose">✕</button></div>' +
+        '<div class="fdTabs">' + T("list", "フレンド") + T("req", reqs.length ? "申請(" + reqs.length + ")" : "申請", "fdTabReq") + T("add", "追加") + "</div>" +
+        '<div id="fdBody"></div><div id="fdMsg"></div>';
+      renderBody();
+    }
+    function renderBody() {
+      const bd = $("fdBody"); if (!bd) return;
+      if (tab === "list") {
+        const host = inRoomAsHost(), arr = friends.map(f => ({ ...f, name: (live[f.uid] && live[f.uid].name) || f.name, on: isOn(f.uid), seen: (live[f.uid] && live[f.uid].lastSeen) || 0 }));
+        const row = f => '<div class="fdRow ' + (f.on ? "on" : "off") + '"><span class="dot"></span><span class="nm">' + esc(f.name) + '<span class="sub">' + (f.on ? "オンライン" : f.seen ? "最終 " + ago(f.seen) : "オフライン") + "</span></span>" +
+          (f.on && host ? '<button class="sm" data-act="inv" data-id="' + esc(f.uid) + '">招待</button>' : "") + '<button class="sm" data-act="del" data-id="' + esc(f.uid) + '" title="削除">🗑</button></div>';
+        const on = arr.filter(f => f.on).sort((a, b) => a.name.localeCompare(b.name)), off = arr.filter(f => !f.on).sort((a, b) => b.seen - a.seen);
+        bd.innerHTML = !arr.length ? '<div class="fdEmpty">まだフレンドがいません。「追加」タブからフレンドコードで申請しましょう。</div>' :
+          "<h4>オンライン — " + on.length + "</h4>" + (on.length ? on.map(row).join("") : '<div class="fdEmpty">オンラインのフレンドはいません。</div>') +
+          "<h4>オフライン — " + off.length + "</h4>" + off.map(row).join("") +
+          (!host ? '<div class="fdEmpty" style="margin-top:8px">招待するには、オンライン対戦で「ルームを作成」してロビーを開いてください。</div>' : "");
+      } else if (tab === "req") {
+        bd.innerHTML = reqs.length ? reqs.map(r => '<div class="fdRow"><span class="nm">' + esc(r.fromName || "?") + '<span class="sub">フレンド申請</span></span><button class="sm" data-act="accept" data-id="' + esc(r.id) + '">承認</button><button class="sm" data-act="decline" data-id="' + esc(r.id) + '">拒否</button></div>').join("") : '<div class="fdEmpty">届いている申請はありません。</div>';
+      } else if (tab === "add" && !bd.dataset.built) {
+        bd.dataset.built = "1";
+        bd.innerHTML = '<h4>あなたのフレンドコード</h4><div class="big">' + esc(profile.code) + '</div><div style="text-align:center"><button class="sm" data-act="copyCode">コピー</button></div>' +
+          '<div class="fdEmpty" style="text-align:center">このコードを友達に教えて、申請してもらいましょう。</div>' +
+          '<h4>フレンドを追加</h4><input type="text" id="fdAddCode" maxlength="6" placeholder="相手のコード"><div style="text-align:center;margin-top:8px"><button data-act="addFriend">申請を送る</button></div>';
       }
     }
 
@@ -5281,6 +5357,10 @@ function think(i){
     async function act(a, el) {
       try {
         if (a === "close") return closeModal();
+        if (a === "tab") { tab = el.dataset.id; return renderDrawer(false); }
+        if (a === "drawerClose") return closeDrawer();
+        if (a === "settings") { openModal(); return; }
+        if (a === "friendsOpen") { closeModal(); return openDrawer(); }
         if (a === "google") {
           const pr = new GoogleAuthProvider();
           try { await signInWithPopup(auth, pr); }
@@ -5308,22 +5388,22 @@ function think(i){
           if (auth.currentUser.emailVerified) return handleUser(auth.currentUser);
           return setMsg("まだ確認できていません。メールのリンクを開いてください。");
         }
-        if (a === "logout") { await signOut(auth); return; }
+        if (a === "logout") { try { if (state === "user") await updateDoc(doc(db, "users", user.uid), { lastSeen: 0 }); } catch (e) {} closeModal(); await signOut(auth); return; }
         if (a === "copyCode") { try { await navigator.clipboard.writeText(profile.code); setMsg("コピーしました。"); } catch (e) { setMsg("コード：" + profile.code); } return; }
         if (a === "saveName") {
           const n = ($("accEditName").value || "").trim().slice(0, 16); if (!n) return setMsg("名前を入力してください。");
           await updateDoc(doc(db, "users", user.uid), { name: n });
           const b = writeBatch(db); friends.forEach(f => b.update(doc(db, "users", f.uid, "friends", user.uid), { name: n }));
           if (friends.length) await b.commit().catch(() => {});
-          profile.name = n; setChip(); build(); return setMsg("名前を変更しました。");
+          profile.name = n; setChip(); build(); renderDrawer(false); return setMsg("名前を変更しました。");
         }
         if (a === "addFriend") {
-          const code = ($("accAddCode").value || "").toUpperCase().trim(); if (code.length !== 6) return setMsg("6文字のフレンドコードを入力してください。");
+          const code = ($("fdAddCode").value || "").toUpperCase().trim(); if (code.length !== 6) return setMsg("6文字のフレンドコードを入力してください。");
           const c = await getDoc(doc(db, "codes", code)); if (!c.exists()) return setMsg("そのコードは見つかりません。");
           const to = c.data().uid; if (to === user.uid) return setMsg("自分自身には申請できません。");
           if (friends.some(f => f.uid === to)) return setMsg("すでにフレンドです。");
           await setDoc(doc(db, "friendRequests", user.uid + "_" + to), { from: user.uid, to, fromName: myName(), at: Date.now() });
-          $("accAddCode").value = ""; return setMsg("フレンド申請を送りました。");
+          $("fdAddCode").value = ""; return setMsg("フレンド申請を送りました。");
         }
         if (a === "accept") {
           const r = reqs.find(x => x.id === el.dataset.id); if (!r) return;
@@ -5347,10 +5427,15 @@ function think(i){
       } catch (e) { console.warn(e); setMsg(errText(e)); }
     }
     $("accPanel").addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (b) act(b.dataset.act, b); });
+    $("fdDrawer").addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (b) act(b.dataset.act, b); });
+    setInterval(() => { // 対戦中は非表示にして、パネルも閉じる
+      const gs = document.getElementById("gameScreen"), playing = gs && !gs.classList.contains("hidden");
+      $("fdDock").style.display = playing ? "none" : "flex"; if (playing && drawerOpen) closeDrawer();
+    }, 300);
     $("accModal").addEventListener("click", e => { if (e.target.id === "accModal") closeModal(); });
 
     window.Account = {
-      open(tab) { openModal(); },
+      open(t) { if (t === "friends" && state === "user") { drawerOpen ? closeDrawer() : openDrawer(); } else openModal(); },
       name: myName,
       loggedIn: () => state === "user",
       dropInvites() { sent.forEach(id => deleteDoc(doc(db, "invites", id)).catch(() => {})); sent.clear(); }
