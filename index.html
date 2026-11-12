@@ -774,7 +774,7 @@ lastPoisonTick = Date.now();
 
       }else if (charName === "ジョーカー") {
   params.reloadTime = 1600;       // リロード速度
-  params.damage = 15;             // 1発のダメージ
+  params.damage = 8;             // 1発のダメージ
   params.maxAmmo = 3;             // 最大弾数
   params.bulletsPerShot = 3;      // 一度に3発拡散
   params.bulletSpeed = 6;         // 弾速
@@ -3488,6 +3488,16 @@ function danger(me,px,py,vx,vy){let d=0;for(const b of bullets.concat(window.X21
  const rx=px-b.x,ry=py-b.y,tc=Math.max(0,Math.min(40,(rx*b.vx+ry*b.vy)/v2)),
  qx=px+vx*Math.min(tc,12),qy=py+vy*Math.min(tc,12);
  if(HY(qx-(b.x+b.vx*tc),qy-(b.y+b.vy*tc))<b.r+17)d+=(b.damage||10)*(1.4-tc/40)}return d}
+// ---- ver31_1：ブロック（遮蔽物）を使う戦術のヘルパー ----
+function pickBlock(rx,ry,lim){let best=null,bd=1e9;for(const o of obstacles){if(o.mir)continue;const d=HY(o.x+o.w/2-rx,o.y+o.h/2-ry);if(d<bd){bd=d;best=o}}return bd<lim?best:null}
+function shadowPt(o,e,off){const cx=o.x+o.w/2,cy=o.y+o.h/2,dx=cx-(e.x+15),dy=cy-(e.y+15),m=HY(dx,dy)||1,ux=dx/m,uy=dy/m,hw=o.w/2+off,hh=o.h/2+off;
+ const t=Math.min(Math.abs(ux)>1e-3?hw/Math.abs(ux):1e9,Math.abs(uy)>1e-3?hh/Math.abs(uy):1e9);return[cx+ux*t,cy+uy*t]}
+function touchObs(p,m){for(const o of obstacles){if(o.mir)continue;if(p.x<o.x+o.w+m&&p.x+30>o.x-m&&p.y<o.y+o.h+m&&p.y+30>o.y-m)return o}return null}
+function firstObs(ax,ay,t,r){const tx=t.x+15,ty=t.y+15,n=Math.max(1,Math.ceil(HY(tx-ax,ty-ay)/6)),dx=(tx-ax)/n,dy=(ty-ay)/n,L=obstacles.length;
+ for(let k=1;k<=n;k++){const x=ax+dx*k,y=ay+dy*k;if(Math.abs(x-tx)<15+r&&Math.abs(y-ty)<15+r)return null;
+  for(let j=0;j<L;j++){const o=obstacles[j];if(x>o.x-r&&x<o.x+o.w+r&&y>o.y-r&&y<o.y+o.h+r)return o}}return null}
+// 雷：直撃するか、敵が触れているブロックに当たる（壁を伝って命中）ならOK
+function thunderOK(ax,ay,en){const o=firstObs(ax,ay,en,6);return!o||(!o.mir&&en.x<o.x+o.w+8&&en.x+30>o.x-8&&en.y<o.y+o.h+8&&en.y+30>o.y-8)}
 function think(i){
  const me=i?player2:player1,en=i?player1:player2,K=SIDE[i],A=ai[i],nm=me.charName,P=PROF[nm],EP=PROF[en.charName];
  const mx=me.x+15,my=me.y+15,ex=en.x+15,ey=en.y+15,d=HY(ex-mx,ey-my)||1,ux=(ex-mx)/d,uy=(ey-my)/d;
@@ -3496,13 +3506,14 @@ function think(i){
  const rdy=NOW()-me.skillLastUsed>=me.skillCooldown,myTrap=trapped(me),enTrap=trapped(en),eTh=threatR(en);
  const hpLow=me.hp<45,lead=me.hp-en.hp,pass=!!P.pass;
  let range=P.range,fire=P.fire,chase=P.chase||.04,expoW=pass?8:5;
+ let sh=null,shW=0,petKeep=0,hold=false,hug=null,thOK=false,mageWant=0;
  // --- キャラ別の戦略 ---
  if(nm==='ツインブラザーズ'){range=twin?75:300;fire=twin?105:750;if(twin)chase=.1}
  if(nm==='ボマー'){fire=me.bulletRadius-6;
   // 待ち伏せ型：遮蔽に隠れ、敵の弾切れ・強化中・終盤だけ突っ込む
   if(me.isChargedCreeper||en.ammo<=0||enTrap||en.hp<35||el>42){range=15;chase=.15;expoW=1}else{range=190;chase=.02;expoW=10}}
  if(nm==='アクアファイター'){
-  if(enTrap){range=220;chase=.05}            // 埋めた後は、壁の死角から安全に削る
+  if(enTrap){const rem=me.skillCooldown-(NOW()-me.skillLastUsed);if(rem<1600){range=48;chase=.2;expoW=0}else{range=220;chase=.05}}   // 壁の撤去直前は張り付いて埋め直す／それ以外は死角から削る
   else if(rdy){range=45;chase=.17;expoW=2}   // スキルが使えるなら埋めにいく
   else{range=270;chase=.04}}                 // 待機中は距離を取って射撃
  if(nm!=='ボマー'&&nm!=='アクアファイター'){
@@ -3515,6 +3526,25 @@ function think(i){
   else if(hst){range=40;fire=120;chase=.2;expoW=2}           // 加速中は接近を狙う
   else{range=240;fire=200;chase=.05;expoW=Math.max(expoW,7)}} // 通常時は牽制しつつ弾避け
  if(nm==='不死鳥'){if(me.rv){expoW=Math.max(expoW,7);range=en.ammo<=0?55:250}else{expoW=0;range=120;chase=.12}} // 蘇生前は被弾覚悟で攻め、蘇生後は避けつつ隙に突っ込む
+ // ===== ver31_1：キャラ別の戦い方 =====
+ if(nm==='怪獣王'){   // 中央ブロックを盾に弾を避けて時間を稼ぎ、接近されたら薙ぎ払って離れる
+  const blk=pickBlock(400,200,130);fire=101;
+  if(blk){sh=shadowPt(blk,en,24);shW=.3;expoW=12;range=260;chase=.015}else{range=300;chase=.04;expoW=9}
+  if(me.kc){expoW=0;shW=0}}
+ if(nm==='ペット＆テイマー'){   // ペットを囮にエイムを逸らす／敵の弾切れで攻める／無理なら遮蔽で貯蓄
+  const mins=window.TAMER_MINS||[],mine=mins.filter(m=>m.o===me),store=me.pets?me.pets.length:me.ammo;
+  let dp=1e9;for(const m of mine){const q=HY(m.x+10-ex,m.y+10-ey);if(q<dp)dp=q}
+  const emptyEn=en.ammo<=0||(en.maxAmmo>1&&en.ammo<=1);
+  if(mine.length){range=Math.max(150,Math.min(330,dp+70));chase=.09;petKeep=dp+38;expoW=Math.max(expoW,6);hold=false}
+  else if(emptyEn&&store>=2){range=170;chase=.1;expoW=2}
+  else{const blk=pickBlock(400,200,130)||pickBlock(mx,my,160);
+   if(blk){sh=shadowPt(blk,en,24);shW=.12;expoW=13;range=330;chase=.01}else{range=330;chase=.04;expoW=10}
+   hold=false}}
+ if(nm==='元素の魔女'){   // 張り付き敵には雷、接近してくる敵には氷、それ以外は炎
+  hug=touchObs(en,9);thOK=!!hug&&thunderOK(mx,my,en);
+  const closing=(A.ev[0]*(mx-ex)+A.ev[1]*(my-ey))/d,appr=d<260&&(closing>.5||d<150),mn=me.mana||0;
+  mageWant=mn<25?0:thOK?2:appr?1:0;
+  if(mageWant===1&&d<200){range=Math.max(range,270);chase=.08}}
  // ver28：エイムは人間と同じ（一番近い敵／ペット／タレット）。ダメージを気にしないキャラは、エイムが本体に向くまで詰める
  const ignoreDmg=nm==='ボマー'||(nm==='不死鳥'&&!me.rv)||(nm==='ツインブラザーズ'&&twin)||(nm==='既視感のあるGAY'&&((en.stunUntil||0)>NOW()||(me.hasteUntil||0)>NOW()));
  let pt=null,pd=1e9;
@@ -3538,6 +3568,10 @@ function think(i){
    if(ignoreDmg){if(nd>=npd)s-=(nd-npd)*.08+2}            // ペットより敵本体が近い位置まで詰めて、エイムを本体に向ける
    else if(npd<110)s-=(110-npd)*.5}                       // 迫るペットから距離を取りつつ撃つ
   s-=Math.abs(nd-range)*chase;
+  if(sh)s-=HY(cx-sh[0],cy-sh[1])*shW;                           // 遮蔽の死角へ回り込む
+  if(petKeep&&nd<petKeep)s-=(petKeep-nd)*.7;                    // ペットより敵に近づかない（エイムをペットに向けさせる）
+  if(nm==='怪獣王'&&me.ammo<=0&&nd<125)s-=(125-nd)*.5;          // 薙ぎ払い後は離れる
+  if(nm==='元素の魔女'&&hug)s+=thunderOK(cx,cy,en)?6:-2;        // 雷が壁を伝う位置取り
   if(eTh&&nd<eTh)s-=(eTh-nd)*.7;                       // 自爆・罠・散弾の間合いに入らない
   if(el>16)s-=Math.max(0,HY(cx-400,cy-200)-(zr-70))*.35;
   if(expoW&&en.ammo>0&&nd<eFire&&canHit(ex,ey,{x:cx-15,y:cy-15},5,EP.pass,8))s-=expoW; // 撃たれる位置を避ける
@@ -3566,11 +3600,13 @@ function think(i){
   case'聖なる使者':use=me.skillCharge>=30&&me.hp<=80;break;
   case'既視感のあるGAY':use=rdy&&d<430&&d>60;break;
   case'パイハークン':use=rdy&&d<120;break;
-  case'怪獣王':if(me.kc){const h=NOW()-me.kc;use=h>=6800||(h>=2000&&d<95)}else use=rdy&&d>160;break;
-  case'ペット＆テイマー':use=rdy&&me.pets.length>=3&&(en.ammo<=0||d<230);break;
-  case'元素の魔女':{const mn=me.mana||0,want=mn<60?0:d<220?1:mn>240?2:0;use=rdy&&(me.element|0)!==want;break}}
+  case'怪獣王':if(me.kc){use=NOW()-me.kc>=2000}else{const hid=!canHit(ex,ey,me,5,EP.pass,8);use=rdy&&d>=130&&cur<1&&(hid||en.ammo<=0)}break;   // 隠れて溜め、最小チャージ(2秒)で即発射
+  case'ペット＆テイマー':use=rdy&&me.pets.length>=3&&(me.pets.length>=8||(me.pets.length>=5&&d<340)||(hpLow&&d<260));break;
+  case'元素の魔女':use=rdy&&(me.element|0)!==mageWant;break;}
  if(use)useSkill(me);
  if(nm==='パイハークン'&&me.pieB&&bullets.indexOf(me.pieB)>=0){if(HY(me.pieB.x-ex,me.pieB.y-ey)<75)shootBullet(me,en);return}
+ if(nm==='怪獣王'){if(!me.kc&&me.ammo>0&&d<=100&&fr>=A.nf){shootBullet(me,en);A.nf=fr+6}return}
+ if(nm==='元素の魔女'&&(me.element|0)===2&&thOK&&me.ammo>0&&fr>=A.nf&&d<fire){shootBullet(me,en);A.nf=fr+GM+Math.floor(RND()*GR);return}
  // ---- 射撃（敵の横移動を見て、当たるタイミングで撃つ）----
  const bs=Math.max(1,me.bulletSpeed*(me.bulletSpeedBoost||1)),lat=Math.abs(A.ev[0]*-uy+A.ev[1]*ux)*d/bs,tol=(P.tol||0)+(me.ammo>=me.maxAmmo?34:14);
  const inWall=!pass&&obstacles.some(o=>circleHitRect({x:mx,y:my,r:5},o));
@@ -3579,7 +3615,7 @@ function think(i){
   const a0=me.ammo;shootBullet(me,at);
   if(me.ammo<a0){A.nf=fr+(P.gm!==undefined?P.gm:GM)+Math.floor(RND()*(P.gr!==undefined?P.gr:GR))}
   return}
- if(me.ammo>0&&fr>=A.nf&&d<fire&&!inWall&&(nm==='ボマー'||(lat<tol&&(pass||canHit(mx,my,en,5,0,6))))){
+ if(!hold&&me.ammo>0&&fr>=A.nf&&d<fire&&!inWall&&(nm==='ボマー'||(lat<tol&&(pass||canHit(mx,my,en,5,0,6))))){
   const a0=me.ammo;shootBullet(me,en);if(me.ammo<a0){A.nf=fr+(P.gm!==undefined?P.gm:GM)+Math.floor(RND()*(P.gr!==undefined?P.gr:GR))}}
 }
  function pre(i){const me=i?player2:player1,en=i?player1:player2;
