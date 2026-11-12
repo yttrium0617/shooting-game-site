@@ -1537,6 +1537,11 @@ if (shooter.charName === "ツインブラザーズ") {
       movePlayer(player1,"w","s","a","d");
       movePlayer(player2,"ArrowUp","ArrowDown","ArrowLeft","ArrowRight");
       updateBullets();
+      // 画面外・異常値（NaN）・長寿命の弾を確実に消す（処理が溜まらないようにする保険）
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        if (!(b.x > -60 && b.x < canvas.width + 60 && b.y > -60 && b.y < canvas.height + 60) || b.lifeTime > 6000) bullets.splice(i, 1);
+      }
       updateTurrets();
       handleReload(player1);
       handleReload(player2);
@@ -2963,8 +2968,11 @@ function updateSafeZone() {
         ctx.save();
         ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(safeZone.x, safeZone.y, Math.max(0, safeZone.radius), 0, TAU);
         ctx.fillStyle = "rgba(190,20,50,.32)"; ctx.fill("evenodd");
-        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(120,255,170,.95)"; ctx.shadowColor = "#4dff9a"; ctx.shadowBlur = 14;
         ctx.setLineDash([14, 8]); ctx.lineDashOffset = -t * 20;
+        // 光彩は shadowBlur（重い）をやめて、太い半透明線で代用
+        ctx.lineWidth = 9; ctx.strokeStyle = "rgba(77,255,154,.22)";
+        ctx.beginPath(); ctx.arc(safeZone.x, safeZone.y, Math.max(0, safeZone.radius), 0, TAU); ctx.stroke();
+        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(120,255,170,.95)";
         ctx.beginPath(); ctx.arc(safeZone.x, safeZone.y, Math.max(0, safeZone.radius), 0, TAU); ctx.stroke();
         ctx.restore();
       }
