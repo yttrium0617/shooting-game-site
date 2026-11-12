@@ -3693,13 +3693,13 @@ function think(i){
       // 既視感のあるGAY
       const GAY_RANGE = 267;                    // 射程＝マップ縦(400)の約2/3
       const GAY_NEAR = 40;                      // この距離までは最大ダメージ
-      const GAY_R0 = 12, GAY_R1 = 3;            // 弾の大きさ：最初→最後
+      const GAY_R0 = 25, GAY_R1 = 10;            // 弾の大きさ：最初→最後
       const GAY_D0 = 30, GAY_D1 = 15;           // ダメージ：至近距離→射程の端
-      const GAY_BULLET_SPEED = 7;               // 弾の速さ（少し早め。標準は6）
-      const GAY_RELOAD = 2400, GAY_AMMO = 2;    // リロード(ms)・マガジン
+      const GAY_BULLET_SPEED = 8;               // 弾の速さ（少し早め。標準は6）
+      const GAY_RELOAD = 1500, GAY_AMMO = 2;    // リロード(ms)・マガジン
       const GAY_CD = 22000;                     // スキルのクールタイム(ms)
-      const GAY_CD_PER_HP = 60;                 // 被ダメージ1につき短くなるクールタイム(ms)
-      const WAVE_SPEED = 9.5, WAVE_R = 28;        // ハート衝撃波の速さ・大きさ
+      const GAY_CD_PER_HP = 100;                 // 被ダメージ1につき短くなるクールタイム(ms)
+      const WAVE_SPEED = 9.5, WAVE_R = 40;        // ハート衝撃波の速さ・大きさ
       const STUN_MS = 1500;                     // スタン時間
       const HASTE_MS = 3000, HASTE_MUL = 1.6;   // スキル後の加速（時間・倍率）
       // 元素の魔女
@@ -3707,11 +3707,11 @@ function think(i){
       const EL = ["fire", "ice", "thunder"], EL_NAME = ["炎", "氷", "雷"];
       const EL_COST = [10, 25, 25];             // 消費マナ
       const EL_DMG = [20, 20, 15];              // ダメージ
-      const EL_SPD = [10, 7.5, 10];              // 弾速（炎・氷・雷。ver28は全属性6）
+      const EL_SPD = [11, 7.5, 10];              // 弾速（炎・氷・雷。ver28は全属性6）
       const EL_DELAY = [700, 1100, 1300];       // 連射の間隔(ms)
       const EL_COL = ["#ff6a2a", "#6fdcff", "#ffe14d"], EL_COL2 = ["#ffd23f", "#e8fbff", "#ffffff"];
       const EL_RGB = ["255,106,42", "111,220,255", "255,225,77"];
-      const ICE_MS = 1500, ICE_R = 52, ICE_SLOW = 0.5;           // 減速エリア：時間・半径・速度倍率
+      const ICE_MS = 1500, ICE_R = 67, ICE_SLOW = 0.3;           // 減速エリア：時間・半径・速度倍率
       const ARC_SPEED = 10, ARC_DMG = 15, ARC_MARGIN = 4;        // 雷が壁を伝う速さ・ダメージ・「触れている」判定の余白
       const XT = ["gay", "wave", "fire", "ice", "thunder"];
 
