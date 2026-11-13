@@ -1082,9 +1082,9 @@ lastPoisonTick = Date.now();
           }
         }
         pads.forEach(pd => {
-          if (now < pd.next || p.hp >= 100) return;
+          if (now < pd.next || p.hp >= (p.maxHp || 100)) return;
           if (circleHitRect({ x: pd.x, y: pd.y, r: PAD_R - 4 }, p)) {
-            p.hp = Math.min(100, p.hp + PAD_HEAL);
+            p.hp = Math.min(p.maxHp || 100, p.hp + PAD_HEAL);
             pd.next = now + PAD_RESPAWN;
           }
         });
@@ -1297,7 +1297,7 @@ if (shooter.charName === "ツインブラザーズ") {
       if (player.charName === "聖なる使者") {
         if (player.skillCharge >= 30) {
           player.skillCharge -= 30;
-          player.hp = Math.min(100, player.hp + 20);
+          player.hp = Math.min(player.maxHp || 100, player.hp + 20);
         }
         return;
       }
@@ -1362,7 +1362,7 @@ if (shooter.charName === "ツインブラザーズ") {
 
   switch (effect) {
     case 1: // 50回復
-      player.hp = Math.min(100, player.hp + 50);
+      player.hp = Math.min(player.maxHp || 100, player.hp + 50);
       break;
 
     case 2: // 移動速度アップ
@@ -1401,8 +1401,8 @@ if (shooter.charName === "ツインブラザーズ") {
 
 
     case 5: // 両方のキャラが50回復
-      player.hp = Math.min(100, player.hp + 50);
-      enemy.hp = Math.min(100, enemy.hp + 50);
+      player.hp = Math.min(player.maxHp || 100, player.hp + 50);
+      enemy.hp = Math.min(enemy.maxHp || 100, enemy.hp + 50);
       break;
 
     case 6: // 次に受けた攻撃を反射
@@ -2108,8 +2108,10 @@ function updateSafeZone() {
       const maxRate = Math.max(...all.map(s => 1 / s.reload));
       const maxSkill = Math.max(...all.filter(s => isFinite(s.skillCt) && s.skillCt >= 2).map(s => 1 / s.skillCt));
 
+      const maxHp = Math.max(...all.map(s => s.hp));
       const pct = v => Math.max(4, Math.min(100, Math.round(v * 100)));
       const rows = [
+        ["HP", pct(st.hp / maxHp), `${st.hp}`],
         ["移動速度", pct(st.speed / maxSpeed), st.speed.toFixed(1)],
         ["攻撃力",   pct(st.power / maxPower), st.shots > 1 ? `${st.dmg}×${st.shots}` : `${st.dmg}`],
         ["装弾数",   st.ammo >= 100 ? 100 : pct(st.ammo / maxAmmo), st.ammo >= 100 ? "∞" : `${st.ammo}発`],
@@ -2125,7 +2127,6 @@ function updateSafeZone() {
           <div>
             <div class="cd-name">${escapeHtml(name)}</div>
             <div class="cd-title">${escapeHtml(info.title || "")}</div>
-            <div class="keyhelp">HP ${st.hp}</div>
           </div>
         </div>
         <div style="margin-top:14px">
@@ -3021,7 +3022,7 @@ function updateSafeZone() {
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.fillStyle = T.light;
       ctx.beginPath(); ctx.moveTo(R + 9, 0); ctx.lineTo(R + 2, -4); ctx.lineTo(R + 2, 4); ctx.closePath(); ctx.fill(); ctx.restore();
       // HP・弾数バー
-      const bw = 38, bx = cx - bw / 2, by = p.y - 16, ratio = Math.max(0, Math.min(1, p.hp / 100));
+      const bw = 38, bx = cx - bw / 2, by = p.y - 16, ratio = Math.max(0, Math.min(1, p.hp / (p.maxHp || 100)));
       ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.fillRect(bx - 1, by - 1, bw + 2, 7);
       ctx.fillStyle = ratio > .5 ? "#4dff9b" : ratio > .25 ? "#ffc53d" : "#ff4d5e"; ctx.fillRect(bx, by, bw * ratio, 5);
       if (p.maxAmmo <= 12) {
@@ -3126,7 +3127,7 @@ function updateSafeZone() {
         $("gameInfo").textContent = label;
       }
       [[player1, 1], [player2, 2]].forEach(([p, i]) => {
-        const ratio = Math.max(0, Math.min(1, p.hp / 100)), pct = (ratio * 100).toFixed(1) + "%";
+        const ratio = Math.max(0, Math.min(1, p.hp / (p.maxHp || 100))), pct = (ratio * 100).toFixed(1) + "%";
         $("hudHp" + i).style.width = pct; $("hudTrail" + i).style.width = pct;
         $("hudHpTxt" + i).textContent = Math.max(0, Math.ceil(p.hp));
         const box = $("hudHpBox" + i); box.classList.toggle("mid", ratio <= .5 && ratio > .25); box.classList.toggle("low", ratio <= .25);
@@ -4582,7 +4583,7 @@ function think(i){
       const _cp = createPlayer;
       createPlayer = function (x, y, c, n) {
         const p = _cp(x, y, c, n);
-        if (n === PIE) { p.reloadTime = 2200; p.damage = 20; p.maxAmmo = 3; p.ammo = 3; p.bulletsPerShot = 1; p.bulletSpeed = 5; p.bulletRadius = 10; p.speed = 3; p.skillCooldown = 18000; }
+        if (n === PIE) { p.hp = p.maxHp = 120; p.reloadTime = 2000; p.damage = 20; p.maxAmmo = 4; p.ammo = 4; p.bulletsPerShot = 1; p.bulletSpeed = 5; p.bulletRadius = 10; p.speed = 3; p.skillCooldown = 14000; }
         return p;
       };
       const _sb = shootBullet;
@@ -4642,7 +4643,7 @@ function think(i){
       const _cp = createPlayer;
       createPlayer = function (x, y, c, n) {
         const p = _cp(x, y, c, n);
-        if (n === K) { p.reloadTime = 2000; p.damage = 30; p.maxAmmo = 3; p.ammo = 3; p.bulletsPerShot = 1; p.speed = 1.6; p.skillCooldown = 20000; p._kh = p.hp; }
+        if (n === K) { p.hp = p.maxHp = 150; p.reloadTime = 1800; p.damage = 30; p.maxAmmo = 3; p.ammo = 3; p.bulletsPerShot = 1; p.speed = 1.8; p.skillCooldown = 20000; p._kh = p.hp; }
         return p;
       };
       const _sb = shootBullet;
@@ -4652,7 +4653,7 @@ function think(i){
         s.ammo--; s.lastReload = now();
         const sx = s.x + 15, sy = s.y + 15, dx = t.x + 15 - sx, dy = t.y + 15 - sy, d = Math.hypot(dx, dy) || 1;
         fxK.push({ k: 0, x: sx, y: sy, a: Math.atan2(dy, dx), w: 0, until: now() + FAN });
-        if (d < R + 15) { t.hp -= 30; kb(t, dx / d, dy / d, 40); }
+        if (d < R + 15) { t.hp -= 30; kb(t, dx / d, dy / d, 60); }
       };
       const _mp = movePlayer;
       movePlayer = function (p, u, d, l, r) { // チャージ中は動けない／相手の5秒チャージで少し減速
@@ -4760,7 +4761,7 @@ function think(i){
       const _cp = createPlayer;
       createPlayer = function (x, y, c, n) {
         const p = _cp(x, y, c, n);
-        if (n === PX) { p.hp = 70; p._ph = 70; p.maxAmmo = 3; p.ammo = 3; p.bulletRadius = 4; p.skillCooldown = Infinity; }
+        if (n === PX) { p.hp = p.maxHp = 70; p._ph = 70; p.maxAmmo = 4; p.ammo = 4; p.bulletRadius = 4; p.skillCooldown = Infinity; }
         return p;
       };
       const dmgOf = h => h <= 1.001 ? 50 : 10 + 20 * (70 - h) / 68;   // HP70:10 / HP2:30 / HP1:50
@@ -5486,6 +5487,201 @@ function think(i){
       dropInvites() { sent.forEach(id => deleteDoc(doc(db, "invites", id)).catch(() => {})); sent.clear(); }
     };
     setChip(); build();
+  </script>
+  <script>
+    /* ver34：試合開始前の演出／試合終了の演出（オンライン対戦は対象外） */
+    (function () {
+      const st = document.createElement("style"); st.textContent = `
+#fxOv{position:fixed;inset:0;z-index:9999;overflow:hidden;color:#fff;font-weight:900;font-style:italic;letter-spacing:.06em;user-select:none}
+#fxOv.fxIntro{background:radial-gradient(ellipse at center,rgba(8,14,40,.88),rgba(2,4,14,.96));cursor:pointer;animation:fxIn .25s both}
+#fxOv.out{animation:fxOut .3s both}
+@keyframes fxIn{from{opacity:0}to{opacity:1}}@keyframes fxOut{to{opacity:0}}
+#fxOv canvas{background:transparent!important;border:0;box-shadow:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.fx-row{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 4vw}
+.fx-side{width:28vw;text-align:center;filter:drop-shadow(0 0 14px var(--c))}
+.fx-side.L{--c:#3aa0ff;animation:fxL .55s cubic-bezier(.2,.9,.2,1) both,fxZap .22s steps(1) .55s infinite}
+.fx-side.R{--c:#ff4d6a;animation:fxR .55s cubic-bezier(.2,.9,.2,1) both,fxZap .22s steps(1) .55s infinite}
+@keyframes fxL{from{transform:translateX(-130%) skewX(-12deg)}to{transform:none}}
+@keyframes fxR{from{transform:translateX(130%) skewX(-12deg)}to{transform:none}}
+@keyframes fxZap{0%{transform:translate(0,0)}12%{transform:translate(-4px,2px)}25%{transform:translate(5px,-3px)}37%{transform:translate(-3px,-4px)}50%{transform:translate(4px,3px)}62%{transform:translate(-5px,1px)}75%{transform:translate(3px,-3px)}87%{transform:translate(-2px,4px)}}
+.fx-tag{display:inline-block;background:var(--c);padding:2px 18px;font-size:clamp(14px,3.2vh,26px);transform:skewX(-12deg)}
+.fx-pic{width:min(24vw,38vh);height:min(24vw,38vh);margin:1.2vh auto;border:3px solid var(--c);border-radius:50%;overflow:hidden;background:#0b1226;box-shadow:0 0 26px var(--c),inset 0 0 18px var(--c);animation:fxFlick .18s steps(1) infinite}
+.fx-pic img,.fx-pic .cx-ph{width:100%;height:100%;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:6vh}
+@keyframes fxFlick{0%{filter:brightness(1)}30%{filter:brightness(1.7) saturate(1.4)}55%{filter:brightness(.9)}80%{filter:brightness(1.4)}}
+.fx-name{font-size:clamp(16px,4.2vh,36px);text-shadow:0 0 12px var(--c),2px 2px 0 #000}
+.fx-mid{flex:1;text-align:center;animation:fxMap .5s .15s cubic-bezier(.2,.9,.2,1) both}
+@keyframes fxMap{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.fx-mid small{display:block;font-size:clamp(11px,2.4vh,20px);color:#7fe9ff;letter-spacing:.4em}
+.fx-mid b{display:block;font-size:clamp(22px,6vh,52px);text-shadow:0 0 18px #0ef,3px 3px 0 #ff3d7f;animation:fxZap .22s steps(1) infinite}
+.fx-vs{font-size:clamp(30px,10vh,90px);color:#ffe14d;text-shadow:0 0 22px #ff9d00,4px 4px 0 #c0153e;margin:1vh 0;animation:fxZap .16s steps(1) infinite}
+.fx-go{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:clamp(48px,18vh,150px);color:#fff;text-shadow:0 0 30px #ffe14d,6px 6px 0 #ff3d7f;background:rgba(255,255,255,.22)}
+#fxOv.go .fx-go{display:flex;animation:fxSlam .35s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes fxSlam{from{transform:scale(3);opacity:0}to{transform:none;opacity:1}}
+/* 終了演出 */
+#fxOv.fxOutro{pointer-events:auto}
+.fx-flash{position:absolute;inset:0;background:#fff;animation:fxFl .7s both}
+@keyframes fxFl{from{opacity:1}to{opacity:0}}
+.fx-ko{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:clamp(70px,28vh,240px);color:#ff3d5a;text-shadow:0 0 30px #ff9d00,8px 8px 0 #000;background:rgba(0,0,0,.35);animation:fxSlam .4s cubic-bezier(.2,1.6,.4,1) both,fxZap .2s steps(1) .4s infinite}
+.fx-win{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5vh;background:radial-gradient(ellipse at center,rgba(10,16,44,.92),rgba(0,0,0,.97));animation:fxIn .3s both}
+.fx-win .fx-pic{width:min(30vw,44vh);height:min(30vw,44vh);animation:fxZoom 1.4s ease-out both}
+@keyframes fxZoom{from{transform:scale(.6) rotate(-6deg)}to{transform:scale(1.05)}}
+.fx-wt{font-size:clamp(26px,8vh,70px);text-shadow:0 0 20px var(--c),3px 3px 0 #000;animation:fxSlam .4s .15s both}
+.fx-wipe{position:absolute;inset:0;pointer-events:none}
+.fx-wipe i{position:absolute;top:-10%;height:120%;width:24%;background:linear-gradient(90deg,#0ef,#ff3d7f);transform:translateX(-160%) skewX(-18deg)}
+.fx-wipe.in i{animation:fxW .4s cubic-bezier(.6,0,.4,1) both}
+.fx-wipe.outw i{transform:translateX(0) skewX(-18deg);animation:fxWo .45s cubic-bezier(.6,0,.4,1) both}
+@keyframes fxW{to{transform:translateX(0) skewX(-18deg)}}@keyframes fxWo{to{transform:translateX(160%) skewX(-18deg)}}
+`; document.head.appendChild(st);
+      const mk = h => { const d = document.createElement("div"); d.innerHTML = h.trim(); return d.firstElementChild; };
+      const tags = () => (cpu && cpu.on) ? ["YOU", "CPU"] : ["1P", "2P"];
+      const isOnl = () => typeof onl !== "undefined" && onl.running;
+      const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      window.__introOn = false;
+      window.addEventListener("keydown", e => { if (window.__introOn) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+      const _u = update; update = function () { if (window.__introOn) return; _u(); };
+      const _sb = shootBullet; shootBullet = function (s, t) { if (window.__introOn) return; return _sb(s, t); };
+      const _us = useSkill; useSkill = function (p) { if (window.__introOn) return; return _us(p); };
+
+      function bolts(cv) { // びりびり（稲妻）
+        const c = cv.getContext("2d"), w = cv.width = innerWidth, h = cv.height = innerHeight;
+        return setInterval(() => {
+          c.clearRect(0, 0, w, h);
+          for (let k = 0, n = 2 + (Math.random() * 3 | 0); k < n; k++) {
+            let x = Math.random() < .5 ? Math.random() * w * .35 : w * .65 + Math.random() * w * .35, y = -10;
+            c.beginPath(); c.moveTo(x, y);
+            const ye = h * (.35 + Math.random() * .65);
+            while (y < ye) { x += (Math.random() - .5) * 60; y += 20 + Math.random() * 30; c.lineTo(x, y); }
+            c.strokeStyle = "rgba(190,245,255,.9)"; c.lineWidth = 1.5 + Math.random() * 2; c.shadowColor = "#0ef"; c.shadowBlur = 12; c.stroke();
+          }
+        }, 90);
+      }
+      function intro() {
+        const t = tags(), side = (cls, tg, n) => `<div class="fx-side ${cls}"><span class="fx-tag">${tg}</span><div class="fx-pic">${imgOrPlaceholder(n)}</div><div class="fx-name">${esc(n)}</div></div>`;
+        const ov = mk(`<div id="fxOv" class="fxIntro"><canvas></canvas><div class="fx-row">${side("L", t[0], player1.charName)}<div class="fx-mid"><small>STAGE</small><b>${esc(selectedMap)}</b><div class="fx-vs">VS</div></div>${side("R", t[1], player2.charName)}</div><div class="fx-go">FIGHT!</div></div>`);
+        document.body.appendChild(ov); window.__introOn = true; keys = {};
+        const iv = bolts(ov.querySelector("canvas"));
+        let done = false;
+        const end = () => {
+          if (done) return; done = true; clearInterval(iv); ov.classList.add("out"); setTimeout(() => ov.remove(), 300);
+          window.__introOn = false; keys = {}; gameStartTime = Date.now(); lastPoisonTick = Date.now();
+        };
+        setTimeout(() => { if (!done) ov.classList.add("go"); }, 2000);
+        setTimeout(end, 2700); ov.addEventListener("click", end);
+      }
+      const _sg = startGame;
+      startGame = function () { _sg(); if (!isOnl()) intro(); };
+
+      let busy = false;
+      const _sr = showResult;
+      showResult = function () {
+        if (busy || isOnl()) return _sr();
+        busy = true;
+        const w = player1.hp <= 0 && player2.hp <= 0 ? 0 : player1.hp <= 0 ? 2 : 1, t = tags(), cp = cpu && cpu.on;
+        const wp = w === 1 ? player1 : player2;
+        const txt = w === 0 ? "引き分け！" : cp ? (w === 1 ? "あなたの勝利！" : "CPUの勝利…") : `${t[w - 1]}の勝利！`;
+        const ov = mk(`<div id="fxOv" class="fxOutro"><div class="fx-flash"></div><div class="fx-ko">${w === 0 ? "DRAW" : "K.O.!"}</div></div>`);
+        document.body.appendChild(ov);
+        setTimeout(() => { // 勝者の表示
+          ov.appendChild(mk(w === 0 ? `<div class="fx-win"><div class="fx-wt" style="--c:#ffe14d">${txt}</div></div>`
+            : `<div class="fx-win" style="--c:${w === 1 ? "#3aa0ff" : "#ff4d6a"}"><div class="fx-pic">${imgOrPlaceholder(wp.charName)}</div><div class="fx-name">${esc(wp.charName)}</div><div class="fx-wt">${txt}</div></div>`));
+        }, 1100);
+        setTimeout(() => { // 切り替えワイプ
+          const wp2 = mk(`<div class="fx-wipe in">${"<i></i>".repeat(6)}</div>`);
+          [...wp2.children].forEach((e, i) => { e.style.left = (i * 18 - 6) + "%"; e.style.animationDelay = (i * .05) + "s"; });
+          ov.appendChild(wp2);
+          setTimeout(() => {
+            _sr();                                   // 裏で結果画面に切り替え
+            ov.querySelectorAll(".fx-flash,.fx-ko,.fx-win").forEach(e => e.remove());
+            wp2.classList.remove("in"); wp2.classList.add("outw");
+            [...wp2.children].forEach((e, i) => { e.style.animationDelay = (i * .05) + "s"; });
+            setTimeout(() => { ov.remove(); busy = false; }, 800);
+          }, 750);
+        }, 2400);
+      };
+    })();
+  </script>
+  <script>
+    /* ver35：キャラ「おまかせ」／マップ「ランダム」（試合開始時に決定） */
+    (function () {
+      const R = "__RANDOM__", ids = ["player1Select", "player2Select", "mapSelectDropdown"];
+      ids.forEach(id => $(id).add(new Option("おまかせ", R)));
+      const card = (cls, name, label, sub) => { const b = document.createElement("button"); b.className = cls; b.dataset.name = name; b.innerHTML = sub; return b; };
+
+      const _rsp = renderSidePanel;
+      renderSidePanel = function (id, idx, name) {
+        if (name !== R) return _rsp(id, idx, name);
+        $(id).innerHTML = `<div class="who">${idx}P ・ ${idx === 1 ? "BLUE" : "RED"}</div><div class="cs-portrait"><div class="cx-ph">？</div></div><div class="cs-name">おまかせ</div><div class="cs-tag">試合が始まるときにキャラが決まります</div>`;
+      };
+      const _rc = renderCharSelect;
+      renderCharSelect = function () {
+        _rc();
+        const grid = $("csGrid"); let b = grid.querySelector(`[data-name="${R}"]`);
+        if (!b) {
+          b = card("cs-card", R, "", `<div class="cx-ph">？</div><span>おまかせ</span><span class="cs-badges"></span>`);
+          b.addEventListener("click", () => csPick(R)); grid.insertBefore(b, grid.firstChild);
+        }
+        const sel = [$("player1Select").value, $("player2Select").value];
+        b.classList.toggle("sel1", sel[0] === R); b.classList.toggle("sel2", sel[1] === R);
+        b.querySelector(".cs-badges").innerHTML = (sel[0] === R ? `<i class="b1">${cpuMode ? "YOU" : "1P"}</i>` : "") + (sel[1] === R ? `<i class="b2">${cpuMode ? "CPU" : "2P"}</i>` : "");
+      };
+      const _rm = renderMapSelect;
+      renderMapSelect = function () {
+        const dd = $("mapSelectDropdown"), real = dd.value, isR = real === R;
+        if (isR) dd.value = MAP_NAMES[0];
+        try { _rm(); } finally { dd.value = real; }
+        const list = $("msList"); let b = list.querySelector(`[data-name="${R}"]`);
+        if (!b) {
+          b = card("ms-card", R, "", `<span class="txt"><b>ランダム</b><small>試合開始時に決定</small></span>`);
+          b.addEventListener("click", () => { dd.value = R; renderMapSelect(); }); list.insertBefore(b, list.firstChild);
+        }
+        b.classList.toggle("on", isR);
+        if (isR) {
+          list.querySelectorAll(".ms-card").forEach(e => { if (e !== b) e.classList.remove("on"); });
+          const big = $("msBig"), c = big.getContext("2d"); c.fillStyle = "#0b1226"; c.fillRect(0, 0, big.width, big.height);
+          c.fillStyle = "#7fe9ff"; c.font = `bold ${big.height * .5}px sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("？", big.width / 2, big.height / 2);
+          $("msName").textContent = "ランダム"; $("msTag").textContent = "おまかせ"; $("msDesc").textContent = "試合が始まるときにマップが決まります"; $("msGm").innerHTML = "";
+        }
+        $("msVs").textContent = $("msVs").textContent.split(R).join("おまかせ");
+      };
+      const _sg = startGame;
+      startGame = function () {
+        const lists = [CHAR_NAMES, CHAR_NAMES, MAP_NAMES], saved = ids.map(id => $(id).value);
+        ids.forEach((id, i) => { if (saved[i] === R) $(id).value = lists[i][Math.floor(Math.random() * lists[i].length)]; });
+        try { _sg(); } finally { ids.forEach((id, i) => { $(id).value = saved[i]; }); }
+      };
+    })();
+  </script>
+  <script>
+    /* ver36：オンライン対戦にも「おまかせ／ランダム」（ホストが試合開始時に決定。相手には伏せたまま） */
+    (function () {
+      const R = "__RANDOM__", pick = a => a[Math.floor(Math.random() * a.length)];
+      const _bl = buildLobby;
+      buildLobby = function () {
+        const first = !lobbyBuilt; _bl(); if (!first) return;
+        const g = $("lobbyGrid"), c = document.createElement("button");
+        c.className = "cs-card"; c.dataset.name = R; c.innerHTML = `<div class="cx-ph">？</div><span>おまかせ</span><span class="cs-badges"></span>`;
+        c.addEventListener("click", () => lobbyPickChar(R)); g.insertBefore(c, g.firstChild);
+        const m = $("lobbyMaps"), b = document.createElement("button"), cv = document.createElement("canvas");
+        cv.width = 160; cv.height = 80; const x = cv.getContext("2d"); x.fillStyle = "#0b1226"; x.fillRect(0, 0, 160, 80);
+        x.fillStyle = "#7fe9ff"; x.font = "bold 44px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("？", 80, 42);
+        b.className = "lm-card"; b.dataset.name = R; b.appendChild(cv); b.insertAdjacentHTML("beforeend", "<span>ランダム</span>");
+        b.addEventListener("click", () => lobbyPickMap(R)); m.insertBefore(b, m.firstChild);
+      };
+      const _ul = updateLobby;
+      updateLobby = function () {
+        const isR = onl.map === R; if (isR) onl.map = MAP_NAMES[0];
+        try { _ul(); } finally { if (isR) onl.map = R; }
+        if (isR) $("lobbyMapInfo").innerHTML = "<b>ランダム</b>｜試合が始まるときにマップが決まります" + (onl.isHost ? "" : ' <span class="dim">（マップはホストが選びます）</span>');
+      };
+      const _hs = hostStartGame;
+      hostStartGame = function () {
+        const sv = [onl.myChar, onl.oppChar, onl.map];
+        if (onl.myChar === R) onl.myChar = pick(CHAR_NAMES);
+        if (onl.oppChar === R) onl.oppChar = pick(CHAR_NAMES);
+        if (onl.map === R) onl.map = pick(MAP_NAMES);
+        try { _hs(); } finally { [onl.myChar, onl.oppChar, onl.map] = sv; }
+      };
+    })();
   </script>
 </body>
 </html>
