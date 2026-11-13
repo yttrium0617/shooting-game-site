@@ -738,7 +738,7 @@ lastPoisonTick = Date.now();
       let mode = null;
 
       if (charName === "スナイパー太郎") {
-        params.reloadTime = 1000;
+        params.reloadTime = 1100;
         params.damage = 8;
         params.maxAmmo = 4;
         params.bulletsPerShot = 2;
@@ -755,16 +755,16 @@ lastPoisonTick = Date.now();
 }
 
       else if (charName === "白い死神") {
-        params.reloadTime = 2000;
-        params.damage = 20;
+        params.reloadTime = 1700;
+        params.damage = 22;
         params.maxAmmo = 1;
         params.bulletSpeed = 50;
         params.bulletLifeTimeMax = 3000;
         params.speed = 1;
-        params.skillCooldown = 30000;
+        params.skillCooldown = 20000;
       }else if (charName === "ブーメランボーイ") {
-  params.reloadTime = 1000;        // 1秒で手元に戻れば弾回復
-  params.damage = 12;              // 1ヒットのダメージ
+  params.reloadTime = 900;        // 1秒で手元に戻れば弾回復
+  params.damage = 15;              // 1ヒットのダメージ
   params.maxAmmo = 1;              // 常に1発のみ
   params.bulletSpeed = 7;          // 弾速やや早め
   params.bulletLifeTimeMax = 100;  // ブーメランの寿命（戻るまで）
@@ -773,13 +773,13 @@ lastPoisonTick = Date.now();
 
 
       }else if (charName === "ジョーカー") {
-  params.reloadTime = 1600;       // リロード速度
-  params.damage = 8;             // 1発のダメージ
+  params.reloadTime = 1700;       // リロード速度
+  params.damage = 11;             // 1発のダメージ
   params.maxAmmo = 3;             // 最大弾数
   params.bulletsPerShot = 3;      // 一度に3発拡散
   params.bulletSpeed = 6;         // 弾速
   params.bulletLifeTimeMax = 1000;
-  params.speed = 3;               // 移動速度
+  params.speed = 2.8;               // 移動速度
   params.skillCooldown = 15000;   // スキル15秒に1回
 
 
@@ -815,7 +815,7 @@ lastPoisonTick = Date.now();
         params.skillCooldown = 10000;
       } else if (charName === "聖なる使者") {
         params.reloadTime = 5000;
-        params.damage = 5;
+        params.damage = 6;
         params.maxAmmo = 9999; // 弾切れになったらリロード開始
         params.bulletSpeed = 9;
         params.bulletLifeTimeMax = 3000; // 長距離
@@ -3703,13 +3703,13 @@ function think(i){
       const GAY_NEAR = 40;                      // この距離までは最大ダメージ
       const GAY_R0 = 25, GAY_R1 = 10;            // 弾の大きさ：最初→最後
       const GAY_D0 = 30, GAY_D1 = 15;           // ダメージ：至近距離→射程の端
-      const GAY_BULLET_SPEED = 8;               // 弾の速さ（少し早め。標準は6）
-      const GAY_RELOAD = 1000, GAY_AMMO = 2;    // リロード(ms)・マガジン
+      const GAY_BULLET_SPEED = 7;               // 弾の速さ（少し早め。標準は6）
+      const GAY_RELOAD = 2200, GAY_AMMO = 3;    // リロード(ms)・マガジン
       const GAY_CD = 22000;                     // スキルのクールタイム(ms)
       const GAY_CD_PER_HP = 100;                 // 被ダメージ1につき短くなるクールタイム(ms)
       const WAVE_SPEED = 9.5, WAVE_R = 40;        // ハート衝撃波の速さ・大きさ
       const STUN_MS = 1500;                     // スタン時間
-      const HASTE_MS = 3000, HASTE_MUL = 1.6;   // スキル後の加速（時間・倍率）
+      const HASTE_MS = 3000, HASTE_MUL = 1.3;   // スキル後の加速（時間・倍率）
       // 元素の魔女
       const MAGE_MAX = 300, MAGE_START = 150, MAGE_REGEN = 10;   // マナ上限・初期値・毎秒回復
       const EL = ["fire", "ice", "thunder"], EL_NAME = ["炎", "氷", "雷"];
@@ -3719,7 +3719,7 @@ function think(i){
       const EL_DELAY = [700, 1100, 1300];       // 連射の間隔(ms)
       const EL_COL = ["#ff6a2a", "#6fdcff", "#ffe14d"], EL_COL2 = ["#ffd23f", "#e8fbff", "#ffffff"];
       const EL_RGB = ["255,106,42", "111,220,255", "255,225,77"];
-      const ICE_MS = 1500, ICE_R = 67, ICE_SLOW = 0.3;           // 減速エリア：時間・半径・速度倍率
+      const ICE_MS = 1500, ICE_R = 65, ICE_SLOW = 0.3;           // 減速エリア：時間・半径・速度倍率
       const ARC_SPEED = 10, ARC_DMG = 15, ARC_MARGIN = 4;        // 雷が壁を伝う速さ・ダメージ・「触れている」判定の余白
       const XT = ["gay", "wave", "fire", "ice", "thunder"];
 
