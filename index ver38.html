@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -432,6 +432,23 @@
     body.compact .cd-sec h4 { font-size: 11px; }
     body.compact .cd-sec p { font-size: 11px; line-height: 1.5; }
   </style>
+  <style>
+    /* 拡大防止（iPhoneのホーム画面アプリ対策） */
+    html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    input, select, textarea { font-size: 16px !important; } /* 入力欄タップ時の自動ズーム防止 */
+    button, .menu-btn, .tbtn { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  </style>
+  <script>
+    (function () {
+      const stop = e => { if (e.cancelable) e.preventDefault(); };
+      ["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, stop, { passive: false })); // ピンチ
+      document.addEventListener("touchmove", e => { if (e.scale && e.scale !== 1) stop(e); }, { passive: false });
+      let last = 0;
+      document.addEventListener("touchend", e => { const n = Date.now(); if (n - last < 320 && e.touches.length === 0 && !e.target.closest("input,textarea,select")) stop(e); last = n; }, { passive: false }); // ダブルタップ
+      document.addEventListener("dblclick", stop, { passive: false });
+      window.addEventListener("wheel", e => { if (e.ctrlKey) stop(e); }, { passive: false });
+    })();
+  </script>
 </head>
 <body>
   <canvas id="menuBg"></canvas>
@@ -5489,7 +5506,7 @@ function think(i){
     setChip(); build();
   </script>
   <script>
-    /* ver34：試合開始前の演出／試合終了の演出（オンライン対戦は対象外） */
+    /* ver37：開始前／終了の演出（CPU戦・オンライン共通） */
     (function () {
       const st = document.createElement("style"); st.textContent = `
 #fxOv{position:fixed;inset:0;z-index:9999;overflow:hidden;color:#fff;font-weight:900;font-style:italic;letter-spacing:.06em;user-select:none}
@@ -5531,18 +5548,22 @@ function think(i){
 .fx-wipe.in i{animation:fxW .4s cubic-bezier(.6,0,.4,1) both}
 .fx-wipe.outw i{transform:translateX(0) skewX(-18deg);animation:fxWo .45s cubic-bezier(.6,0,.4,1) both}
 @keyframes fxW{to{transform:translateX(0) skewX(-18deg)}}@keyframes fxWo{to{transform:translateX(160%) skewX(-18deg)}}
+
+.fx-sub{font-size:clamp(11px,2.6vh,22px);color:#ffe14d;margin-top:.6vh;letter-spacing:.12em;font-style:normal;text-shadow:0 0 8px #000}
+.fx-wt2{font-size:clamp(13px,3.2vh,26px);color:#ffe14d;font-style:normal;animation:fxSlam .4s .3s both}
 `; document.head.appendChild(st);
       const mk = h => { const d = document.createElement("div"); d.innerHTML = h.trim(); return d.firstElementChild; };
-      const tags = () => (cpu && cpu.on) ? ["YOU", "CPU"] : ["1P", "2P"];
-      const isOnl = () => typeof onl !== "undefined" && onl.running;
       const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const val = v => typeof v === "function" ? v() : v;
+      const isOnl = () => typeof onl !== "undefined" && onl.running;
+      const FX = window.FX = { H: {}, busy: false };
       window.__introOn = false;
       window.addEventListener("keydown", e => { if (window.__introOn) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
       const _u = update; update = function () { if (window.__introOn) return; _u(); };
       const _sb = shootBullet; shootBullet = function (s, t) { if (window.__introOn) return; return _sb(s, t); };
       const _us = useSkill; useSkill = function (p) { if (window.__introOn) return; return _us(p); };
 
-      function bolts(cv) { // びりびり（稲妻）
+      function bolts(cv) {
         const c = cv.getContext("2d"), w = cv.width = innerWidth, h = cv.height = innerHeight;
         return setInterval(() => {
           c.clearRect(0, 0, w, h);
@@ -5555,9 +5576,10 @@ function think(i){
           }
         }, 90);
       }
-      function intro() {
-        const t = tags(), side = (cls, tg, n) => `<div class="fx-side ${cls}"><span class="fx-tag">${tg}</span><div class="fx-pic">${imgOrPlaceholder(n)}</div><div class="fx-name">${esc(n)}</div></div>`;
-        const ov = mk(`<div id="fxOv" class="fxIntro"><canvas></canvas><div class="fx-row">${side("L", t[0], player1.charName)}<div class="fx-mid"><small>STAGE</small><b>${esc(selectedMap)}</b><div class="fx-vs">VS</div></div>${side("R", t[1], player2.charName)}</div><div class="fx-go">FIGHT!</div></div>`);
+      /* o: { c:[キャラ1,キャラ2], tags:[左の名前,右の名前], map, sub } */
+      FX.intro = function (o) {
+        const side = (cls, tg, n) => `<div class="fx-side ${cls}"><span class="fx-tag">${esc(tg)}</span><div class="fx-pic">${imgOrPlaceholder(n)}</div><div class="fx-name">${esc(n)}</div></div>`;
+        const ov = mk(`<div id="fxOv" class="fxIntro"><canvas></canvas><div class="fx-row">${side("L", o.tags[0], o.c[0])}<div class="fx-mid"><small>STAGE</small><b>${esc(o.map)}</b>${o.sub ? `<div class="fx-sub">${esc(o.sub)}</div>` : ""}<div class="fx-vs">VS</div></div>${side("R", o.tags[1], o.c[1])}</div><div class="fx-go">FIGHT!</div></div>`);
         document.body.appendChild(ov); window.__introOn = true; keys = {};
         const iv = bolts(ov.querySelector("canvas"));
         let done = false;
@@ -5567,36 +5589,65 @@ function think(i){
         };
         setTimeout(() => { if (!done) ov.classList.add("go"); }, 2000);
         setTimeout(end, 2700); ov.addEventListener("click", end);
-      }
-      const _sg = startGame;
-      startGame = function () { _sg(); if (!isOnl()) intro(); };
-
-      let busy = false;
-      const _sr = showResult;
-      showResult = function () {
-        if (busy || isOnl()) return _sr();
-        busy = true;
-        const w = player1.hp <= 0 && player2.hp <= 0 ? 0 : player1.hp <= 0 ? 2 : 1, t = tags(), cp = cpu && cpu.on;
-        const wp = w === 1 ? player1 : player2;
-        const txt = w === 0 ? "引き分け！" : cp ? (w === 1 ? "あなたの勝利！" : "CPUの勝利…") : `${t[w - 1]}の勝利！`;
+      };
+      /* o: { w:0引分/1/2, c:[..], text, sub, mid } text/sub は関数も可（表示直前に評価） */
+      FX.outro = function (o) {
+        FX.busy = true;
+        const w = o.w, wp = o.c[w === 2 ? 1 : 0];
         const ov = mk(`<div id="fxOv" class="fxOutro"><div class="fx-flash"></div><div class="fx-ko">${w === 0 ? "DRAW" : "K.O.!"}</div></div>`);
         document.body.appendChild(ov);
-        setTimeout(() => { // 勝者の表示
-          ov.appendChild(mk(w === 0 ? `<div class="fx-win"><div class="fx-wt" style="--c:#ffe14d">${txt}</div></div>`
-            : `<div class="fx-win" style="--c:${w === 1 ? "#3aa0ff" : "#ff4d6a"}"><div class="fx-pic">${imgOrPlaceholder(wp.charName)}</div><div class="fx-name">${esc(wp.charName)}</div><div class="fx-wt">${txt}</div></div>`));
+        setTimeout(() => {
+          const txt = esc(val(o.text)), sub = val(o.sub);
+          ov.appendChild(mk(w === 0 ? `<div class="fx-win"><div class="fx-wt" style="--c:#ffe14d">${txt}</div>${sub ? `<div class="fx-wt2">${esc(sub)}</div>` : ""}</div>`
+            : `<div class="fx-win" style="--c:${w === 1 ? "#3aa0ff" : "#ff4d6a"}"><div class="fx-pic">${imgOrPlaceholder(wp)}</div><div class="fx-name">${esc(wp)}</div><div class="fx-wt">${txt}</div>${sub ? `<div class="fx-wt2">${esc(sub)}</div>` : ""}</div>`));
         }, 1100);
-        setTimeout(() => { // 切り替えワイプ
+        setTimeout(() => {
           const wp2 = mk(`<div class="fx-wipe in">${"<i></i>".repeat(6)}</div>`);
           [...wp2.children].forEach((e, i) => { e.style.left = (i * 18 - 6) + "%"; e.style.animationDelay = (i * .05) + "s"; });
           ov.appendChild(wp2);
           setTimeout(() => {
-            _sr();                                   // 裏で結果画面に切り替え
-            ov.querySelectorAll(".fx-flash,.fx-ko,.fx-win").forEach(e => e.remove());
-            wp2.classList.remove("in"); wp2.classList.add("outw");
-            [...wp2.children].forEach((e, i) => { e.style.animationDelay = (i * .05) + "s"; });
-            setTimeout(() => { ov.remove(); busy = false; }, 800);
+            try { o.mid(); } finally {
+              ov.querySelectorAll(".fx-flash,.fx-ko,.fx-win").forEach(e => e.remove());
+              wp2.classList.remove("in"); wp2.classList.add("outw");
+              [...wp2.children].forEach((e, i) => { e.style.animationDelay = (i * .05) + "s"; });
+              setTimeout(() => { ov.remove(); FX.busy = false; }, 800);
+            }
           }, 750);
-        }, 2400);
+        }, o.slow ? 3000 : 2400);
+      };
+      const localTags = () => (cpu && cpu.on) ? ["YOU", "CPU"] : ["1P", "2P"];
+      const onlNames = () => onl.isHost ? [myName(), onl.oppName || "ゲスト"] : [onl.oppName || "ホスト", myName()];
+      const sub = () => (FX.H.sub && FX.H.sub()) || "";
+
+      const _sg = startGame;
+      startGame = function () { _sg(); if (!isOnl()) FX.intro({ c: [player1.charName, player2.charName], tags: localTags(), map: selectedMap, sub: sub() }); };
+      const _bm = beginMatch;
+      beginMatch = function (a, b, m) {
+        _bm(a, b, m);
+        const n = onlNames();
+        FX.intro({ c: [a, b], tags: [n[0] + (onl.isHost ? "（あなた）" : ""), n[1] + (onl.isHost ? "" : "（あなた）")], map: m, sub: sub() });
+      };
+      const _sr = showResult;
+      showResult = function () {
+        if (FX.busy || isOnl()) return _sr();
+        const w = player1.hp <= 0 && player2.hp <= 0 ? 0 : player1.hp <= 0 ? 2 : 1, t = localTags(), cp = cpu && cpu.on;
+        const h = FX.H.cpu && FX.H.cpu(w);
+        FX.outro({
+          w, c: [player1.charName, player2.charName],
+          text: h ? h.text : w === 0 ? "引き分け！" : cp ? (w === 1 ? "あなたの勝利！" : "CPUの勝利…") : `${t[w - 1]}の勝利！`,
+          sub: h && h.sub, mid: () => { if (h && h.mid) h.mid(_sr); else _sr(); }
+        });
+      };
+      const _fm = finishMatch;
+      finishMatch = function (w) {
+        if (FX.busy) return;
+        const me = onl.isHost ? "p1" : "p2", wi = w === "draw" ? 0 : w === "p1" ? 1 : 2, nm = onlNames();
+        const h = FX.H.onl && FX.H.onl(w);
+        FX.outro({
+          w: wi, c: [player1.charName, player2.charName],
+          text: () => h ? h.text() : (wi === 0 ? "引き分け！" : w === me ? "あなたの勝利！" : `${nm[wi - 1]}の勝利…`),
+          sub: h && h.sub, mid: () => { if (h && h.mid) h.mid(_fm, w); else _fm(w); }
+        });
       };
     })();
   </script>
@@ -5681,6 +5732,210 @@ function think(i){
         if (onl.map === R) onl.map = pick(MAP_NAMES);
         try { _hs(); } finally { [onl.myChar, onl.oppChar, onl.map] = sv; }
       };
+    })();
+  </script>
+  <script>
+    /* ver38：ゲームルール／複数人対戦の土台（2対2は次回実装）
+       ・RULESET：ルール定義の一覧。2対2は enabled:false のまま、ここに定義だけ用意してある
+       ・fighterList()/teamOf()/foesOf()/alliesOf()/opponentOf()：player1〜4 を前提にした共通ヘルパー
+         （1対1では従来どおり player1=チーム0、player2=チーム1。2対2では player3=player1の味方、player4=player2の味方）
+       ・次回やること：①startGame等で player3/4 を生成 ②update/draw/AI/弾判定/勝敗判定を fighterList() ベースへ
+         ③オンラインは4接続化 ④演出（FX.intro/outro）は c/tags 配列を4要素に拡張 */
+    let player3 = null, player4 = null;
+    window.RULESET = {
+      "1v1": { label: "1対1", fighters: 2, enabled: true },
+      "2v2": { label: "2対2", fighters: 4, enabled: false },
+      "bo3": { label: "3本対決", fighters: 2, enabled: true, series: true }
+    };
+    window.SLOT_SPAWNS = [SPAWNS.p1, SPAWNS.p2, { x: 70, y: 100 }, { x: 700, y: 270 }]; // 4人用の初期位置（2対2用に予約）
+    window.fighterList = () => [player1, player2, player3, player4].filter(Boolean);
+    window.teamOf = p => p.team !== undefined ? p.team : (p === player1 || p === player3 ? 0 : 1);
+    window.alliesOf = p => fighterList().filter(q => q !== p && teamOf(q) === teamOf(p));
+    window.foesOf = p => fighterList().filter(q => teamOf(q) !== teamOf(p));
+    window.opponentOf = p => { const f = foesOf(p).filter(q => q.hp > 0); const a = f.length ? f : foesOf(p); return a.sort((x, y) => Math.hypot(x.x - p.x, x.y - p.y) - Math.hypot(y.x - p.x, y.y - p.y))[0] || null; };
+    window.currentRuleId = () => (typeof onl !== "undefined" && onl.running) ? (onl.rule || "1v1") : (window.RULE || "1v1");
+  </script>
+  <script>
+    /* ver37：ゲームルール（1対1／3本対決。2対2は準備中）— CPU対戦・オンライン対戦 */
+    (function () {
+      const R = "__RANDOM__", HID = "__HIDDEN__", pick = a => a[Math.floor(Math.random() * a.length)];
+      const RULES = Object.entries(window.RULESET).map(([k, v]) => [k, v.label + (v.enabled ? "" : "（準備中）"), v.enabled ? 0 : 1]);
+      const st = document.createElement("style");
+      st.textContent = `.rule-row{display:flex;gap:8px;justify-content:center;align-items:center;margin:4px 0;flex-wrap:wrap}
+.rule-row>b{font-size:12px;opacity:.85;margin-right:4px}.rule-row .info{font-size:12px;color:#ffe14d}
+.rule-chip{padding:5px 14px;border:1px solid #3a5a8c;background:rgba(10,20,50,.7);color:#cfe;border-radius:999px;font-weight:700;cursor:pointer;font-size:13px}
+.rule-chip.on{background:#2b8cff;color:#fff;border-color:#8cf;box-shadow:0 0 10px #2b8cff}.rule-chip[disabled]{opacity:.4;cursor:not-allowed}
+.rule-row.lock .rule-chip{pointer-events:none}
+.ser-banner{display:flex;gap:12px;align-items:center;justify-content:center;margin:4px 0;font-weight:800;color:#ffe14d}
+.ser-banner canvas{width:120px;height:60px;border:1px solid #3a5a8c;border-radius:6px}
+.cs-card.sx-used{opacity:.25;pointer-events:none;filter:grayscale(1)}#csGrid.sx .b2{display:none}`;
+      document.head.appendChild(st);
+      const newSer = () => ({ wins: [0, 0], round: 1, used: [[], []], usedMaps: [], map: null, over: false });
+      const nextMap = s => { const c = MAP_NAMES.filter(m => !s.usedMaps.includes(m)); return pick(c.length ? c : MAP_NAMES); };
+      const unused = (s, i) => { const c = CHAR_NAMES.filter(n => !s.used[i].includes(n)); return c.length ? c : CHAR_NAMES; };
+      const chips = (cur, extra) => `<b>ゲームルール</b>` + RULES.map(([k, l, d]) => `<button class="rule-chip${cur === k ? " on" : ""}" data-r="${k}" ${d ? "disabled" : ""}>${l}</button>`).join("") + (extra || "");
+      window.RULE = "1v1";
+      let SER = null, OSER = null;
+      window.__getSer = () => ({ SER, OSER });
+
+      /* ---------- 表示用ヘルパー（相手の非公開キャラ） ---------- */
+      const _rsp = renderSidePanel;
+      renderSidePanel = function (id, idx, name) {
+        if (name !== HID) return _rsp(id, idx, name);
+        $(id).innerHTML = `<div class="who">${idx}P ・ ${idx === 1 ? "BLUE" : "RED"}</div><div class="cs-portrait"><div class="cx-ph">？</div></div><div class="cs-name">非公開</div><div class="cs-tag">相手のキャラは対戦開始の演出で明らかになります</div>`;
+      };
+
+      /* ================= CPU対戦 ================= */
+      const csFirst = () => unused(SER, 0)[0];
+      function serStartCpu() {
+        const s1 = $("player1Select"); let c = s1.value;
+        if (c === R || SER.used[0].includes(c)) c = pick(unused(SER, 0));
+        const cc = pick(unused(SER, 1));
+        SER.used[0].push(c); SER.used[1].push(cc); SER.usedMaps.push(SER.map);
+        s1.value = c; $("player2Select").value = cc; $("mapSelectDropdown").value = SER.map;
+        startGame();
+      }
+      const _rc = renderCharSelect;
+      renderCharSelect = function () {
+        const bo = cpuMode && window.RULE === "bo3";
+        if (bo && !SER) { SER = newSer(); SER.map = nextMap(SER); }
+        if (!bo) SER = null;
+        if (bo) { csActive = 1; const s1 = $("player1Select"); if (s1.value !== R && SER.used[0].includes(s1.value)) s1.value = csFirst(); }
+        _rc();
+        const scr = $("characterSelect"); let row = $("ruleRow");
+        if (!row) {
+          row = document.createElement("div"); row.id = "ruleRow"; row.className = "rule-row";
+          const bn = document.createElement("div"); bn.id = "serBanner"; bn.className = "ser-banner";
+          const lay = scr.querySelector(".cs-layout"); lay.parentNode.insertBefore(row, lay); lay.parentNode.insertBefore(bn, lay);
+        }
+        row.style.display = cpuMode ? "" : "none";
+        row.innerHTML = chips(window.RULE);
+        row.querySelectorAll(".rule-chip:not([disabled])").forEach(b => b.onclick = () => { window.RULE = b.dataset.r; SER = null; renderCharSelect(); });
+        const bn = $("serBanner"); bn.style.display = bo ? "" : "none";
+        if (bo) {
+          bn.innerHTML = `<canvas width="160" height="80"></canvas><span>3本対決　第${SER.round}本　｜　MAP：${SER.map}　｜　スコア ${SER.wins[0]} - ${SER.wins[1]}</span>`;
+          drawMapPreview(bn.querySelector("canvas"), SER.map);
+        }
+        const g = $("csGrid"); g.classList.toggle("sx", bo);
+        g.querySelectorAll(".cs-card").forEach(c => { c.classList.toggle("sx-used", bo && SER.used[0].includes(c.dataset.name)); if (bo) c.classList.remove("sel2"); });
+        $("csTab2").style.display = bo ? "none" : "";
+        if (bo) renderSidePanel("csP2", 2, HID);
+        const cta = scr.querySelector(".sel-foot .cta");
+        if (!cta.dataset.o) cta.dataset.o = cta.textContent;
+        cta.textContent = bo ? "このキャラで対戦開始 ▶" : cta.dataset.o;
+        cta.onclick = bo ? serStartCpu : () => goToMapSelect();
+      };
+      const _rtm = returnToMenu; returnToMenu = function () { SER = null; _rtm(); };
+
+      /* ================= 演出フック ================= */
+      FX.H.sub = () => {
+        const S = (typeof onl !== "undefined" && onl.running) ? (onl.rule === "bo3" ? OSER : null) : (cpuMode && window.RULE === "bo3" ? SER : null);
+        return S ? `3本対決　第${S.round}本　${S.wins[0]} - ${S.wins[1]}` : "";
+      };
+      FX.H.cpu = w => {
+        if (!(cpuMode && window.RULE === "bo3" && SER)) return null;
+        if (w > 0) SER.wins[w - 1]++;
+        const fin = SER.wins[0] >= 2 || SER.wins[1] >= 2, r = `第${SER.round}本`, sc = `${SER.wins[0]} - ${SER.wins[1]}`;
+        return {
+          text: fin ? (w === 1 ? "あなたの勝利！" : "CPUの勝利…") : w === 0 ? `${r} 引き分け` : `${r} ${w === 1 ? "あなたの勝ち" : "CPUの勝ち"}`,
+          sub: fin ? `3本対決　最終スコア ${sc}` : `スコア ${sc}　次は第${SER.round + 1}本`,
+          mid: sr => {
+            if (fin) { sr(); $("resultText").innerText = `3本対決　${sc}　` + (SER.wins[0] > SER.wins[1] ? "あなたの勝利！" : "CPUの勝利…"); SER = null; return; }
+            SER.round++; SER.map = nextMap(SER); cpu.on = false; cpuSetUI(); goToCharacterSelect();
+          }
+        };
+      };
+
+      /* ================= オンライン対戦 ================= */
+      onl.rule = "1v1"; onl.guestReal = null;
+      const me = () => onl.isHost ? 0 : 1;
+      const firstUnused = () => unused(OSER, me())[0];
+      function autoPick() {
+        if (onl.rule !== "bo3" || !OSER) return;
+        const c = onl.myChar;
+        lobbyPickChar(c !== R && OSER.used[me()].includes(c) ? firstUnused() : c);
+      }
+      function prepNew() { OSER = newSer(); OSER.map = nextMap(OSER); onl.map = OSER.map; sendMsg({ t: "map", v: onl.map }); sendMsg({ t: "ser", s: OSER }); }
+      function setRule(k) {
+        onl.rule = k; sendMsg({ t: "rule", v: k });
+        if (k === "bo3") { prepNew(); autoPick(); } else { OSER = null; sendMsg({ t: "char", v: onl.myChar }); }
+        updateLobby();
+      }
+      const _sm = sendMsg;
+      sendMsg = function (m) {
+        if (m && m.t === "char" && onl.rule === "bo3" && m.v !== HID) { _sm({ t: "real", c: m.v }); m = { t: "char", v: HID }; }
+        _sm(m);
+        if (m && m.t === "name" && onl.isHost) { _sm({ t: "rule", v: onl.rule }); if (OSER) _sm({ t: "ser", s: OSER }); }
+      };
+      const _om = onMessage;
+      onMessage = function (m) {
+        if (m && m.t === "rule") { onl.rule = m.v; if (m.v !== "bo3") { OSER = null; sendMsg({ t: "char", v: onl.myChar }); } updateLobby(); return; }
+        if (m && m.t === "ser") { OSER = m.s; if (!onl.isHost) onl.guestReady = false; updateLobby(); setTimeout(autoPick, 0); return; }
+        if (m && m.t === "real") { onl.guestReal = m.c; return; }
+        _om(m);
+      };
+      const _lpc = lobbyPickChar;
+      lobbyPickChar = function (n) { if (onl.rule === "bo3" && OSER && n !== R && OSER.used[me()].includes(n)) return; _lpc(n); };
+      const _lpm = lobbyPickMap;
+      lobbyPickMap = function (n) { if (onl.rule === "bo3") return; _lpm(n); };
+      const _el = enterLobby;
+      enterLobby = function () {
+        if (!$("lobbyRule")) { const r = document.createElement("div"); r.id = "lobbyRule"; r.className = "rule-row"; const g = $("lobbyGrid"); g.parentNode.insertBefore(r, g); }
+        onl.rule = "1v1"; OSER = null; _el();
+      };
+      const _ul = updateLobby;
+      updateLobby = function () {
+        _ul();
+        const row = $("lobbyRule"); if (!row) return;
+        const bo = onl.rule === "bo3" && OSER;
+        row.classList.toggle("lock", !onl.isHost);
+        row.innerHTML = chips(onl.rule, bo ? `<span class="info">第${OSER.round}本　スコア ${OSER.wins[0]} - ${OSER.wins[1]}</span>` : (onl.isHost ? "" : `<span class="info">（ルームの作成者が選びます）</span>`));
+        row.querySelectorAll(".rule-chip:not([disabled])").forEach(b => b.onclick = () => { if (onl.isHost) setRule(b.dataset.r); });
+        $("lobbyMaps").classList.toggle("lock", !onl.isHost || !!bo);
+        $("lobbyGrid").querySelectorAll(".cs-card").forEach(c => c.classList.toggle("sx-used", !!bo && OSER.used[me()].includes(c.dataset.name)));
+        if (bo) $("lobbyMapInfo").insertAdjacentHTML("afterbegin", `<div class="info" style="color:#ffe14d">3本対決：第${OSER.round}本のマップは自動で決まりました（過去のマップは除外）／使用済みキャラは選べません</div>`);
+      };
+      const _hs = hostStartGame;
+      hostStartGame = function () {
+        if (onl.rule !== "bo3" || !OSER) return _hs();
+        if (!onl.isHost || !onl.conn || !onl.conn.open || !onl.guestReady) return;
+        const sv = [onl.myChar, onl.oppChar];
+        const hc = (onl.myChar === R || OSER.used[0].includes(onl.myChar)) ? pick(unused(OSER, 0)) : onl.myChar;
+        const gc = (!onl.guestReal || onl.guestReal === R || OSER.used[1].includes(onl.guestReal)) ? pick(unused(OSER, 1)) : onl.guestReal;
+        OSER.used[0].push(hc); OSER.used[1].push(gc); OSER.usedMaps.push(onl.map);
+        onl.myChar = hc; onl.oppChar = gc;
+        try { _hs(); } finally { onl.myChar = sv[0]; onl.oppChar = sv[1]; }
+      };
+      const _btl = backToLobby;
+      backToLobby = function () {
+        if (onl.rule === "bo3" && OSER && OSER.over && onl.isHost) { prepNew(); }
+        _btl();
+        if (onl.rule === "bo3" && OSER) setTimeout(autoPick, 0);
+      };
+      FX.H.onl = w => {
+        if (onl.rule !== "bo3" || !OSER) return null;
+        if (onl.isHost) {
+          if (w !== "draw") OSER.wins[w === "p1" ? 0 : 1]++;
+          OSER.over = OSER.wins[0] >= 2 || OSER.wins[1] >= 2;
+          if (!OSER.over) { OSER.round++; OSER.map = nextMap(OSER); onl.map = OSER.map; sendMsg({ t: "map", v: onl.map }); }
+          sendMsg({ t: "ser", s: OSER });
+        }
+        const mine = () => onl.isHost ? 0 : 1, fr = () => OSER.over ? OSER.round : OSER.round - 1;
+        const score = () => `${OSER.wins[mine()]} - ${OSER.wins[1 - mine()]}`;
+        const iWon = () => OSER.wins[mine()] > OSER.wins[1 - mine()];
+        return {
+          text: () => OSER.over ? (iWon() ? "あなたの勝利！" : "あなたの負け…") : w === "draw" ? `第${fr()}本 引き分け` : `第${fr()}本 ${w === (onl.isHost ? "p1" : "p2") ? "あなたの勝ち" : "あなたの負け"}`,
+          sub: () => OSER.over ? `3本対決　最終スコア ${score()}` : `スコア ${score()}　次は第${OSER.round}本`,
+          mid: (fm, ww) => {
+            if (OSER.over) { fm(ww); $("onlineResultText").textContent = `3本対決　${score()}　` + (iWon() ? "あなたの勝利！ 🎉" : "あなたの負け…"); return; }
+            onl.running = false; gameActive = false; cancelAnimationFrame(onl.raf); clearInterval(onl.hbTimer); keys = {};
+            if (onl.isHost) onl.guestReady = false;
+            backToLobby();
+          }
+        };
+      };
+      const _opl = onPeerLeft;
+      onPeerLeft = function () { if (onl.isHost && onl.rule === "bo3") { OSER = newSer(); OSER.map = nextMap(OSER); onl.map = OSER.map; } _opl(); };
     })();
   </script>
 </body>
