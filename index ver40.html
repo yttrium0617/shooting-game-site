@@ -630,7 +630,7 @@
 
   <script>
     let canvas, ctx;
-    let player1, player2;
+    let player1, player2, player3 = null, player4 = null;
     let keys = {};
     let obstacles = [];
     let bullets = [];
@@ -702,6 +702,7 @@ player1 = createPlayer(SPAWNS.p1.x, SPAWNS.p1.y, "blue", p1Name);
 
 
       obstacles = getObstaclesForMap(selectedMap);
+      makeExtras();
       initGimmicks(selectedMap);
       bullets = [];
       turrets = [];
@@ -728,9 +729,9 @@ lastPoisonTick = Date.now();
 
       if (!gameActive) return;
 
-      if (e.key === "f") shootBullet(player1, player2);
-      if (e.key === "k") shootBullet(player2, player1);
-      if (e.key === "g") useSkill(player1);
+      if (e.key === "f" && player1 && player1.hp > 0) shootBullet(player1, opponentOf(player1));
+      if (e.key === "k") shootBullet(player2, opponentOf(player2));
+      if (e.key === "g" && player1 && player1.hp > 0) useSkill(player1);
       if (e.key === "l") useSkill(player2);
     }
 
@@ -1084,7 +1085,7 @@ lastPoisonTick = Date.now();
     function updateGimmicks() {
       if (!warps.length && !pads.length) return;
       const now = Date.now();
-      [player1, player2].forEach(p => {
+      fighterList().forEach(p => {
         if (!p || p.hp <= 0) return;
         if (warps.length) {
           const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
@@ -1129,6 +1130,7 @@ lastPoisonTick = Date.now();
     x: shooter.x + shooter.w / 2,
     y: shooter.y + shooter.h / 2,
     from: shooter,
+    onSpot: true,
     damage: shooter.damage
   });
   shooter.ammo -= 1;
@@ -1374,7 +1376,7 @@ if (shooter.charName === "ツインブラザーズ") {
   return;
 }
       if (player.charName === "ジョーカー") {
-  const enemy = player === player1 ? player2 : player1;
+  const enemy = opponentOf(player);
   const effect = Math.floor(Math.random() * 6) + 1;
 
   switch (effect) {
@@ -1432,7 +1434,7 @@ if (shooter.charName === "ツインブラザーズ") {
 
 
       if (player.charName === "白い死神") {   // ver28：弾数を消費せず、強化弾（+50）をその場で発射
-        const en = player === player1 ? player2 : player1, tg = window.aimTarget ? window.aimTarget(player, en) : en;
+        const en = opponentOf(player), tg = window.aimTarget ? window.aimTarget(player, en) : en;
         const a0 = player.ammo, lr = player.lastReload;
         player.nextShotBonusDamage = 50; player.ammo = Math.max(1, a0);
         shootBullet(player, tg);
@@ -1484,7 +1486,7 @@ if (shooter.charName === "ツインブラザーズ") {
         return;
       }
       if (player.charName === "ジャンパー") {
-  const enemy = player === player1 ? player2 : player1;
+  const enemy = opponentOf(player);
   const px = player.x + player.w / 2;
   const py = player.y + player.h / 2;
   const dx = enemy.x + enemy.w / 2 - px;
@@ -1514,7 +1516,7 @@ if (shooter.charName === "ツインブラザーズ") {
     }
 
     function createWallInEnemyDirection(player) {
-      const enemy = player === player1 ? player2 : player1;
+      const enemy = opponentOf(player);
       const px = player.x + player.w / 2;
       const py = player.y + player.h / 2;
       const ex = enemy.x + enemy.w / 2;
@@ -1553,6 +1555,8 @@ if (shooter.charName === "ツインブラザーズ") {
     function update() {
       movePlayer(player1,"w","s","a","d");
       movePlayer(player2,"ArrowUp","ArrowDown","ArrowLeft","ArrowRight");
+      if (player3) movePlayer(player3,"p3u","p3d","p3l","p3r");
+      if (player4) movePlayer(player4,"p4u","p4d","p4l","p4r");
       updateBullets();
       // 画面外・異常値（NaN）・長寿命の弾を確実に消す（処理が溜まらないようにする保険）
       for (let i = bullets.length - 1; i >= 0; i--) {
@@ -1560,8 +1564,7 @@ if (shooter.charName === "ツインブラザーズ") {
         if (!(b.x > -60 && b.x < canvas.width + 60 && b.y > -60 && b.y < canvas.height + 60) || b.lifeTime > 6000) bullets.splice(i, 1);
       }
       updateTurrets();
-      handleReload(player1);
-      handleReload(player2);
+      fighterList().forEach(p => { if (!p.out) handleReload(p); });
       updateSafeZone();
       updateGimmicks();
     }
@@ -1582,13 +1585,14 @@ if (shooter.charName === "ツインブラザーズ") {
     }
 
     function movePlayer(player, up, down, left, right) {
+      if (player.out) return;
       let vx = 0, vy = 0;
       if (keys[up]) vy -= player.speed;
       if (keys[down]) vy += player.speed;
       if (keys[left]) vx -= player.speed;
       if (keys[right]) vx += player.speed;
       // モバイルのスティック：倒した方向・倒し具合どおりに動く（オフライン時のみ）
-      const an = player === player1 ? touchAnalog.p1 : touchAnalog.p2;
+      const an = player === player1 ? touchAnalog.p1 : player === player2 ? touchAnalog.p2 : null;
       if (an && (an.x || an.y) && !(typeof onl !== "undefined" && onl.running)) { vx = an.x * player.speed; vy = an.y * player.speed; }
       // 軸ごとに判定：壁に当たっても壁に沿って滑れる
       const nx = Math.max(0, Math.min(ARENA_W - player.w, player.x + vx));
@@ -1620,7 +1624,7 @@ if (shooter.charName === "ツインブラザーズ") {
   b.damage = 7 + Math.floor(b.r / 1);      // サイズでダメージ上昇
 }
 
-        const target = b.from === player1 ? player2 : player1;
+        const target = hitFoe(b);
         const dx = target.x + target.w/2 - b.x;
         const dy = target.y + target.h/2 - b.y;
         
@@ -1717,25 +1721,24 @@ if (shooter.charName === "ツインブラザーズ") {
     }
 
     function explode(bullet) {
-  const target = bullet.from === player1 ? player2 : player1;
-  const dx = target.x + target.w/2 - bullet.x;
-  const dy = target.y + target.h/2 - bullet.y;
-
   // 爆発半径をキャラごとに反映
   const radius = bullet.explosiveRadius || bullet.r || bullet.from && bullet.from.bulletRadius || 20;
 
-  // 当たり判定
-  if (Math.sqrt(dx*dx+dy*dy) < radius) {
-    target.hp -= bullet.damage;
-    if (target.reflectNextDamage) {
-  bullet.from.hp -= bullet.damage; // 反射ダメージ
-  target.reflectNextDamage = false;
-}
-
-    if (bullet.from.charName === "聖なる使者") {
-      bullet.from.skillCharge+= bullet.damage;
+  // 当たり判定：範囲内の敵すべてにダメージ
+  (bullet.onSpot && window.targetsOf ? window.targetsOf(bullet.from) : foesOf(bullet.from)).forEach(target => {   // その場爆発（ボマー）はペット・タレットにも当たる
+    if (target.hp <= 0) return;
+    const dx = target.x + target.w/2 - bullet.x, dy = target.y + target.h/2 - bullet.y;
+    if (Math.sqrt(dx*dx+dy*dy) < radius) {
+      target.hp -= bullet.damage;
+      if (target.reflectNextDamage) {
+        bullet.from.hp -= bullet.damage; // 反射ダメージ
+        target.reflectNextDamage = false;
+      }
+      if (bullet.from.charName === "聖なる使者") {
+        bullet.from.skillCharge+= bullet.damage;
+      }
     }
-  }
+  });
 
   // 見た目の爆発エフェクトも radius を使う
   explosions.push({x: bullet.x, y: bullet.y, r: radius, life: 15});
@@ -1773,7 +1776,7 @@ function updateSafeZone() {
   }
 
  // プレイヤーごとに判定
-[player1, player2].forEach(p => {
+fighterList().forEach(p => {
   if (!p || p.hp <= 0) return; // プレイヤーが存在しない、または既に死んでいる場合はスキップ
   
   const dx = p.x + p.w/2 - safeZone.x;
@@ -1795,7 +1798,7 @@ function updateSafeZone() {
 
     function turretShoot(turret) {
       if (!gameActive) return;
-      const target = turret.owner === player1 ? player2 : player1;
+      const target = opponentOf(turret.owner);
       const dx = target.x + target.w/2 - turret.x;
       const dy = target.y + target.h/2 - turret.y;
       const mag = Math.sqrt(dx*dx+dy*dy);
@@ -1819,8 +1822,15 @@ function updateSafeZone() {
 
     // draw() / drawPlayer() は ver16 の描画スクリプトで定義
 
+    function reapDead() {
+      if (!window.TWOVTWO) return;
+      fighterList().forEach(p => {
+        if (p.hp <= 0 && !p.out) { p.hp = 0; p.out = true; explosions.push({ x: p.x + 15, y: p.y + 15, r: 40, life: 12 }); p.x = -500; p.y = -500; }
+      });
+    }
     function checkGameOver() {
-      if (player1.hp <= 0 || player2.hp <= 0) {
+      reapDead();
+      if (sideDead(0) || sideDead(1)) {
         gameActive = false;
         showResult();
       }
@@ -1830,8 +1840,8 @@ function updateSafeZone() {
       hideAllScreens();
       document.getElementById("resultScreen").classList.remove("hidden");
       const winnerText =
-        player1.hp <= 0 && player2.hp <= 0 ? "引き分け！" :
-        player1.hp <= 0 ? "2Pの勝ち！" : "1Pの勝ち！";
+        matchWinner() === 0 ? "引き分け！" :
+        matchWinner() === 2 ? "2Pの勝ち！" : "1Pの勝ち！";
       document.getElementById("resultText").innerText = winnerText;
       keys = {};
     }
@@ -1839,7 +1849,7 @@ function updateSafeZone() {
     function returnToMenu() {
       hideAllScreens();
       document.getElementById("homeScreen").classList.remove("hidden");
-      player1=null; player2=null; bullets=[]; obstacles=[]; turrets=[]; explosions=[]; keys={}; gameActive=false;
+      player1=null; player2=null; player3=null; player4=null; window.TWOVTWO=false; bullets=[]; obstacles=[]; turrets=[]; explosions=[]; keys={}; gameActive=false;
     }
 
     function hideAllScreens() {
@@ -2374,8 +2384,8 @@ function updateSafeZone() {
             keys["ArrowLeft"] = !!m.l; keys["ArrowRight"] = !!m.r;
           }
           break;
-        case "shoot": if (onl.isHost && onl.running && gameActive) shootBullet(player2, player1); break;
-        case "skill": if (onl.isHost && onl.running && gameActive) useSkill(player2); break;
+        case "shoot": if (onl.isHost && onl.running && gameActive && player2.hp > 0) shootBullet(player2, opponentOf(player2)); break;
+        case "skill": if (onl.isHost && onl.running && gameActive && player2.hp > 0) useSkill(player2); break;
       }
     }
 
@@ -2401,10 +2411,11 @@ function updateSafeZone() {
       document.removeEventListener("keyup", keyUpHandler);
 
       player1 = createPlayer(SPAWNS.p1.x, SPAWNS.p1.y, "blue", p1Name);
-      player2 = createPlayer(SPAWNS.p2.x, SPAWNS.p2.y, "red", p2Name);
+      player2 = createPlayer(SPAWNS.p2.x, SPAWNS.p2.y, "red", p2Name); player3 = player4 = null;
       bullets = []; turrets = []; explosions = []; keys = {};
       obstacles = onl.isHost ? getObstaclesForMap(mapName) : [];
       initGimmicks(mapName);
+      makeExtras();
       safeZone.x = canvas.width / 2;
       safeZone.y = canvas.height / 2;
       safeZone.radius = Math.max(canvas.width, canvas.height);
@@ -2447,10 +2458,11 @@ function updateSafeZone() {
 
       if (ts - onl.lastSend >= 16) { sendSnapMsg(buildSnap()); onl.lastSend = ts; }
 
-      if (player1.hp <= 0 || player2.hp <= 0) {
+      reapDead();
+      if (sideDead(0) || sideDead(1)) {
         gameActive = false;
         sendMsg(buildSnap());
-        const w = (player1.hp <= 0 && player2.hp <= 0) ? "draw" : (player1.hp <= 0 ? "p2" : "p1");
+        const mw = matchWinner(), w = mw === 0 ? "draw" : (mw === 2 ? "p2" : "p1");
         sendMsg({ t: "over", w });
         finishMatch(w);
         return;
@@ -2463,14 +2475,14 @@ function updateSafeZone() {
       const now = Date.now();
       const s = {
         t: "snap",
-        p: [player1, player2].map(p => ({
+        p: fighterList().map(p => ({
           x: r1(p.x), y: r1(p.y), hp: r1(p.hp),
           am: p.ammo, mx: p.maxAmmo, md: p.mode || null, sc: p.skillCharge || 0,
           cd: isFinite(p.skillCooldown) ? p.skillCooldown : null,
           se: now - p.skillLastUsed
         })),
-        b: bullets.map(b => [r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.r), b.from === player1 ? 1 : 2]),
-        tu: turrets.map(t => [r1(t.x), r1(t.y), t.owner === player1 ? 1 : 2]),
+        b: bullets.map(b => [r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.r), (teamOf(b.from) + 1)]),
+        tu: turrets.map(t => [r1(t.x), r1(t.y), (teamOf(t.owner) + 1)]),
         ex: explosions.map(e => [r1(e.x), r1(e.y), r1(e.r), e.life]),
         sz: [safeZone.x, safeZone.y, r1(safeZone.radius), safeZone.shrinking ? 1 : 0, now - gameStartTime],
         pd: pads.map(p => Math.max(0, Math.round(p.next - now)))
@@ -2485,7 +2497,7 @@ function updateSafeZone() {
 
     /* ----- ゲスト：描画ループ ----- */
     function applySnap(s) {
-      [player1, player2].forEach((p, i) => {
+      fighterList().forEach((p, i) => {
         const d = s.p[i];
         if (!p || !d) return;
         p.tx = d.x; p.ty = d.y;
@@ -2508,7 +2520,7 @@ function updateSafeZone() {
       const dt = Math.min((ts - onl.lastTs) / (1000 / 60), 3);
       onl.lastTs = ts;
       bullets.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; }); // 弾は次の状態が来るまで先読み
-      [player1, player2].forEach(p => {
+      fighterList().forEach(p => {
         if (p.tx === undefined) return;
         if (Math.hypot(p.tx - p.x, p.ty - p.y) > 90) { p.x = p.tx; p.y = p.ty; } // ワープは補間せず即移動
         const k = Math.min(1, 0.5 * dt);
@@ -2527,7 +2539,7 @@ function updateSafeZone() {
       clearInterval(onl.hbTimer);
       keys = {};
       if (onl.isHost) onl.guestReady = false;
-      const me = onl.isHost ? "p1" : "p2";
+      const me = window.TWOVTWO ? ((onl.mySlot | 0) % 2 ? "p2" : "p1") : (onl.isHost ? "p1" : "p2");
       document.getElementById("onlineResultText").textContent =
         w === "draw" ? "引き分け！" : (w === me ? "あなたの勝ち！ 🎉" : "あなたの負け…");
       showScreen("onlineResult");
@@ -2554,8 +2566,8 @@ function updateSafeZone() {
       if (k.startsWith("Arrow") || k === " ") e.preventDefault();
       if (!onl.running) return;
       if (DIR_KEYS[k]) { onl.dirs[DIR_KEYS[k]] = true; sendDirs(); return; }
-      if (k === "f") { onl.isHost ? (gameActive && shootBullet(player1, player2)) : sendMsg({ t: "shoot" }); }
-      if (k === "g") { onl.isHost ? (gameActive && useSkill(player1)) : sendMsg({ t: "skill" }); }
+      if (k === "f") { onl.isHost ? (gameActive && player1.hp > 0 && shootBullet(player1, opponentOf(player1))) : sendMsg({ t: "shoot" }); }
+      if (k === "g") { onl.isHost ? (gameActive && player1.hp > 0 && useSkill(player1)) : sendMsg({ t: "skill" }); }
     }
     function onlineKeyUp(e) {
       const k = normKey(e);
@@ -2959,12 +2971,12 @@ function updateSafeZone() {
     }
 
     /* ---------- 画面エフェクト用の状態（見た目専用） ---------- */
-    const fx = { p1: null, p2: null, hp: [100, 100], flash: [0, 0], floaters: [], shake: 0 };
+    const fx = { p1: null, p2: null, hp: [100, 100, 100, 100], flash: [0, 0, 0, 0], floaters: [], shake: 0 };
     function fxSync() {
       if (fx.p1 !== player1 || fx.p2 !== player2) {
-        fx.p1 = player1; fx.p2 = player2; fx.hp = [player1.hp, player2.hp]; fx.flash = [0, 0]; fx.floaters = []; fx.shake = 0;
+        fx.p1 = player1; fx.p2 = player2; fx.hp = fighterList().map(q => q.hp); fx.flash = [0, 0, 0, 0]; fx.floaters = []; fx.shake = 0;
       }
-      [player1, player2].forEach((p, i) => {
+      fighterList().forEach((p, i) => {
         const d = p.hp - fx.hp[i];
         if (Math.abs(d) >= 1) {
           fx.floaters.push({ x: p.x + p.w / 2, y: p.y - 12, t: 0, txt: (d < 0 ? "-" : "+") + Math.round(Math.abs(d)), c: d < 0 ? "#ff5470" : "#5dff9b" });
@@ -2973,7 +2985,7 @@ function updateSafeZone() {
         fx.hp[i] = p.hp;
       });
     }
-    function bulletOwner(b) { return b.own || (b.from === player1 ? 1 : 2); }
+    function bulletOwner(b) { return b.own || ((teamOf(b.from) + 1)); }
     function isSkillReady(p, now) {
       if (p.charName === "聖なる使者") return p.skillCharge >= 30;
       return now - p.skillLastUsed >= p.skillCooldown;
@@ -2997,7 +3009,7 @@ function updateSafeZone() {
     }
 
     function drawTurret(t) {
-      const idx = t.own || (t.owner === player1 ? 1 : 2), T = TEAM[idx], foe = idx === 1 ? player2 : player1;
+      const idx = t.own || (teamOf(t.owner) + 1), T = TEAM[idx], foe = opponentOf(t.owner || player1);
       const tp = window.turretAimPoint ? window.turretAimPoint(t) : null;   // ver28：召喚物ペットも狙う
       const ang = tp ? Math.atan2(tp.y - t.y, tp.x - t.x) : Math.atan2(foe.y + foe.h / 2 - t.y, foe.x + foe.w / 2 - t.x);
       ctx.save(); ctx.translate(t.x, t.y);
@@ -3009,9 +3021,9 @@ function updateSafeZone() {
     }
 
     function drawPlayer(p) {
-      const idx = p === player1 ? 1 : 2, T = TEAM[idx], foe = idx === 1 ? player2 : player1;
+      const idx = teamOf(p) + 1, T = TEAM[idx], foe = opponentOf(p);
       const cx = p.x + p.w / 2, cy = p.y + p.h / 2, R = 19, now = Date.now();
-      const ready = isSkillReady(p, now), flash = fx.flash[idx - 1];
+      const ready = isSkillReady(p, now), flash = fx.flash[fighterList().indexOf(p)];
       ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(cx, cy + 16, 16, 6, 0, 0, TAU); ctx.fill();
       if (ready) {
         ctx.strokeStyle = `rgba(255,214,64,${(.45 + .35 * Math.sin(now / 180)).toFixed(2)})`; ctx.lineWidth = 2;
@@ -3031,7 +3043,7 @@ function updateSafeZone() {
       }
       if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${(flash * .7).toFixed(2)})`; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R); }
       ctx.restore();
-      fx.flash[idx - 1] = Math.max(0, flash - .08);
+      fx.flash[fighterList().indexOf(p)] = Math.max(0, flash - .08);
       ctx.lineWidth = 3; ctx.strokeStyle = T.main; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
       // 照準の向き（相手方向）
       const aT = window.aimTarget ? window.aimTarget(p, foe) : foe;   // ver28：召喚物ペットが近ければそちらを向く
@@ -3098,7 +3110,7 @@ function updateSafeZone() {
       obstacles.forEach(o => drawObstacle(ctx, o, th));
       drawZone();
       turrets.forEach(drawTurret);
-      drawPlayer(player1); drawPlayer(player2);
+      fighterList().forEach(p => { if (!p.out) drawPlayer(p); });
       drawBullets(); drawExplosions();
       ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.font = "bold 15px sans-serif"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.8)";
       for (let i = fx.floaters.length - 1; i >= 0; i--) {
@@ -3128,14 +3140,14 @@ function updateSafeZone() {
       $("hudTrail" + i).style.width = "100%";
     }
     function skillKey(i) {
-      if (typeof onl !== "undefined" && onl.running) return (onl.isHost ? i === 1 : i === 2) ? "G" : "";
+      if (typeof onl !== "undefined" && onl.running) return (window.TWOVTWO ? i === 1 : (onl.isHost ? i === 1 : i === 2)) ? "G" : "";
       return i === 1 ? "G" : "L";
     }
     function updateHud() {
-      const now = Date.now();
-      if (hudState.p1 !== player1 || hudState.p2 !== player2) {
-        hudState.p1 = player1; hudState.p2 = player2; hudState.mx = [-1, -1];
-        hudSetPlayer(1, player1); hudSetPlayer(2, player2);
+      const now = Date.now(), H1 = hudP(1), H2 = hudP(2);
+      if (hudState.p1 !== H1 || hudState.p2 !== H2) {
+        hudState.p1 = H1; hudState.p2 = H2; hudState.mx = [-1, -1];
+        hudSetPlayer(1, H1); hudSetPlayer(2, H2);
         const online = typeof onl !== "undefined" && onl.running;
         $("controlHelp").textContent = online
           ? "移動：WASD / 矢印キー　攻撃：F　スキル：G"
@@ -3143,7 +3155,7 @@ function updateSafeZone() {
         const label = (MAP_DEFS[selectedMap] ? selectedMap + " / " + MAP_DEFS[selectedMap].tag : selectedMap);
         $("gameInfo").textContent = label;
       }
-      [[player1, 1], [player2, 2]].forEach(([p, i]) => {
+      [[H1, 1], [H2, 2]].forEach(([p, i]) => {
         const ratio = Math.max(0, Math.min(1, p.hp / (p.maxHp || 100))), pct = (ratio * 100).toFixed(1) + "%";
         $("hudHp" + i).style.width = pct; $("hudTrail" + i).style.width = pct;
         $("hudHpTxt" + i).textContent = Math.max(0, Math.ceil(p.hp));
@@ -3171,9 +3183,9 @@ function updateSafeZone() {
 
     /* ---------- YOU マーカー（オンライン） ---------- */
     function drawYouMarker() {
-      const me = onl.isHost ? player1 : player2;
-      if (!me || !ctx) return;
-      const T = onl.isHost ? TEAM[1] : TEAM[2], cx = me.x + me.w / 2, y = me.y - 30 + Math.sin(Date.now() / 200) * 2;
+      const me = myFighter();
+      if (!me || !ctx || me.out || me.hp <= 0) return;
+      const T = TEAM[teamOf(me) + 1], cx = me.x + me.w / 2, y = me.y - 30 + Math.sin(Date.now() / 200) * 2;
       ctx.save(); ctx.fillStyle = T.main; ctx.strokeStyle = "#000"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(cx, y + 6); ctx.lineTo(cx - 6, y - 4); ctx.lineTo(cx + 6, y - 4); ctx.closePath(); ctx.stroke(); ctx.fill();
       ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeText("YOU", cx, y - 8); ctx.fillStyle = "#fff"; ctx.fillText("YOU", cx, y - 8);
@@ -3476,7 +3488,8 @@ function __makeCpuAI(NOW,RND){
  let fr=0;const TK=3;
  const HY=(a,b)=>Math.sqrt(a*a+b*b);
 const GM=4,GR=4;
-const SIDE=[{up:'w',down:'s',left:'a',right:'d'},{up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight'}];
+const SIDE=[{up:'w',down:'s',left:'a',right:'d'},{up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight'},{up:'p3u',down:'p3d',left:'p3l',right:'p3r'},{up:'p4u',down:'p4d',left:'p4l',right:'p4r'}];
+const PL=()=>[player1,player2,player3,player4];
 // ===== 戦略型AI =====
 // range=理想距離 fire=射撃開始距離 pass=壁貫通弾 strafe=横移動 chase=距離維持の強さ tol=照準のゆるさ
 const PROF={
@@ -3498,7 +3511,7 @@ const PROF={
 '怪獣王':{range:300,fire:100},
 '不死鳥':{range:200,fire:350},
 'ペット＆テイマー':{range:230,fire:300}};
-const ai=[{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]}];
+const ai=[{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]}];
 const rect=p=>({x:p.x,y:p.y,w:30,h:30});
 const trapped=p=>collidesWithObstacles(rect(p));
 // 弾が実際に届くか（ゲームと同じ順序：先に標的、次に壁）
@@ -3510,7 +3523,7 @@ function wallFor(p,e){const px=p.x+15,py=p.y+15,dx=e.x+15-px,dy=e.y+15-py,m=Math
 function trapOK(p,e){const w=wallFor(p,e);return!collidesWithObstacles(w)&&Math.abs(w.x-e.x)<14&&Math.abs(w.y-e.y)<14}
 function threatR(en){const n=en.charName;if(n==='ボマー')return en.bulletRadius+48;if(n==='ツインブラザーズ'&&en.mode==='S')return 130;if(n==='アクアファイター')return 125;return 0}
 function los(ax,ay,bx,by){const n=Math.ceil(HY(bx-ax,by-ay)/9),dx=(bx-ax)/n,dy=(by-ay)/n,L=obstacles.length;for(let k=1;k<n;k++){const x=ax+dx*k,y=ay+dy*k;for(let j=0;j<L;j++){const o=obstacles[j];if(x>o.x-3&&x<o.x+o.w+3&&y>o.y-3&&y<o.y+o.h+3)return false}}return true}
-function danger(me,px,py,vx,vy){let d=0;for(const b of bullets.concat(window.X21?X21.xb:[])){if(b.from===me)continue;const v2=b.vx*b.vx+b.vy*b.vy;if(v2<.01)continue;
+function danger(me,px,py,vx,vy){let d=0;for(const b of bullets.concat(window.X21?X21.xb:[])){if(b.from===me||(b.from&&teamOf(b.from)===teamOf(me)))continue;const v2=b.vx*b.vx+b.vy*b.vy;if(v2<.01)continue;
  const rx=px-b.x,ry=py-b.y,tc=Math.max(0,Math.min(40,(rx*b.vx+ry*b.vy)/v2)),
  qx=px+vx*Math.min(tc,12),qy=py+vy*Math.min(tc,12);
  if(HY(qx-(b.x+b.vx*tc),qy-(b.y+b.vy*tc))<b.r+17)d+=(b.damage||10)*(1.4-tc/40)}return d}
@@ -3525,7 +3538,8 @@ function firstObs(ax,ay,t,r){const tx=t.x+15,ty=t.y+15,n=Math.max(1,Math.ceil(HY
 // 雷：直撃するか、敵が触れているブロックに当たる（壁を伝って命中）ならOK
 function thunderOK(ax,ay,en){const o=firstObs(ax,ay,en,6);return!o||(!o.mir&&en.x<o.x+o.w+8&&en.x+30>o.x-8&&en.y<o.y+o.h+8&&en.y+30>o.y-8)}
 function think(i){
- const me=i?player2:player1,en=i?player1:player2,K=SIDE[i],A=ai[i],nm=me.charName,P=PROF[nm],EP=PROF[en.charName];
+ const me0=PL()[i],en0=me0&&opponentOf(me0);if(!me0||me0.hp<=0||!en0||en0.hp<=0){if(me0){const k=SIDE[i];keys[k.up]=keys[k.down]=keys[k.left]=keys[k.right]=false}return}
+ const me=me0,en=en0,K=SIDE[i],A=ai[i],nm=me.charName,P=PROF[nm],EP=PROF[en.charName];
  const mx=me.x+15,my=me.y+15,ex=en.x+15,ey=en.y+15,d=HY(ex-mx,ey-my)||1,ux=(ex-mx)/d,uy=(ey-my)/d;
  if(A.pe)A.ev=[(ex-A.pe[0])/3,(ey-A.pe[1])/3];A.pe=[ex,ey];
  const el=(NOW()-gameStartTime)/1000,zr=safeZone.shrinking?safeZone.radius:660,sp=me.speed,twin=me.mode==='S';
@@ -3574,7 +3588,7 @@ function think(i){
  // ver28：エイムは人間と同じ（一番近い敵／ペット／タレット）。ダメージを気にしないキャラは、エイムが本体に向くまで詰める
  const ignoreDmg=nm==='ボマー'||(nm==='不死鳥'&&!me.rv)||(nm==='ツインブラザーズ'&&twin)||(nm==='既視感のあるGAY'&&((en.stunUntil||0)>NOW()||(me.hasteUntil||0)>NOW()));
  let pt=null,pd=1e9;
- for(const m of (window.TAMER_MINS||[])){if(m.o===me)continue;const dd=HY(m.x+10-mx,m.y+10-my);if(dd<pd){pd=dd;pt=m}}
+ for(const m of (window.TAMER_MINS||[])){if(teamOf(m.o)===teamOf(me))continue;const dd=HY(m.x+10-mx,m.y+10-my);if(dd<pd){pd=dd;pt=m}}
  const at=window.aimTarget?window.aimTarget(me,en):en,aimOther=at!==en;
  if(enTrap&&!EP.pass&&!eTh)expoW=0;
  const hide=me.ammo<=0&&nm!=='聖なる使者'&&nm!=='ボマー';if(hide)expoW*=1.6;
@@ -3644,7 +3658,7 @@ function think(i){
  if(!hold&&me.ammo>0&&fr>=A.nf&&d<fire&&!inWall&&(nm==='ボマー'||(lat<tol&&(pass||canHit(mx,my,en,5,0,6))))){
   const a0=me.ammo;shootBullet(me,en);if(me.ammo<a0){A.nf=fr+(P.gm!==undefined?P.gm:GM)+Math.floor(RND()*(P.gr!==undefined?P.gr:GR))}}
 }
- function pre(i){const me=i?player2:player1,en=i?player1:player2;
+ function pre(i){const me=PL()[i],en=me&&opponentOf(me);if(!me||me.hp<=0||!en||en.hp<=0)return;
   if(me.charName==='アクアファイター'&&NOW()-me.skillLastUsed>=me.skillCooldown&&!trapped(en)&&trapOK(me,en))useSkill(me)}
  function run(list){fr++;for(const i of list)pre(i);if(fr%TK===1)for(const i of list)think(i)}
  return{run}
@@ -3669,12 +3683,12 @@ function think(i){
     };
     const _update20 = update;
     update = function () {
-      if (cpu.on && gameActive && player1 && player2) cpu.ai.run([1]);
+      if (cpu.on && gameActive && player1 && player2) cpu.ai.run(window.TWOVTWO ? [1, 2, 3] : [1]);
       _update20();
     };
     const _showResult20 = showResult;
     showResult = function () {
-      const w = player1.hp <= 0 && player2.hp <= 0 ? 0 : player1.hp <= 0 ? 2 : 1, was = cpu.on;
+      const w = matchWinner(), was = cpu.on;
       _showResult20();
       if (was) document.getElementById("resultText").innerText = w === 0 ? "引き分け！" : w === 1 ? "あなたの勝ち！" : "CPUの勝ち…";
       cpu.on = false; cpuSetUI();
@@ -3804,7 +3818,7 @@ function think(i){
         if (S.p1 !== player1 || S.p2 !== player2) {
           S.p1 = player1; S.p2 = player2;
           xb.length = 0; zones.length = 0; arcs.length = 0; parts.length = 0;
-          S.v = [snapP(player1), snapP(player2)]; S.castT = [0, 0];
+          S.v = fighterList().map(snapP); S.castT = [0, 0, 0, 0];
         }
       }
 
@@ -3843,7 +3857,7 @@ function think(i){
       function fireGay(p, t) {
         if (p.ammo <= 0) return;
         const [ux, uy] = aim(p, t), cx = p.x + p.w / 2, cy = p.y + p.h / 2;
-        xb.push({ type: "gay", x: cx, y: cy, sx: cx, sy: cy, vx: ux * p.bulletSpeed, vy: uy * p.bulletSpeed, r: GAY_R0, dmg: GAY_D0, damage: GAY_D0, own: p === player1 ? 1 : 2, from: p, age: 0 });
+        xb.push({ type: "gay", x: cx, y: cy, sx: cx, sy: cy, vx: ux * p.bulletSpeed, vy: uy * p.bulletSpeed, r: GAY_R0, dmg: GAY_D0, damage: GAY_D0, own: (teamOf(p) + 1), from: p, age: 0 });
         p.ammo -= 1; p.lastReload = Date.now();
       }
       function castMage(p, t) {
@@ -3851,7 +3865,7 @@ function think(i){
         if (now < (p.nextCastAt || 0) || p.mana < EL_COST[e]) return;
         p.mana -= EL_COST[e]; p.nextCastAt = now + EL_DELAY[e]; p.ammo = 0; p.lastReload = now;
         const [ux, uy] = aim(p, t), cx = p.x + p.w / 2, cy = p.y + p.h / 2;
-        xb.push({ type: EL[e], x: cx, y: cy, vx: ux * EL_SPD[e], vy: uy * EL_SPD[e], r: 6, dmg: EL_DMG[e], damage: EL_DMG[e], own: p === player1 ? 1 : 2, from: p, age: 0 });
+        xb.push({ type: EL[e], x: cx, y: cy, vx: ux * EL_SPD[e], vy: uy * EL_SPD[e], r: 6, dmg: EL_DMG[e], damage: EL_DMG[e], own: (teamOf(p) + 1), from: p, age: 0 });
       }
 
       const _useSkill = useSkill;
@@ -3861,8 +3875,8 @@ function think(i){
         if (p.charName === GAY) {
           if (now - p.skillLastUsed < p.skillCooldown) return;
           p.skillLastUsed = now; p.hasteUntil = now + HASTE_MS;
-          const t = p === player1 ? player2 : player1, [ux, uy] = aim(p, t), cx = p.x + p.w / 2, cy = p.y + p.h / 2;
-          xb.push({ type: "wave", x: cx, y: cy, sx: cx, sy: cy, vx: ux * WAVE_SPEED, vy: uy * WAVE_SPEED, r: WAVE_R, dmg: 0, damage: 0, own: p === player1 ? 1 : 2, from: p, age: 0, pass: true });
+          const t = opponentOf(p), [ux, uy] = aim(p, t), cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+          xb.push({ type: "wave", x: cx, y: cy, sx: cx, sy: cy, vx: ux * WAVE_SPEED, vy: uy * WAVE_SPEED, r: WAVE_R, dmg: 0, damage: 0, own: (teamOf(p) + 1), from: p, age: 0, pass: true });
           return;
         }
         if (p.charName === MAGE) {
@@ -3875,7 +3889,7 @@ function think(i){
 
       /* スタン・加速・減速を移動に反映 */
       function inIceZone(p) {
-        const cx = p.x + 15, cy = p.y + 15, me = p === player1 ? 1 : 2;
+        const cx = p.x + 15, cy = p.y + 15, me = (teamOf(p) + 1);
         return zones.some(z => z.own !== me && Math.hypot(cx - z.x, cy - z.y) < z.r);
       }
       const _movePlayer = movePlayer;
@@ -3919,7 +3933,7 @@ function think(i){
       }
       function stepBullets() {
         for (let i = xb.length - 1; i >= 0; i--) {
-          const b = xb[i], target = b.from === player1 ? player2 : player1;
+          const b = xb[i], target = hitFoe(b);
           b.x += b.vx; b.y += b.vy; b.age++;
           warpBullet(b);
           if (b.type === "gay") {
@@ -3952,16 +3966,17 @@ function think(i){
       function touching(p, r, m) { return p.x < r.x + r.w + m && p.x + p.w > r.x - m && p.y < r.y + r.h + m && p.y + p.h > r.y - m; }
       function stepArcs() {
         for (let i = arcs.length - 1; i >= 0; i--) {
-          const a = arcs[i], enemy = a.own === 1 ? player2 : player1;
+          const a = arcs[i];
           a.prog += ARC_SPEED;
-          if (!a.hit && touching(enemy, a, ARC_MARGIN)) { enemy.hp -= ARC_DMG; a.hit = true; }   // 壁に触れていた敵は命中扱い
+          a.hs = a.hs || [];
+          fighterList().forEach(q => { if (teamOf(q) !== a.own - 1 && q.hp > 0 && !a.hs.includes(q) && touching(q, a, ARC_MARGIN)) { q.hp -= ARC_DMG; a.hs.push(q); } });   // 壁に触れていた敵は全員命中扱い
           if (a.prog >= 2 * (a.w + a.h)) arcs.splice(i, 1);                                        // 一周したら消える
         }
       }
       function xUpdate() {
         sync();
         const now = Date.now();
-        [player1, player2].forEach(p => {
+        fighterList().forEach(p => {
           if (p.charName === GAY) {
             if (p.hp < p._hp0) p.skillLastUsed -= (p._hp0 - p.hp) * GAY_CD_PER_HP;   // 被弾でクールタイム短縮
             p._hp0 = p.hp;
@@ -4008,7 +4023,7 @@ function think(i){
         s.xb = xb.map(b => [r1(b.x), r1(b.y), r1(b.vx), r1(b.vy), r1(b.r), b.own, XT.indexOf(b.type), b.age]);
         s.zn = zones.map(z => [r1(z.x), r1(z.y), z.own, Math.max(0, z.until - now), now - z.born]);
         s.ar = arcs.map(a => [a.x, a.y, a.w, a.h, r1(a.s0), r1(a.prog), a.own]);
-        s.pf = [player1, player2].map(p => [
+        s.pf = fighterList().map(p => [
           Math.max(0, (p.stunUntil || 0) - now), Math.max(0, (p.hasteUntil || 0) - now),
           p.isChargedCreeper ? 1 : 0, p.nextShotBonusDamage > 0 ? 1 : 0, p.reflectNextDamage ? 1 : 0,
           p.warpPoint ? r1(p.warpPoint.x) : -1, p.warpPoint ? r1(p.warpPoint.y) : -1,
@@ -4025,7 +4040,7 @@ function think(i){
         xb.length = 0; (s.xb || []).forEach(a => xb.push({ x: a[0], y: a[1], vx: a[2], vy: a[3], r: a[4], own: a[5], type: XT[a[6]], age: a[7], _t: tn }));
         zones.length = 0; (s.zn || []).forEach(a => zones.push({ x: a[0], y: a[1], own: a[2], until: now + a[3], born: now - a[4], r: ICE_R }));
         arcs.length = 0; (s.ar || []).forEach(a => arcs.push({ x: a[0], y: a[1], w: a[2], h: a[3], s0: a[4], prog: a[5], own: a[6] }));
-        if (s.pf) [player1, player2].forEach((p, i) => {
+        if (s.pf) fighterList().forEach((p, i) => {
           const f = s.pf[i]; if (!f) return;
           p.stunUntil = now + f[0]; p.hasteUntil = now + f[1];
           p.isChargedCreeper = !!f[2]; p.nextShotBonusDamage = f[3] ? 1 : 0; p.reflectNextDamage = !!f[4];
@@ -4147,8 +4162,8 @@ function think(i){
       function vfxStep() {
         sync();
         const now = Date.now();
-        [player1, player2].forEach((p, i) => {
-          const v = S.v[i], foe = i ? player1 : player2, cx = p.x + 15, cy = p.y + 15;
+        fighterList().forEach((p, i) => {
+          const v = S.v[i], foe = opponentOf(p), cx = p.x + 15, cy = p.y + 15;
           const dh = v.hp - p.hp;
           if (dh >= 1) hitFx(cx, cy, dh, foe);
           else if (-dh >= 5) burst(cx, cy, 8, ["#5dff9b", "#ffffff"], { sp: 1.6, sh: "plus", life: 34, g: -.05, s: 3 });
@@ -4499,7 +4514,7 @@ function think(i){
         ctx.restore();
       }
       function drawPortal(p, t) {
-        const T = TEAM[p === player1 ? 1 : 2], x = p.warpPoint.x + 15, y = p.warpPoint.y + 15;
+        const T = TEAM[(teamOf(p) + 1)], x = p.warpPoint.x + 15, y = p.warpPoint.y + 15;
         ctx.save(); ctx.translate(x, y);
         halo(0, 0, 26, "179,136,255", .5);
         ctx.shadowColor = T.main; ctx.shadowBlur = 12; ctx.lineWidth = 2.5; ctx.lineCap = "round";
@@ -4508,7 +4523,7 @@ function think(i){
       }
       const _drawPlayer = drawPlayer;
       drawPlayer = function (p) {
-        const now = Date.now(), idx = p === player1 ? 0 : 1, foe = idx ? player1 : player2, cx = p.x + 15, cy = p.y + 15, t = now / 1000, nm = p.charName;
+        const now = Date.now(), idx = teamOf(p), foe = opponentOf(p), cx = p.x + 15, cy = p.y + 15, t = now / 1000, nm = p.charName;
         ctx.save();
         if (p.warpPoint) drawPortal(p, t);
         if (nm === MAGE) drawMageCircle(p, foe, idx, now);
@@ -4572,7 +4587,7 @@ function think(i){
       const _updateHud = updateHud;
       updateHud = function () {
         _updateHud();
-        [player1, player2].forEach((p, k) => {
+        [hudP(1), hudP(2)].forEach((p, k) => {
           if (!p || p.charName !== MAGE) return;
           const i = k + 1, pips = $("hudAmmo" + i), e = p.element | 0;
           let m = pips.querySelector(".mana");
@@ -4617,11 +4632,11 @@ function think(i){
       };
       const _up = update;
       update = function () { // 大玉が壁・射程切れで消えたら自動で破裂（命中時は破裂しない）
-        const pre = [player1, player2].map(p => p && p.pieB && bullets.indexOf(p.pieB) >= 0 ? p.pieB : null);
+        const pre = fighterList().map(p => p && p.pieB && bullets.indexOf(p.pieB) >= 0 ? p.pieB : null);
         _up();
         pre.forEach((b, i) => {
           if (!b || bullets.indexOf(b) >= 0) return;
-          const p = i ? player2 : player1, t = i ? player1 : player2;
+          const p = fighterList()[i], t = opponentOf(p);
           p.pieB = null;
           if (!circleHitRect(b, t)) burst(p, b.x - b.vx, b.y - b.vy);
         });
@@ -4632,8 +4647,10 @@ function think(i){
         const now = Date.now();
         if (stunned(p) || now - p.skillLastUsed < p.skillCooldown) return;
         p.skillLastUsed = now;
-        const e = p === player1 ? player2 : player1, cx = p.x + 15, cy = p.y + 15, dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
+        const cx = p.x + 15, cy = p.y + 15;
         explosions.push({ x: cx, y: cy, r: 130, life: 15 });
+        (window.targetsOf ? window.targetsOf(p) : [opponentOf(p)]).forEach(e => {
+        const dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
         if (d < 130) { // 壁越しでも吹き飛ばす（壁には止められる）
           for (let k = 0; k < 20; k++) {
             const nx = Math.max(0, Math.min(ARENA_W - 30, e.x + dx / d * 5)), ny = Math.max(0, Math.min(ARENA_H - 30, e.y + dy / d * 5));
@@ -4641,6 +4658,7 @@ function think(i){
             e.x = nx; e.y = ny;
           }
         }
+        });
       };
     })();
   </script>
@@ -4649,7 +4667,8 @@ function think(i){
     (function () {
       const K = "怪獣王", now = () => Date.now(), stunned = p => (p.stunUntil || 0) > now();
       const fxK = [], FAN = 250, BEAM = 500, R = 90, HA = .8;
-      const foe = p => p === player1 ? player2 : player1;
+      const foe = p => opponentOf(p);
+      const lockOf = p => (p.klock && p.klock.hp > 0) ? p.klock : foe(p);   // チャージ開始時にロックした相手
       function kb(e, ux, uy, dist) {
         for (let k = 0; k < dist / 5; k++) {
           const nx = Math.max(0, Math.min(ARENA_W - 30, e.x + ux * 5)), ny = Math.max(0, Math.min(ARENA_H - 30, e.y + uy * 5));
@@ -4670,7 +4689,11 @@ function think(i){
         s.ammo--; s.lastReload = now();
         const sx = s.x + 15, sy = s.y + 15, dx = t.x + 15 - sx, dy = t.y + 15 - sy, d = Math.hypot(dx, dy) || 1;
         fxK.push({ k: 0, x: sx, y: sy, a: Math.atan2(dy, dx), w: 0, until: now() + FAN });
-        if (d < R + 15) { t.hp -= 30; kb(t, dx / d, dy / d, 60); }
+        const aim = Math.atan2(dy, dx);
+        (window.targetsOf ? window.targetsOf(s) : [t]).forEach(q => {
+          const qx = q.x + 15 - sx, qy = q.y + 15 - sy, qd = Math.hypot(qx, qy) || 1; let da = Math.atan2(qy, qx) - aim; da = Math.atan2(Math.sin(da), Math.cos(da));
+          if (qd < R + 15 && Math.abs(da) < HA + .25) { q.hp -= 30; kb(q, qx / qd, qy / qd, 60); }
+        });
       };
       const _mp = movePlayer;
       movePlayer = function (p, u, d, l, r) { // チャージ中は動けない／相手の5秒チャージで少し減速
@@ -4680,13 +4703,16 @@ function think(i){
         else _mp(p, u, d, l, r);
       };
       function rel(p) { // 熱線発射
-        const t = now(), c = p.kcT || Math.min(7000, t - p.kc), k = Math.max(0, (c - 2000) / 5000), e = foe(p);
+        const t = now(), c = p.kcT || Math.min(7000, t - p.kc), k = Math.max(0, (c - 2000) / 5000), e = lockOf(p);
         const dmg = Math.round(25 + 35 * k), w = 20 + 40 * k, ox = p.x + 15, oy = p.y + 15;
         const dx = e.x + 15 - ox, dy = e.y + 15 - oy, a = Math.atan2(dy, dx);
         p.kc = 0; p.kfire = 0; p.kcT = 0; p.kdeb = t + 10000;
         fxK.push({ k: 1, x: ox, y: oy, a, w, until: t + BEAM });
         const along = dx * Math.cos(a) + dy * Math.sin(a), perp = Math.abs(-dx * Math.sin(a) + dy * Math.cos(a));
-        if (along > 0 && perp < w / 2 + 15) e.hp -= dmg;
+        (window.targetsOf ? window.targetsOf(p) : [e]).forEach(q => {
+          const qx = q.x + 15 - ox, qy = q.y + 15 - oy, al2 = qx * Math.cos(a) + qy * Math.sin(a), pp = Math.abs(-qx * Math.sin(a) + qy * Math.cos(a));
+          if (al2 > 0 && pp < w / 2 + 15) q.hp -= dmg;
+        });
       }
       const _us = useSkill;
       useSkill = function (p) {
@@ -4695,17 +4721,17 @@ function think(i){
         const t = now();
         if (p.kc) { if (t - p.kc >= 2000 && !p.kfire) { p.kcT = Math.min(7000, t - p.kc); p.kfire = t + 700; } return; }
         if (t - p.skillLastUsed < p.skillCooldown) return;
-        p.skillLastUsed = t; p.kc = t; p.kdmg = 0; p.kfire = 0;
+        p.skillLastUsed = t; p.kc = t; p.kdmg = 0; p.kfire = 0; p.klock = foe(p);
       };
       const _up = update;
       update = function () {
         const t = now();
-        [player1, player2].forEach(p => { if (!p || p.charName !== K || !p.kc) return;
+        fighterList().forEach(p => { if (!p || p.charName !== K || !p.kc) return;
           if (!p.kfire && t - p.kc >= 7000) { p.kcT = 7000; p.kfire = t + 700; }
           if (p.kfire && t >= p.kfire) rel(p);
         });
         _up();
-        [player1, player2].forEach(p => { // チャージ中は被ダメ半減、使用後10秒は1.5倍
+        fighterList().forEach(p => { // チャージ中は被ダメ半減、使用後10秒は1.5倍
           if (!p || p.charName !== K) return;
           const d = p._kh - p.hp;
           if (d > .01) {
@@ -4740,9 +4766,9 @@ function think(i){
             }
             ctx.restore();
           });
-          [player1, player2].forEach(p => {
+          fighterList().forEach(p => {
             if (!p || !p.kc) return;
-            const c = t - p.kc, k = Math.min(1, c / 7000), cx = p.x + 15, cy = p.y + 15, o = foe(p);
+            const c = t - p.kc, k = Math.min(1, c / 7000), cx = p.x + 15, cy = p.y + 15, o = lockOf(p);
             const dx = o.x + 15 - cx, dy = o.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
             ctx.save();
             ctx.globalAlpha = .22; ctx.strokeStyle = "#6cf"; ctx.lineWidth = 20 + 40 * Math.max(0, (Math.min(c, 7000) - 2000) / 5000);
@@ -4758,7 +4784,7 @@ function think(i){
       buildSnap = function () {
         const s = _bs(), t = now();
         s.kk = fxK.map(e => [e.k, r1(e.x), r1(e.y), Math.round(e.a * 1000) / 1000, e.w, Math.max(0, e.until - t)]);
-        s.kc = [player1, player2].map(p => p.kc ? t - p.kc : -1);
+        s.kc = fighterList().map(p => p.kc ? t - p.kc : -1);
         return s;
       };
       const _as = applySnap;
@@ -4766,7 +4792,7 @@ function think(i){
         _as(s);
         const t = now();
         if (s.kk) { fxK.length = 0; s.kk.forEach(a => fxK.push({ k: a[0], x: a[1], y: a[2], a: a[3], w: a[4], until: t + a[5] })); }
-        if (s.kc) [player1, player2].forEach((p, i) => { p.kc = s.kc[i] >= 0 ? t - s.kc[i] : 0; });
+        if (s.kc) fighterList().forEach((p, i) => { p.kc = s.kc[i] >= 0 ? t - s.kc[i] : 0; });
       };
     })();
   </script>
@@ -4774,7 +4800,7 @@ function think(i){
     /* ver25：新キャラ「不死鳥」 */
     (function () {
       const PX = "不死鳥", now = () => Date.now(), isP = p => p && p.charName === PX, zones = [];
-      const foe = p => p === player1 ? player2 : player1;
+      const foe = p => opponentOf(p);
       const _cp = createPlayer;
       createPlayer = function (x, y, c, n) {
         const p = _cp(x, y, c, n);
@@ -4792,7 +4818,7 @@ function think(i){
       };
       const _up = update;
       update = function () {
-        [player1, player2].forEach(p => { // HPに応じた能力
+        fighterList().forEach(p => { // HPに応じた能力
           if (!isP(p)) return;
           const r = Math.max(0, Math.min(1, (70 - Math.max(p.hp, 1)) / 69));
           p.damage = dmgOf(p.hp); p.speed = 2.8 + 1.8 * r; p.bulletSpeed = 6.5 + 1.8 * r; p.reloadTime = 1200 + 1400 * r;
@@ -4801,21 +4827,24 @@ function think(i){
         const t = now();
         bullets.forEach(b => { if (b.ph === 2 && Math.hypot(b.x - b.lx, b.y - b.ly) >= 8) { zones.push({ x: b.x, y: b.y, o: b.from, u: t + 1000 }); b.lx = b.x; b.ly = b.y; } });
         for (let i = zones.length - 1; i >= 0; i--) if (zones[i].u <= t) zones.splice(i, 1);
-        [player1, player2].forEach(p => { // 火傷
-          if (!p.burn) { for (const z of zones) if (z.o !== p && Math.hypot(p.x + 15 - z.x, p.y + 15 - z.y) < 26) { p.burn = { n: 3, nx: t + 800 }; break; } }
+        fighterList().forEach(p => { // 火傷
+          if (!p.burn) { for (const z of zones) if (teamOf(z.o) !== teamOf(p) && Math.hypot(p.x + 15 - z.x, p.y + 15 - z.y) < 26) { p.burn = { n: 3, nx: t + 800 }; break; } }
           else if (t >= p.burn.nx) { p.hp -= 2; p.burn.nx += 800; if (--p.burn.n <= 0) p.burn = null; }
         });
-        [player1, player2].forEach(p => {
+        fighterList().forEach(p => {
           if (!isP(p)) return;
           if (p.hp <= 0 && !p.rv) { // 不屈：蘇生
             p.rv = 1; p.hp = 1; p._ph = 1; p.shield = true; p.stunUntil = 0; p.hasteUntil = 0; p.burn = null;
-            const e = foe(p), cx = p.x + 15, cy = p.y + 15, dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
+            const cx = p.x + 15, cy = p.y + 15;
             explosions.push({ x: cx, y: cy, r: 120, life: 15 });
+            (window.targetsOf ? window.targetsOf(p) : [foe(p)]).forEach(e => {
+            const dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
             if (d < 200) for (let k = 0; k < 30; k++) {
               const nx = Math.max(0, Math.min(ARENA_W - 30, e.x + dx / d * 5)), ny = Math.max(0, Math.min(ARENA_H - 30, e.y + dy / d * 5));
               if (collidesWithObstacles({ x: nx, y: ny, w: 30, h: 30 })) break;
               e.x = nx; e.y = ny;
             }
+            });
             return;
           }
           if (p.hp > 70) p.hp = 70;
@@ -4840,7 +4869,7 @@ function think(i){
           const t = now();
           zones.forEach(z => flame(z.x, z.y, 9, Math.max(0, (z.u - t) / 1000), true));
           bullets.forEach(b => { if (b.ph) flame(b.x, b.y, 5 + 9 * b.pl + (b.ph === 2 ? 4 : 0), 1, b.ph === 2, b); });
-          [player1, player2].forEach(p => {
+          fighterList().forEach(p => {
             if (p.burn) flame(p.x + 15, p.y, 8, 1, false);
             if (isP(p) && p.shield) { ctx.save(); ctx.strokeStyle = "rgba(120,220,255,.9)"; ctx.lineWidth = 3; ctx.shadowColor = "#6cf"; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(p.x + 15, p.y + 15, 24, 0, 6.283); ctx.stroke(); ctx.restore(); }
           });
@@ -4853,7 +4882,7 @@ function think(i){
     (function () {
       const T = "ペット＆テイマー", now = () => Date.now(), isT = p => p && p.charName === T;
       const COL = ["#ff4a4a", "#4aa8ff", "#ffd93a"], DMG = [15, 10, 10], mins = [];
-      const foe = p => p === player1 ? player2 : player1, rnd = () => Math.floor(Math.random() * 3);
+      const foe = p => opponentOf(p), rnd = () => Math.floor(Math.random() * 3);
       const PET_SPEED = 2.6;      // 召喚物ペットの移動速度（ver27は3.6）
       const PET_STAGGER = 700;    // スキルの3匹が歩き出すまでの時間差(ms)：0 → 700 → 1400
       const spawn = (p, t, r, delay) => mins.push({ x: p.x + 5, y: p.y + 5, o: p, t, hp: 15, r, nx: now() + 1000, go: now() + (delay || 0) });
@@ -4904,29 +4933,32 @@ function think(i){
       };
       const petTakeHits = m => {
         for (let j = bullets.length - 1; j >= 0; j--) {
-          const b = bullets[j]; if (b.from === m.o || !sweepHit(b, m)) continue;
+          const b = bullets[j]; if (teamOf(b.from) === teamOf(m.o) || !sweepHit(b, m)) continue;
           if (b.explosive) {   // 爆発弾は範囲内の敵ペット全員にダメージ
             const rad = b.explosiveRadius || b.r || (b.from && b.from.bulletRadius) || 20;
             explode(b);
-            mins.forEach(o => { if (o.o !== b.from && Math.hypot(o.x + 10 - b.x, o.y + 10 - b.y) < rad + 10) o.hp -= b.damage; });
+            mins.forEach(o => { if (teamOf(o.o) !== teamOf(b.from) && Math.hypot(o.x + 10 - b.x, o.y + 10 - b.y) < rad + 10) o.hp -= b.damage; });
           } else m.hp -= b.damage;
           bullets.splice(j, 1);
         }
         const X = window.X21;   // ゲイ・元素の魔女の弾（ウェーブ＝スタンは対象外）
         if (X) {
           for (let j = X.xb.length - 1; j >= 0; j--) {
-            const b = X.xb[j]; if (b.from === m.o || b.type === "wave" || !sweepHit(b, m)) continue;
+            const b = X.xb[j]; if (teamOf(b.from) === teamOf(m.o) || b.type === "wave" || !sweepHit(b, m)) continue;
             m.hp -= b.dmg || b.damage || 0; X.xb.splice(j, 1);
           }
-          const on = m.o === player1 ? 1 : 2;   // 雷が壁を伝う攻撃
+          const on = (teamOf(m.o) + 1);   // 雷が壁を伝う攻撃
           X.arcs.forEach(a => {
             if (a.own === on) return;
-            a.ph = a.ph || new Set();
-            if (!a.ph.has(m) && m.x < a.x + a.w + 4 && m.x + 20 > a.x - 4 && m.y < a.y + a.h + 4 && m.y + 20 > a.y - 4) { a.ph.add(m); m.hp -= 15; }
+            a.ph = a.ph || new Set(); const key = m.k || m;
+            if (!a.ph.has(key) && m.x < a.x + a.w + 4 && m.x + 20 > a.x - 4 && m.y < a.y + a.h + 4 && m.y + 20 > a.y - 4) { a.ph.add(key); m.hp -= 15; }
           });
         }
       };
+      // 範囲攻撃・近接攻撃の対象一覧：敵プレイヤー全員＋敵ペット＋敵タレット（どれにも同時に当たる）
+      window.targetsOf = p => foesOf(p).filter(q => q.hp > 0).concat(mins.filter(m => teamOf(m.o) !== teamOf(p)).map(petProxy), turrets.filter(u => teamOf(u.owner) !== teamOf(p)).map(turretProxy));
       // 近接攻撃などが「相手.hp」を直接減らしても、ペットのHPに反映されるラッパー
+      const turretProxy = u => ({ get x() { return u.x - 15; }, set x(v) { u.x = v + 15; }, get y() { return u.y - 15; }, set y(v) { u.y = v + 15; }, w: 30, h: 30, get hp() { return u.hp === undefined ? 80 : u.hp; }, set hp(v) { u.hp = v; }, turret: u });
       const petProxy = m => ({ get x() { return m.x - 5; }, set x(v) { m.x = v + 5; }, get y() { return m.y - 5; }, set y(v) { m.y = v + 5; }, w: 30, h: 30, get hp() { return m.hp; }, set hp(v) { m.hp = v; }, pet: m });
 
       /* ---- ペットの経路探索：壁を避けて回り込む（10pxグリッド＋幅優先探索） ---- */
@@ -5037,7 +5069,7 @@ function think(i){
           if (e && circleHitRect(b, e)) { if (b.tp === 0 && !e.burn) e.burn = { n: 3, nx: t + 800 }; if (b.tp === 1) e.slowUntil = t + 2000; }
         });
         for (let i = mins.length - 1; i >= 0; i--) { // 召喚物ペット
-          const m = mins[i], e = foe(m.o);
+          const m = mins[i], e = (m.lk && m.lk.hp > 0) ? m.lk : (m.lk = foe(m.o));   // 最初にロックした相手を追い続ける
           if (t >= m.nx) { m.hp--; m.nx += 1000; }
           petTakeHits(m);   // ver28：全ての弾・魔法・雷の壁を判定（すり抜け防止の線分判定）
           if (m.hp <= 0) { mins.splice(i, 1); continue; }
@@ -5047,7 +5079,9 @@ function think(i){
         }
         for (let i = turrets.length - 1; i >= 0; i--) { // タレット：HP80（自動減少なし）
           const u = turrets[i]; if (u.hp === undefined) u.hp = 80;
-          for (let j = bullets.length - 1; j >= 0; j--) { const b = bullets[j]; if (b.from !== u.owner && circleHitRect(b, { x: u.x - 10, y: u.y - 10, w: 20, h: 20 })) { u.hp -= b.damage; bullets.splice(j, 1); } }
+          const f = { x: u.x - 10, y: u.y - 10, o: u.owner, k: u, hp: u.hp };   // ペットと同じ判定（通常弾・爆発・魔法・ゲイの弾・雷の壁）を使う
+          mins.push(f); try { petTakeHits(f); } finally { mins.splice(mins.indexOf(f), 1); }
+          u.hp = f.hp;
           if (u.hp <= 0) turrets.splice(i, 1);
         }
       };
@@ -5065,7 +5099,7 @@ function think(i){
             ctx.fillStyle = "#000"; ctx.fillRect(m.x, m.y - 6, 20, 3);
             ctx.fillStyle = "#4f4"; ctx.fillRect(m.x, m.y - 6, 20 * Math.max(0, m.hp) / 15, 3);
           });
-          [player1, player2].forEach(p => { // 頭上：貯蓄ペット（右端の白枠が次に消費）
+          fighterList().forEach(p => { // 頭上：貯蓄ペット（右端の白枠が次に消費）
             if (!isT(p)) return;
             const n = p.pets.length;
             p.pets.forEach((k, i) => {
@@ -5079,7 +5113,7 @@ function think(i){
       const _uh = updateHud;
       updateHud = function () { // HUD：貯蓄ペットの色の並び（右端の白枠が次に消費）
         _uh();
-        [player1, player2].forEach((p, k) => {
+        [hudP(1), hudP(2)].forEach((p, k) => {
           const pips = $("hudAmmo" + (k + 1)); if (!pips) return;
           if (!isT(p)) { if (pips.dataset.pt) { delete pips.dataset.pt; hudState.mx[k] = -1; } return; }
           const n = p.pets.length;
@@ -5091,8 +5125,8 @@ function think(i){
         const e = foe(s); if (t !== e) return t;
         const cx = s.x + 15, cy = s.y + 15; let best = t, bd = Math.hypot(e.x + 15 - cx, e.y + 15 - cy);
         const chk = (x, y, o) => { const d = Math.hypot(x - cx, y - cy); if (d < bd) { bd = d; best = o || { x: x - 15, y: y - 15, w: 30, h: 30 }; } };
-        mins.forEach(m => { if (m.o !== s) chk(m.x + 10, m.y + 10, petProxy(m)); });
-        turrets.forEach(u => { if (u.owner !== s) chk(u.x, u.y); });
+        mins.forEach(m => { if (teamOf(m.o) !== teamOf(s)) chk(m.x + 10, m.y + 10, petProxy(m)); });
+        turrets.forEach(u => { if (teamOf(u.owner) !== teamOf(s)) chk(u.x, u.y, turretProxy(u)); });
         return best;
       };
       window.aimTarget = near;   // エイム矢印・魔法陣・演出が、実際に撃つ相手（ペット含む）を向くように
@@ -5113,14 +5147,14 @@ function think(i){
       const _bs = buildSnap;
       buildSnap = function () {
         const s = _bs();
-        s.pt = [player1, player2].map(p => p.pets || null);
-        s.mn = mins.map(m => [Math.round(m.x), Math.round(m.y), m.t, m.hp, m.o === player1 ? 1 : 2]);
+        s.pt = fighterList().map(p => p.pets || null);
+        s.mn = mins.map(m => [Math.round(m.x), Math.round(m.y), m.t, m.hp, (teamOf(m.o) + 1)]);
         return s;
       };
       const _as = applySnap;
       applySnap = function (s) {
         _as(s);
-        if (s.pt) [player1, player2].forEach((p, i) => { if (s.pt[i]) { p.pets = s.pt[i]; p.ammo = p.pets.length; } });
+        if (s.pt) fighterList().forEach((p, i) => { if (s.pt[i]) { p.pets = s.pt[i]; p.ammo = p.pets.length; } });
         if (s.mn) { mins.length = 0; s.mn.forEach(a => mins.push({ x: a[0], y: a[1], t: a[2], hp: a[3], o: a[4] === 1 ? player1 : player2 })); }
       };
     })();
@@ -5131,9 +5165,9 @@ function think(i){
       update = function () {
         _up();
         const t = Date.now(), ov = (p, o) => p.x < o.x + o.w && p.x + p.w > o.x && p.y < o.y + o.h && p.y + p.h > o.y;
-        [player1, player2].forEach(a => {
+        fighterList().forEach(a => {
           if (!a || a.charName !== "アクアファイター" || t - a.skillLastUsed < a.skillCooldown) return;
-          const e = a === player1 ? player2 : player1;
+          const e = opponentOf(a);
           for (let i = obstacles.length - 1; i >= 0; i--) { const o = obstacles[i]; if (o.aq === a && (ov(a, o) || ov(e, o))) obstacles.splice(i, 1); }
         });
       };
@@ -5616,7 +5650,7 @@ function think(i){
         }, o.slow ? 3000 : 2400);
       };
       const localTags = () => (cpu && cpu.on) ? ["YOU", "CPU"] : ["1P", "2P"];
-      const onlNames = () => onl.isHost ? [myName(), onl.oppName || "ゲスト"] : [onl.oppName || "ホスト", myName()];
+      const onlNames = () => window.TWOVTWO ? ["青チーム", "赤チーム"] : onl.isHost ? [myName(), onl.oppName || "ゲスト"] : [onl.oppName || "ホスト", myName()];
       const sub = () => (FX.H.sub && FX.H.sub()) || "";
 
       const _sg = startGame;
@@ -5625,12 +5659,12 @@ function think(i){
       beginMatch = function (a, b, m) {
         _bm(a, b, m);
         const n = onlNames();
-        FX.intro({ c: [a, b], tags: [n[0] + (onl.isHost ? "（あなた）" : ""), n[1] + (onl.isHost ? "" : "（あなた）")], map: m, sub: sub() });
+        FX.intro({ c: [a, b], tags: window.TWOVTWO ? [n[0] + ((onl.mySlot | 0) % 2 ? "" : "（あなた）"), n[1] + ((onl.mySlot | 0) % 2 ? "（あなた）" : "")] : [n[0] + (onl.isHost ? "（あなた）" : ""), n[1] + (onl.isHost ? "" : "（あなた）")], map: m, sub: sub() });
       };
       const _sr = showResult;
       showResult = function () {
         if (FX.busy || isOnl()) return _sr();
-        const w = player1.hp <= 0 && player2.hp <= 0 ? 0 : player1.hp <= 0 ? 2 : 1, t = localTags(), cp = cpu && cpu.on;
+        const w = matchWinner(), t = localTags(), cp = cpu && cpu.on;
         const h = FX.H.cpu && FX.H.cpu(w);
         FX.outro({
           w, c: [player1.charName, player2.charName],
@@ -5641,7 +5675,7 @@ function think(i){
       const _fm = finishMatch;
       finishMatch = function (w) {
         if (FX.busy) return;
-        const me = onl.isHost ? "p1" : "p2", wi = w === "draw" ? 0 : w === "p1" ? 1 : 2, nm = onlNames();
+        const me = window.TWOVTWO ? ((onl.mySlot | 0) % 2 ? "p2" : "p1") : (onl.isHost ? "p1" : "p2"), wi = w === "draw" ? 0 : w === "p1" ? 1 : 2, nm = onlNames();
         const h = FX.H.onl && FX.H.onl(w);
         FX.outro({
           w: wi, c: [player1.charName, player2.charName],
@@ -5741,15 +5775,47 @@ function think(i){
          （1対1では従来どおり player1=チーム0、player2=チーム1。2対2では player3=player1の味方、player4=player2の味方）
        ・次回やること：①startGame等で player3/4 を生成 ②update/draw/AI/弾判定/勝敗判定を fighterList() ベースへ
          ③オンラインは4接続化 ④演出（FX.intro/outro）は c/tags 配列を4要素に拡張 */
-    let player3 = null, player4 = null;
     window.RULESET = {
       "1v1": { label: "1対1", fighters: 2, enabled: true },
-      "2v2": { label: "2対2", fighters: 4, enabled: false },
+      "2v2": { label: "2対2", fighters: 4, enabled: true },
       "bo3": { label: "3本対決", fighters: 2, enabled: true, series: true }
     };
     window.SLOT_SPAWNS = [SPAWNS.p1, SPAWNS.p2, { x: 70, y: 100 }, { x: 700, y: 270 }]; // 4人用の初期位置（2対2用に予約）
     window.fighterList = () => [player1, player2, player3, player4].filter(Boolean);
-    window.teamOf = p => p.team !== undefined ? p.team : (p === player1 || p === player3 ? 0 : 1);
+    window.teamOf = p => p && p.team !== undefined ? p.team : (p === player1 || p === player3 ? 0 : 1);
+    window.foeNear = (p, x, y) => { const f = foesOf(p).filter(q => q.hp > 0), a = f.length ? f : foesOf(p); return a.sort((m, n) => Math.hypot(m.x + 15 - x, m.y + 15 - y) - Math.hypot(n.x + 15 - x, n.y + 15 - y))[0] || null; };
+    window.hitFoe = b => { const f = foesOf(b.from); for (let i = 0; i < f.length; i++) if (f[i].hp > 0 && circleHitRect(b, f[i])) return f[i]; return opponentOf(b.from); };
+    window.sideDead = t => fighterList().filter(p => teamOf(p) === t).every(p => p.out || p.hp <= 0);
+    window.matchWinner = () => { const a = sideDead(0), b = sideDead(1); return a && b ? 0 : a ? 2 : 1; };
+    window.makeExtras = () => {
+      player3 = player4 = null;
+      if (!(window.TWOVTWO && window.TEAMPICK)) return;
+      const q1 = freeSpot(player1.x, player1.y, [player1, player2]); player3 = createPlayer(q1.x, q1.y, "blue", TEAMPICK.p3); player3.team = 0;
+      const q2 = freeSpot(player2.x, player2.y, [player1, player2, player3]); player4 = createPlayer(q2.x, q2.y, "red", TEAMPICK.p4); player4.team = 1;
+      player3.maxHp = player3.maxHp || player3.hp; player4.maxHp = player4.maxHp || player4.hp;
+    };
+    window.myFighter = () => {
+      const on = typeof onl !== "undefined" && onl.running;
+      if (on && window.TWOVTWO) return [player1, player2, player3, player4][onl.mySlot | 0] || player1;
+      return on ? (onl.isHost ? player1 : player2) : player1;
+    };
+    window.hudP = i => {
+      if (window.TWOVTWO && typeof onl !== "undefined" && onl.running) {
+        const me = myFighter(); if (i === 1) return me;
+        const f = foesOf(me); return f.find(q => q.hp > 0) || f[0] || player2;
+      }
+      return i === 1 ? player1 : player2;
+    };
+    window.freeSpot = (x, y, others) => {
+      const offs = [[0, 0]]; [60, 100, 140, 190].forEach(r => { for (let k = 0; k < 12; k++) offs.push([Math.round(Math.cos(k * .5236) * r), Math.round(Math.sin(k * .5236) * r)]); });
+      for (const [ox, oy] of offs) {
+        const nx = x + ox, ny = y + oy; if (nx < 0 || ny < 0 || nx > ARENA_W - 30 || ny > ARENA_H - 30) continue;
+        if (collidesWithObstacles({ x: nx, y: ny, w: 30, h: 30 })) continue;
+        if (others.some(o => o && Math.hypot(o.x - nx, o.y - ny) < 45)) continue;
+        return { x: nx, y: ny };
+      }
+      return { x, y };
+    };
     window.alliesOf = p => fighterList().filter(q => q !== p && teamOf(q) === teamOf(p));
     window.foesOf = p => fighterList().filter(q => teamOf(q) !== teamOf(p));
     window.opponentOf = p => { const f = foesOf(p).filter(q => q.hp > 0); const a = f.length ? f : foesOf(p); return a.sort((x, y) => Math.hypot(x.x - p.x, x.y - p.y) - Math.hypot(y.x - p.x, y.y - p.y))[0] || null; };
@@ -5759,7 +5825,7 @@ function think(i){
     /* ver37：ゲームルール（1対1／3本対決。2対2は準備中）— CPU対戦・オンライン対戦 */
     (function () {
       const R = "__RANDOM__", HID = "__HIDDEN__", pick = a => a[Math.floor(Math.random() * a.length)];
-      const RULES = Object.entries(window.RULESET).map(([k, v]) => [k, v.label + (v.enabled ? "" : "（準備中）"), v.enabled ? 0 : 1]);
+      const RULES = Object.entries(window.RULESET).map(([k, v]) => [k, v.label + (v.enabled ? "" : "（準備中）"), v.enabled ? 0 : 1, v.cpuOnly]);
       const st = document.createElement("style");
       st.textContent = `.rule-row{display:flex;gap:8px;justify-content:center;align-items:center;margin:4px 0;flex-wrap:wrap}
 .rule-row>b{font-size:12px;opacity:.85;margin-right:4px}.rule-row .info{font-size:12px;color:#ffe14d}
@@ -5773,7 +5839,7 @@ function think(i){
       const newSer = () => ({ wins: [0, 0], round: 1, used: [[], []], usedMaps: [], map: null, over: false });
       const nextMap = s => { const c = MAP_NAMES.filter(m => !s.usedMaps.includes(m)); return pick(c.length ? c : MAP_NAMES); };
       const unused = (s, i) => { const c = CHAR_NAMES.filter(n => !s.used[i].includes(n)); return c.length ? c : CHAR_NAMES; };
-      const chips = (cur, extra) => `<b>ゲームルール</b>` + RULES.map(([k, l, d]) => `<button class="rule-chip${cur === k ? " on" : ""}" data-r="${k}" ${d ? "disabled" : ""}>${l}</button>`).join("") + (extra || "");
+      const chips = (cur, extra, on) => `<b>ゲームルール</b>` + RULES.map(([k, l, d, c]) => `<button class="rule-chip${cur === k ? " on" : ""}" data-r="${k}" ${d || (on && c) ? "disabled" : ""}>${l}${on && c ? "（CPU戦のみ）" : ""}</button>`).join("") + (extra || "");
       window.RULE = "1v1";
       let SER = null, OSER = null;
       window.__getSer = () => ({ SER, OSER });
@@ -5809,7 +5875,7 @@ function think(i){
           const lay = scr.querySelector(".cs-layout"); lay.parentNode.insertBefore(row, lay); lay.parentNode.insertBefore(bn, lay);
         }
         row.style.display = cpuMode ? "" : "none";
-        row.innerHTML = chips(window.RULE);
+        row.innerHTML = chips(window.RULE, window.RULE === "2v2" ? '<span class="info">味方と相手チームのもう1体は自動で決まります</span>' : "");
         row.querySelectorAll(".rule-chip:not([disabled])").forEach(b => b.onclick = () => { window.RULE = b.dataset.r; SER = null; renderCharSelect(); });
         const bn = $("serBanner"); bn.style.display = bo ? "" : "none";
         if (bo) {
@@ -5889,7 +5955,7 @@ function think(i){
         const row = $("lobbyRule"); if (!row) return;
         const bo = onl.rule === "bo3" && OSER;
         row.classList.toggle("lock", !onl.isHost);
-        row.innerHTML = chips(onl.rule, bo ? `<span class="info">第${OSER.round}本　スコア ${OSER.wins[0]} - ${OSER.wins[1]}</span>` : (onl.isHost ? "" : `<span class="info">（ルームの作成者が選びます）</span>`));
+        row.innerHTML = chips(onl.rule, bo ? `<span class="info">第${OSER.round}本　スコア ${OSER.wins[0]} - ${OSER.wins[1]}</span>` : (onl.isHost ? "" : `<span class="info">（ルームの作成者が選びます）</span>`), true);
         row.querySelectorAll(".rule-chip:not([disabled])").forEach(b => b.onclick = () => { if (onl.isHost) setRule(b.dataset.r); });
         $("lobbyMaps").classList.toggle("lock", !onl.isHost || !!bo);
         $("lobbyGrid").querySelectorAll(".cs-card").forEach(c => c.classList.toggle("sx-used", !!bo && OSER.used[me()].includes(c.dataset.name)));
@@ -5936,6 +6002,212 @@ function think(i){
       };
       const _opl = onPeerLeft;
       onPeerLeft = function () { if (onl.isHost && onl.rule === "bo3") { OSER = newSer(); OSER.map = nextMap(OSER); onl.map = OSER.map; } _opl(); };
+    })();
+  </script>
+  <script>
+    /* ver39：2対2（CPU戦）— あなた＋味方CPU 対 CPU2体。オンラインは次回 */
+    (function () {
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      const _sg = startGame;
+      startGame = function () {
+        window.TWOVTWO = !!(cpuMode && window.RULE === "2v2" && !(typeof onl !== "undefined" && onl.running));
+        window.TEAMPICK = window.TWOVTWO ? { p3: pick(CHAR_NAMES), p4: pick(CHAR_NAMES) } : null;
+        _sg();
+        if (window.TWOVTWO) document.getElementById("gameInfo").innerText = "2対2　味方：" + player3.charName + "　／　敵：" + player2.charName + "・" + player4.charName;
+      };
+      const _sub = FX.H.sub;
+      FX.H.sub = () => window.TWOVTWO && player3 && player4 ? `2対2　味方：${player3.charName}　／　敵の相方：${player4.charName}` : (_sub ? _sub() : "");
+      const _uh = updateHud;
+      updateHud = function () {
+        _uh();
+        if (window.TWOVTWO && !(typeof onl !== "undefined" && onl.running)) { const c = $("controlHelp"), t = "あなた(1P)＋味方CPU 対 CPU2体　移動 WASD ・ 攻撃 F ・ スキル G"; if (c.textContent !== t) c.textContent = t; }
+      };
+      const _dr = draw;
+      draw = function () {
+        _dr();
+        if (!window.TWOVTWO || !ctx) return;
+        fighterList().forEach(p => {
+          if (p.out || p.hp <= 0) return;
+          const t = teamOf(p), cx = p.x + 15, mx = p.maxHp || 100, r = Math.max(0, Math.min(1, p.hp / mx)), y = p.y - 9;
+          ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.fillRect(cx - 17, y, 34, 5);
+          ctx.fillStyle = t === 0 ? "#4aa8ff" : "#ff5470"; ctx.fillRect(cx - 16, y + 1, 32 * r, 3);
+          const me = myFighter(), tag = p === me ? "YOU" : (me && teamOf(p) === teamOf(me)) ? "味方" : (p.label || "");
+          if (tag) { ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = "#000"; ctx.strokeText(tag, cx, y - 3); ctx.fillStyle = "#fff"; ctx.fillText(tag, cx, y - 3); }
+        });
+      };
+    })();
+  </script>
+  <style>
+    #lobby2 { margin: 6px auto 8px; max-width: 520px; font-size: 13px; }
+    #lobby2.hidden { display: none; }
+    #lobby2 .r2 { display: grid; grid-template-columns: 54px 1fr 1fr 64px; gap: 4px 8px; align-items: center; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,.06); margin-bottom: 3px; }
+    #lobby2 .r2.t0 { border-left: 4px solid #3aa0ff; } #lobby2 .r2.t1 { border-left: 4px solid #ff4d6d; }
+    #lobby2 .r2 .me { color: #ffe27a; font-weight: bold; } #lobby2 .r2 .cpu { opacity: .6; } #lobby2 .r2 .ok { color: #7bff9b; }
+    #lobby2 .h2 { text-align: center; opacity: .8; margin-bottom: 4px; }
+  </style>
+  <script>
+    /* ver40：オンライン「2対2」（ホストが全員分を計算／ゲスト最大3人／空きはCPU） */
+    (function () {
+      const pickChar = () => CHAR_NAMES[Math.floor(Math.random() * CHAR_NAMES.length)];
+      onl.ex = [null, null, null, null]; onl.mySlot = 0; onl.roster = null; onl.cpuSlots = []; onl.ai = null; onl.rule = onl.rule || "1v1";
+      const SK = [null, { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" }, { up: "p3u", down: "p3d", left: "p3l", right: "p3r" }, { up: "p4u", down: "p4d", left: "p4l", right: "p4r" }];
+      const PL = () => [player1, player2, player3, player4];
+      const is2 = () => onl.rule === "2v2";
+      const exOn = s => !!(onl.ex[s] && onl.ex[s].conn && onl.ex[s].conn.open);
+      const exConns = () => [2, 3].filter(exOn).map(s => onl.ex[s].conn);
+      const humans = () => { const a = [0]; if (onl.conn && onl.conn.open) a.push(1); [2, 3].forEach(s => { if (exOn(s)) a.push(s); }); return a; };
+      const readyOf = s => s === 1 ? onl.guestReady : !!(onl.ex[s] && onl.ex[s].ready);
+
+      /* ---- 送信：ホストの送信は全ゲストへ ---- */
+      const _sm = sendMsg;
+      sendMsg = function (m) { _sm(m); if (onl.isHost) exConns().forEach(c => { try { c.send(m); } catch (e) {} }); };
+      const _ss = sendSnapMsg;
+      sendSnapMsg = function (m) {
+        _ss(m);
+        if (onl.isHost) exConns().forEach(c => { const dc = c.dataChannel; if (dc && dc.bufferedAmount > 8192 && !m.ob) return; try { c.send(m); } catch (e) {} });
+      };
+      const toSlot = (s, m) => { if (s === 1) _sm(m); else if (exOn(s)) { try { onl.ex[s].conn.send(m); } catch (e) {} } };
+
+      /* ---- 名簿 ---- */
+      function roster() {
+        const R = [{ n: myName(), c: onl.myChar, r: 1, k: 1 }, { n: onl.oppName || "ゲスト", c: onl.oppChar, r: onl.guestReady ? 1 : 0, k: (onl.conn && onl.conn.open) ? 1 : 0 }];
+        [2, 3].forEach(s => { const e = onl.ex[s], on = exOn(s); R.push({ n: on ? e.name : "", c: on ? e.char : "", r: on && e.ready ? 1 : 0, k: on ? 1 : 0 }); });
+        return R;
+      }
+      function tell() { if (onl.isHost) sendMsg({ t: "roster", r: roster() }); }
+
+      /* ---- ホスト：2人目以降の接続 ---- */
+      const _ohc = onHostConnection;
+      onHostConnection = function (conn) {
+        if (onl.conn && onl.conn.open) {
+          const s = [2, 3].find(k => !exOn(k));
+          if (!s || onl.running) { conn.on("open", () => conn.close()); return; }
+          const e = onl.ex[s] = { conn, name: "ゲスト", char: CHAR_NAMES[0], ready: false };
+          conn.on("open", () => {
+            try { conn.send({ t: "slot", v: s }); conn.send({ t: "map", v: onl.map }); conn.send({ t: "rule", v: onl.rule }); } catch (x) {}
+            tell(); updateLobby();
+          });
+          conn.on("data", m => exMsg(s, m));
+          const gone = () => { if (onl.ex[s] && onl.ex[s].conn === conn) exLeft(s); };
+          conn.on("close", gone); conn.on("error", gone);
+          return;
+        }
+        _ohc(conn);
+        conn.on("open", () => { try { conn.send({ t: "slot", v: 1 }); } catch (x) {} setTimeout(() => { tell(); updateLobby(); }, 50); });
+      };
+      function exMsg(s, m) {
+        const e = onl.ex[s]; if (!m || !m.t || !e) return;
+        switch (m.t) {
+          case "char": e.char = m.v; break;
+          case "name": e.name = String(m.v || "ゲスト").slice(0, 16); break;
+          case "ready": e.ready = !!m.v; break;
+          case "in": if (onl.running) { const k = SK[s]; keys[k.up] = !!m.u; keys[k.down] = !!m.d; keys[k.left] = !!m.l; keys[k.right] = !!m.r; } return;
+          case "shoot": { const p = PL()[s]; if (onl.running && gameActive && p && p.hp > 0) shootBullet(p, opponentOf(p)); } return;
+          case "skill": { const p = PL()[s]; if (onl.running && gameActive && p && p.hp > 0) useSkill(p); } return;
+          default: return;
+        }
+        tell(); updateLobby();
+      }
+      function exLeft(s) {
+        onl.ex[s] = null;
+        if (onl.running && window.TWOVTWO) { if (!onl.cpuSlots.includes(s)) onl.cpuSlots.push(s); }
+        else setLobbyStatus("参加者が退出しました。", true);
+        tell(); updateLobby();
+      }
+      const _opl = onPeerLeft;
+      onPeerLeft = function () {
+        if (onl.isHost && onl.running && window.TWOVTWO) {   // 試合中に1人抜けたらCPUが引き継ぐ
+          onl.conn = null; onl.oppChar = ""; onl.oppName = ""; onl.guestReady = false;
+          if (!onl.cpuSlots.includes(1)) onl.cpuSlots.push(1);
+          tell(); return;
+        }
+        _opl();
+        if (onl.isHost) { tell(); updateLobby(); }
+      };
+      const _oc = onlineCleanup;
+      onlineCleanup = function () {
+        [2, 3].forEach(s => { try { if (onl.ex[s] && onl.ex[s].conn) onl.ex[s].conn.close(); } catch (e) {} onl.ex[s] = null; });
+        onl.mySlot = 0; onl.roster = null; onl.cpuSlots = []; onl.ai = null; window.TWOVTWO = false;
+        _oc();
+      };
+
+      /* ---- 受信 ---- */
+      const _om = onMessage;
+      onMessage = function (m) {
+        if (m && m.t === "slot") { onl.mySlot = m.v; return; }
+        if (m && m.t === "roster") { onl.roster = m.r; updateLobby(); return; }
+        if (m && m.t === "start2") { if (!onl.isHost) begin2(m); return; }
+        _om(m);
+        if (m && onl.isHost && (m.t === "char" || m.t === "name" || m.t === "ready")) tell();
+      };
+
+      /* ---- 開始 ---- */
+      const _hs = hostStartGame;
+      hostStartGame = function () {
+        if (is2()) return start2();
+        if (exConns().length) { setLobbyStatus("1対1は2人までです。「2対2」を選ぶか、ほかの参加者に退出してもらってください。", true); return; }
+        _hs();
+      };
+      function start2() {
+        if (!onl.isHost) return;
+        const g = humans().filter(s => s > 0);
+        if (!g.length || !g.every(readyOf)) return;
+        const R = roster(), chars = R.map(r => CHAR_NAMES.includes(r.c) ? r.c : pickChar());
+        const map = MAP_NAMES.includes(onl.map) ? onl.map : MAP_NAMES[Math.floor(Math.random() * MAP_NAMES.length)];
+        const names = R.map((r, i) => (i === 0 || g.includes(i)) ? (r.n || "ゲスト") : "CPU");
+        onl.cpuSlots = [1, 2, 3].filter(s => !g.includes(s));
+        const msg = { t: "start2", c: chars, n: names, map };
+        g.forEach(s => toSlot(s, Object.assign({ slot: s }, msg)));
+        begin2(Object.assign({ slot: 0 }, msg));
+      }
+      function begin2(m) {
+        onl.mySlot = m.slot; window.TWOVTWO = true; window.TEAMPICK = { p3: m.c[2], p4: m.c[3] }; window.__b2 = true;
+        try { beginMatch(m.c[0], m.c[1], m.map); } finally { window.__b2 = false; }
+        if (onl.isHost) onl.ai = __makeCpuAI(() => Date.now(), Math.random);
+        PL().forEach((p, i) => { if (p) { p.label = m.n[i]; p.slot = i; } });
+        $("gameInfo").innerText = `2対2｜${m.map}｜あなたは ${m.slot + 1}P（${m.slot % 2 ? "赤" : "青"}チーム）`;
+      }
+      const _bm = beginMatch;
+      beginMatch = function (a, b, m) { if (!window.__b2) { window.TWOVTWO = false; onl.cpuSlots = []; } _bm(a, b, m); };
+      const _up = update;
+      update = function () {
+        _up();
+        if (onl.running && onl.isHost && window.TWOVTWO && onl.ai && onl.cpuSlots.length && gameActive) { try { onl.ai.run(onl.cpuSlots); } catch (e) { console.error("onl ai", e); } }
+      };
+      const _fm = finishMatch;
+      finishMatch = function (w) {
+        _fm(w);
+        if (onl.isHost) { [2, 3].forEach(s => { if (onl.ex[s]) onl.ex[s].ready = false; }); tell(); }
+      };
+      const _sub = FX.H.sub;
+      FX.H.sub = () => (window.TWOVTWO && onl.running) ? "2対2　あなたは " + ((onl.mySlot | 0) % 2 ? "赤" : "青") + "チーム" : (_sub ? _sub() : "");
+
+      /* ---- ロビー表示 ---- */
+      const _ul = updateLobby;
+      updateLobby = function () {
+        _ul();
+        let box = $("lobby2");
+        if (!box) { box = document.createElement("div"); box.id = "lobby2"; const g = $("lobbyGrid"); g.parentNode.insertBefore(box, g); }
+        const on = is2(), host = onl.isHost, slot = host ? 0 : (onl.mySlot | 0);
+        box.classList.toggle("hidden", !on);
+        if (!host && slot >= 2 && !on) {
+          $("lobbyReadyBtn").classList.add("hidden");
+          setLobbyStatus("このルームは今「1対1」です。ホストが「2対2」を選ぶと参加できます。");
+        }
+        if (!on) return;
+        const R = host ? roster() : (onl.roster || []);
+        box.innerHTML = '<div class="h2">2対2　青チーム：1P＋3P ／ 赤チーム：2P＋4P（空きはCPU）</div>' + [0, 1, 2, 3].map(i => {
+          const r = R[i] || { k: 0 }, me = i === slot;
+          const who = i === 0 ? r.n : (r.k ? r.n : "CPU（自動）");
+          return `<div class="r2 t${i % 2}"><span>${i + 1}P ${i % 2 ? "赤" : "青"}</span><span class="${me ? "me" : (r.k ? "" : "cpu")}">${escapeHtml(who || "")}${me ? "（あなた）" : ""}</span><span class="${r.k ? "" : "cpu"}">${escapeHtml(r.k ? (r.c || "選択中…") : "おまかせ")}</span><span class="${r.r || i === 0 ? "ok" : ""}">${i === 0 ? "ホスト" : r.k ? (r.r ? "準備OK" : "準備中") : ""}</span></div>`;
+        }).join("");
+        $("lobbyWho").textContent = `あなたは ${slot + 1}P（${slot % 2 ? "赤" : "青"}チーム）　キャラを選んでください`;
+        if (host) {
+          const g = humans().filter(s => s > 0), all = g.length > 0 && g.every(readyOf);
+          $("lobbyStartBtn").disabled = !all;
+          setLobbyStatus(!g.length ? "参加者を待っています（最大3人。空きはCPUが入ります）" : all ? "全員の準備ができました。開始できます！" : "参加者の準備を待っています…");
+        }
+      };
     })();
   </script>
 </body>
