@@ -461,10 +461,6 @@
       <div class="mode-sel" style="margin:-16px 0 20px"><span>プレイ方法</span><button id="modePC" onclick="setPlayMode('pc', true)">🖥 PC</button><button id="modeMobile" onclick="setPlayMode('mobile', true)">📱 モバイル</button></div>
       <div class="accbar">👤 <b id="accName">ゲスト</b><button id="accBtn" onclick="Account_open()">ログイン</button><span id="accBadge"></span></div>
       <div class="menu-list">
-        <button class="menu-btn" onclick="cpuMode=false;goToCharacterSelect()">
-          <span class="mb-icon">⚔</span>
-          <span><b>オフライン対戦</b><small>1台のPCで2人対戦</small></span>
-        </button>
         <button class="menu-btn cpu" onclick="cpuMode=true;goToCharacterSelect()">
           <span class="mb-icon">🤖</span>
           <span><b>CPU対戦</b><small>1人でCPUと対戦（キャラごとに戦法が変わります）</small></span>
@@ -485,9 +481,13 @@
           <span class="mb-icon">📖</span>
           <span><b>キャラ図鑑</b><small>キャラクターの性能をチェック</small></span>
         </button>
+        <button class="menu-btn" onclick="Settings.show()">
+          <span class="mb-icon">⚙</span>
+          <span><b>設定</b><small>操作（キー・ボタン配置）／エフェクト</small></span>
+        </button>
       </div>
       
-      <div class="ver">VER 43</div>
+      <div class="ver">VER 55</div>
     </div>
   </div>
 
@@ -678,7 +678,7 @@ let lastPoisonTick = 0;
          goal   : 必要回数           event: 進行のきっかけ（"login" / "online2v2" ほか。コードから Quest.emit("イベント名") で進める）
          mode   : "set"=達成状態にする（ログイン等）／省略="add"=1回ごとに+1
          auto   : trueなら「新規ログインした瞬間に自動で受け取り」
-         reward : { char:"キャラ名" }
+         reward : { char:"キャラ名" } または { fx:["bullet:キャラ名:ID", "kill:ID"] }（エフェクト）
        ============================================================ */
     const NEW_CHARS = {
       "メープル": { img: "images/maple.png", quest: "login", tag: "長押しの扇形シールドで守る重装タンク。回復エリアで味方も癒やす", info: { title: "重装サポートタンク", intro: "紅葉色の堅牢なシールドで仲間を守る森の守護者。癒やしの力と鉄壁の守りで、どんな猛攻からも味方を守り抜く。", attack: "攻撃ボタンを押している間、前方120度に扇形のエネルギーシールドを展開（離すと解除）。敵の弾や投擲物を受け止め、受けたダメージ分エネルギーが減る。展開中は1秒に5消費、解除中は1秒に5回復。エネルギー0で破壊され、5秒間使用不可（その後全回復）。シールドに敵が触れると5ダメージ（触れている間は0.5秒ごと）。怪獣王の熱線などシールド貫通攻撃は防げない。", skill: "その場に回復エリアを設置。2秒後から2秒おきに3回、エリア内の味方と自分のHPを20ずつ回復（最大60）。使うとシールドのエネルギーも全回復し、破壊中なら即復帰。クールタイム25秒。", tips: "移動が遅いので味方の前に立って守ろう。背後と貫通攻撃は苦手。エネルギーは押しっぱなしにせず、こまめに解除して管理しよう。" } },
@@ -687,8 +687,56 @@ let lastPoisonTick = 0;
     };
     const QUESTS = [
       { id: "login",    title: "ログインする", desc: "Googleアカウントでのログインがおすすめです（メールアドレスでもOK）。", goal: 1, event: "login", mode: "set", auto: true, reward: { char: "メープル" } },
-      { id: "online2v2", title: "オンライン「2対2」を3回プレイ", desc: "オンライン対戦の「2対2」を最後まで遊ぶ（ホストでなくてもOK）。", goal: 3, event: "online2v2", reward: { char: "上裸の鳥頭" } }
+      { id: "sniper_nocskill", char: "スナイパー太郎", title: "スナイパー太郎でスキルなしCPU撃破", desc: "スナイパー太郎を使い、スキルを一度も使わずにCPUと1対1で勝つ。", goal: 1, event: "sniperNoSkill", reward: { fx: ["bullet:スナイパー太郎:redlightning"] } },
+      { id: "online2v2", title: "オンライン「2対2」を3回プレイ", desc: "オンライン対戦の「2対2」を最後まで遊ぶ（ホストでなくてもOK）。", goal: 3, event: "online2v2", reward: { char: "上裸の鳥頭" } },
+      /* ★キルエフェクト用クエスト＝全体に関わる条件（勝利数・プレイ数など）／弾エフェクト用クエスト＝そのキャラの条件 */
+      /* （時間をかける系の例）event:"matchWin" は「勝利するたび」に進みます（CPU戦・オンライン両方）。例：{ id:"wins300", title:"累計300勝", goal:300, event:"matchWin", reward:{...} } */
+      { id: "rand_win3", title: "おまかせキャラでCPUに3勝", desc: "キャラ選択で「おまかせ」を選び、CPUと1対1で3回勝利する。", goal: 3, event: "randWin", reward: { fx: ["kill:redlightning"] } },
+      { id: "rand_hp5", title: "【難関】おまかせでHP半分以上残して5勝", desc: "キャラ選択で「おまかせ」を選び、自分のHPを半分以上残したまま、CPUと1対1で5回勝利する。", goal: 5, event: "randWinHp", reward: { fx: ["kill:monochrome"] } }
     ];
+    /* ★エフェクト登録：quest を付けると、そのクエストを報酬で受け取るまで🔒。報酬側は reward:{ fx:["kill:ID","bullet:キャラ名:ID"] } */
+    const KILL_FX = [
+      { id: "std", name: "標準", desc: "従来どおり（追加演出なし）" },
+      { id: "redlightning", name: "紅雷の爆散", desc: "黒と赤の雷が四方へ走り、破片が散る", quest: "rand_win3" },
+      { id: "monochrome", name: "無彩の断罪", desc: "世界が白と黒に染まり、反転の円と斬撃が全てを断つ", quest: "rand_hp5" },
+      /* ↓キャラ別（そのキャラの熟練度「達人」クエストの報酬。使うのは全キャラ共通） */
+      { id: "slot777", name: "ジャックポット777", desc: "スロットが回って7・7・7が揃い、コインが噴き出す（ジョーカー）", quest: "master_ジョーカー" },
+      { id: "scope", name: "必中の照準", desc: "スコープがズームして照準が合い、一発の弾道が貫く（スナイパー太郎）", quest: "master_スナイパー太郎" },
+      { id: "reaper", name: "白き死神の鎌", desc: "大鎌が弧を描いて一閃し、青白い魂が昇る（白い死神）", quest: "master_白い死神" },
+      { id: "phantom", name: "予告状・頂戴いたす", desc: "スポットライトに浮かぶ予告状、トランプと薔薇が舞う（怪盗レッド）", quest: "master_怪盗レッド" },
+      { id: "gadget", name: "SYSTEM DOWN", desc: "歯車と走査線、バイナリが流れてエラー表示（ガジェットボット）", quest: "master_ガジェットボット" },
+      { id: "aqua", name: "蒼海の大海嘯", desc: "水柱が天を突き、巨大な魚が跳ね、大波が画面を洗う（アクアファイター）", quest: "master_アクアファイター" },
+      { id: "pop", name: "ビリビリ・ZAP!", desc: "アメコミ調の爆発と稲妻、集中線（サンダーマウス）", quest: "master_サンダーマウス" },
+      { id: "kaiju", name: "怪獣王の爪痕", desc: "巨影が浮かび、三本の爪痕と地割れが走る（怪獣王）", quest: "master_怪獣王" },
+      { id: "phoenix", name: "不死鳥の再誕", desc: "炎の翼が開き、火の粉と再誕の輪が広がる（不死鳥）", quest: "master_不死鳥" },
+      { id: "elemental", name: "三元の魔法陣", desc: "魔法陣に炎・氷・雷の球が収束して三色に弾ける（元素の魔女）", quest: "master_元素の魔女" },
+      { id: "twin", name: "W BLAST!!", desc: "兄の爆炎と弟の散弾がぶつかり、Xの閃光が走る（ツインブラザーズ）", quest: "master_ツインブラザーズ" },
+      { id: "holy", name: "天啓の光輪", desc: "光柱が降り、六枚の大翼と光輪が開いて羽が舞う（聖なる使者）", quest: "master_聖なる使者" },
+      { id: "jump", name: "超跳躍・SMASH", desc: "跳ねるたびに巨大化し、特大のボールが叩きつけられる（ジャンパー）", quest: "master_ジャンパー" },
+      { id: "bomb", name: "メガトン・ボム", desc: "特大の爆弾が落ち、閃光とともにキノコ雲が立ち上る（ボマー）", quest: "master_ボマー" },
+      { id: "boomerang", name: "回帰の旋刃", desc: "三本のブーメランが大弧を描いて収束し、十字に断つ（ブーメランボーイ）", quest: "master_ブーメランボーイ" },
+      { id: "pie24", name: "二十四連の大華", desc: "大玉が24発に破裂し、弾の花が二重に咲く（パイハークン）", quest: "master_パイハークン" },
+      { id: "tamer", name: "三獣突撃", desc: "三匹の相棒が三方から突撃し、肉球の足跡が駆け抜ける（ペット＆テイマー）", quest: "master_ペット＆テイマー" },
+      { id: "maple", name: "紅葉の守護陣", desc: "三枚の扇形シールドが円陣を組み、紅葉が渦巻く（メープル）", quest: "master_メープル" },
+      { id: "bird", name: "異界の兎穴", desc: "空間が裂け、曲がる白兎の弾が異世界へ飛び込む（上裸の鳥頭）", quest: "master_上裸の鳥頭" },
+      { id: "ace", name: "謎は解けた！", desc: "スポットの中の一蹴、跳弾と虫眼鏡、麻酔の眠り（エース・キッカー）", quest: "master_エース・キッカー" },
+      { id: "dejavu", name: "既視感（デジャヴ）", desc: "同じ姿が次々と現れ、青とピンクの帯が走る（既視感のあるGAY）", quest: "master_既視感のあるGAY" }
+    ];
+    const BULLET_FX = {
+      "スナイパー太郎": [
+        { id: "std", name: "標準", desc: "従来の青白い弾" },
+        { id: "redlightning", name: "紅雷", desc: "黒と赤の雷をまとってビリビリ走る弾", quest: "sniper_nocskill" }
+      ]
+    };
+    const OWNED_FX = new Set();
+    function isFxOwned(k) {
+      const a = k.split(":"), e = (a[0] === "kill" ? KILL_FX.find(x => x.id === a[1]) : (BULLET_FX[a[1]] || []).find(x => x.id === a[2]));
+      return !e || !e.quest || OWNED_FX.has(k);
+    }
+    function fxLabel(k) {
+      const a = k.split(":"), e = (a[0] === "kill" ? KILL_FX.find(x => x.id === a[1]) : (BULLET_FX[a[1]] || []).find(x => x.id === a[2]));
+      return (a[0] === "kill" ? "キルエフェクト「" : a[1] + "の弾エフェクト「") + (e ? e.name : a.slice(-1)[0]) + "」";
+    }
     const OWNED_SET = new Set();   // クエストで入手済みのキャラ（ログイン中のみ）
     function isOwned(n) { const c = NEW_CHARS[n]; return !c || !c.quest || OWNED_SET.has(n); }
     function ownedNames() { const a = CHAR_NAMES.filter(isOwned); return a.length ? a : CHAR_NAMES; }
@@ -2072,7 +2120,7 @@ fighterList().forEach(p => {
 
     /* ---------- 画面管理（新しい画面も隠せるように上書き） ---------- */
     const ALL_SCREENS = ["homeScreen","characterSelect","mapSelect","gameScreen","resultScreen",
-                         "onlineMenu","onlineLobby","onlineResult","codexScreen","questScreen"];
+                         "onlineMenu","onlineLobby","onlineResult","codexScreen","questScreen","settingsScreen"];
     function hideAllScreens() {
       ALL_SCREENS.forEach(id => document.getElementById(id).classList.add("hidden"));
     }
@@ -2143,6 +2191,13 @@ fighterList().forEach(p => {
     /* ---------- 共通ヘルパ ---------- */
     const CHAR_NAMES = Object.keys(characterImages);
     const MAP_NAMES = ["草原","雪原","都市","火山","宇宙","海辺","ジャングル","工場"];
+    /* ★熟練度（キャラごと）：試合を遊ぶと +1、勝つと +2 ポイント。ランクは下の表のとおり（t＝必要ポイント）。
+       ★熟練度クエストは、キャラ一覧（characterImages）から全キャラ分を自動で作ります＝新キャラを追加すれば自動で増えます。
+       ★キャラ固有のクエストは QUESTS に char:"キャラ名" を付けて追加（クエスト画面の「キャラ別」と図鑑に出ます） */
+    /* キャラ別キルエフェクト（そのキャラの「達人」クエストの報酬）。新しく作ったら KILL_FX と KILL_DRAW に登録して、ここに追加 */
+    const MASTER_FX = { "ジョーカー": "slot777", "スナイパー太郎": "scope", "白い死神": "reaper", "怪盗レッド": "phantom", "ガジェットボット": "gadget", "アクアファイター": "aqua", "サンダーマウス": "pop", "怪獣王": "kaiju", "不死鳥": "phoenix", "元素の魔女": "elemental", "既視感のあるGAY": "dejavu", "ツインブラザーズ": "twin", "聖なる使者": "holy", "ジャンパー": "jump", "ボマー": "bomb", "ブーメランボーイ": "boomerang", "パイハークン": "pie24", "ペット＆テイマー": "tamer", "メープル": "maple", "上裸の鳥頭": "bird", "エース・キッカー": "ace" };
+    const MASTERY = [{ n: "ビギナー", t: 0 }, { n: "中級者", t: 30 }, { n: "上級者", t: 120 }, { n: "達人", t: 300 }];
+    CHAR_NAMES.forEach(n => QUESTS.push({ id: "master_" + n, char: n, icon: "🎓", title: n + " 達人", desc: n + "で対戦して熟練度を上げ、「達人」になる。（遊ぶと+1、勝つと+2ポイント。達人は" + MASTERY[3].t + "ポイント）", goal: MASTERY[3].t, src: "mp:" + n, reward: MASTER_FX[n] ? { fx: ["kill:" + MASTER_FX[n]] } : undefined }));
 
     function imgOrPlaceholder(name, cls) {
       const src = characterImages[name];
@@ -2382,6 +2437,7 @@ fighterList().forEach(p => {
           onl.myChar = CHAR_NAMES[0]; onl.oppChar = ""; onl.guestReady = false;
           sendMsg({ t: "char", v: onl.myChar });
           sendMsg({ t: "name", v: myName() });
+          sendMsg({ t: "kfx", v: window.__eqKillId ? window.__eqKillId() : "std" });   // 自分のキルエフェクトをホストへ
           enterLobby();
         });
         conn.on("data", onMessage);
@@ -2432,6 +2488,8 @@ fighterList().forEach(p => {
       switch (m.t) {
         case "char":  onl.oppChar = m.v; updateLobby(); break;
         case "name":  onl.oppName = String(m.v || "ゲスト").slice(0, 16); updateLobby(); break;
+        case "kfx":   if (onl.isHost) onl.guestKfx = String(m.v || "std").slice(0, 24); break;
+        case "kill":  if (!onl.isHost && window.__KO) window.__KO.play(+m.x || 0, +m.y || 0, String(m.id || "")); break;
         case "map":   if (!onl.isHost) { onl.map = m.v; updateLobby(); } break;
         case "ready": if (onl.isHost) { onl.guestReady = !!m.v; updateLobby(); } break;
         case "start": if (!onl.isHost) beginMatch(m.p1, m.p2, m.map); break;
@@ -2519,7 +2577,7 @@ fighterList().forEach(p => {
       if (ts - onl.lastSend >= 16) { sendSnapMsg(buildSnap()); onl.lastSend = ts; }
 
       reapDead();
-      if (sideDead(0) || sideDead(1)) {
+      if ((sideDead(0) || sideDead(1)) && !(window.__KO && window.__KO.hold())) {   // 最後のキル演出が終わってから試合終了
         gameActive = false;
         sendMsg(buildSnap());
         const mw = matchWinner(), w = mw === 0 ? "draw" : (mw === 2 ? "p2" : "p1");
@@ -5250,11 +5308,12 @@ function think(i){
       function toast(t) { const e = $("qToast"); e.textContent = t; e.classList.add("on"); clearTimeout(tm); tm = setTimeout(() => e.classList.remove("on"), 3200); }
       function cache() { try { localStorage.setItem(key(), JSON.stringify({ p: S.p, c: S.c })); } catch (e) {} }
       function applyOwned() {
-        OWNED_SET.clear();
-        QUESTS.forEach(q => { if (S.c[q.id] && q.reward && q.reward.char) OWNED_SET.add(q.reward.char); });
+        OWNED_SET.clear(); OWNED_FX.clear();
+        QUESTS.forEach(q => { if (S.c[q.id] && q.reward) { if (q.reward.char) OWNED_SET.add(q.reward.char); (q.reward.fx || []).forEach(k => OWNED_FX.add(k)); } });
         try { refreshLocks(); } catch (e) {}
+        try { window.Settings && Settings.refresh(); } catch (e) {}
       }
-      const claimable = q => S.uid && !S.c[q.id] && (S.p[q.id] || 0) >= q.goal;
+      const claimable = q => S.uid && !S.c[q.id] && (q.src ? (S.p[q.src] || 0) : (S.p[q.id] || 0)) >= q.goal;
       function badge() { const n = QUESTS.filter(claimable).length, b = $("questBadge"); if (b) { b.textContent = n; b.style.display = n ? "inline-block" : "none"; } }
       async function flush() {
         if (!S.dirty || S.saving || !S.uid || !window.__qsave) return;
@@ -5267,6 +5326,8 @@ function think(i){
         const q = QUESTS.find(x => x.id === id); if (!q || !claimable(q)) return false;
         S.c[id] = 1; S.dirty = true; cache(); applyOwned(); badge(); render(); flush();
         if (q.reward && q.reward.char) toast("🎉 新キャラ「" + q.reward.char + "」を手に入れた！");
+        else if (q.reward && q.reward.fx) toast("🎉 " + q.reward.fx.map(fxLabel).join("・") + "を手に入れた！（設定→エフェクト設定）");
+        else toast("🎉 達成！「" + q.title + "」");
         return true;
       }
       function emit(ev) {
@@ -5292,25 +5353,1155 @@ function think(i){
         }
         applyOwned(); badge(); render(); flush();
       }
+      /* ---- 熟練度（ポイントは進行データ S.p の "mp:キャラ名" に保存） ---- */
+      const prog = q => q.src ? (S.p[q.src] || 0) : (S.p[q.id] || 0);
+      function lvOf(n) {
+        const p = S.uid ? (S.p["mp:" + n] || 0) : 0; let i = 0; MASTERY.forEach((l, k) => { if (p >= l.t) i = k; });
+        const nx = MASTERY[i + 1];
+        return { i, short: MASTERY[i].n, pts: p, from: MASTERY[i].t, next: nx ? nx.t : null, nextName: nx ? nx.n : null };
+      }
+      const lvPct = lv => lv.next ? Math.round((lv.pts - lv.from) / (lv.next - lv.from) * 100) : 100;
+      function addMastery(n, won) {   // 1試合ごとに1回（通信は1回）。結果画面に熟練度バーを出す
+        if (!S.uid || !n || !CHAR_NAMES.includes(n)) return;
+        const b = lvOf(n), add = 1 + (won ? 2 : 0);
+        S.p["mp:" + n] = (S.p["mp:" + n] || 0) + add;
+        const a = lvOf(n);
+        S.gain = { n, add, b, a };
+        S.dirty = true; cache(); badge(); render(); flush();
+      }
+      let gainTm = [];
+      function showGain() {
+        const g = S.gain; S.gain = null; if (!g) return;
+        let el = $("mastPanel"); if (!el) { el = document.createElement("div"); el.id = "mastPanel"; document.body.appendChild(el); }
+        gainTm.forEach(clearTimeout); gainTm = [];
+        const up = g.a.i > g.b.i, pct = (L, p) => L.next ? Math.round((p - L.from) / (L.next - L.from) * 100) : 100, txt = L => L.next ? L.pts + " / " + L.next : "MAX";
+        el.innerHTML = `<div class="mp-h"><b>${escapeHtml(g.n)}</b><span class="mp-lv" id="mpLv">${g.b.short}</span><span class="mp-add">熟練度 +${g.add}</span></div><div class="mp-bar"><i id="mpFill"></i></div><div class="mp-t" id="mpT"></div><div class="mp-up" id="mpUp"></div>`;
+        el.classList.add("on");
+        const fill = $("mpFill"), tx = $("mpT"), lv = $("mpLv"), upEl = $("mpUp"), T = (f, ms) => gainTm.push(setTimeout(f, ms));
+        fill.style.transition = "none"; fill.style.width = pct(g.b, g.b.pts) + "%"; tx.textContent = txt(g.b); void fill.offsetWidth;
+        if (!up) T(() => { fill.style.transition = "width .9s ease-out"; fill.style.width = pct(g.a, g.a.pts) + "%"; tx.textContent = txt(g.a); }, 350);
+        else {
+          T(() => { fill.style.transition = "width .8s ease-out"; fill.style.width = "100%"; }, 350);
+          T(() => {
+            upEl.innerHTML = "LEVEL UP!<small>" + escapeHtml(g.n) + "　" + g.b.short + " → " + g.a.short + (g.a.next ? "" : "<br>「達人」クエスト達成！クエスト画面で受け取れます") + "</small>"; upEl.classList.add("pop");
+            lv.textContent = g.a.short; fill.style.transition = "none"; fill.style.width = "0%"; tx.textContent = txt(g.a); void fill.offsetWidth;
+          }, 1250);
+          T(() => { fill.style.transition = "width .8s ease-out"; fill.style.width = pct(g.a, g.a.pts) + "%"; }, 1500);
+        }
+      }
+      setInterval(() => {   // 結果画面が出たら熟練度バーを表示、画面が変わったら隠す
+        const rs = $("resultScreen"), os = $("onlineResult"), vis = (rs && !rs.classList.contains("hidden")) || (os && !os.classList.contains("hidden")), el = $("mastPanel");
+        if (vis && S.gain) showGain(); else if (!vis && el && el.classList.contains("on")) el.classList.remove("on");
+      }, 250);
+      /* ---- クエスト画面：「全体」と「キャラ別」のタブ。キャラ別はキャラごとに折りたたみ ---- */
+      let qTab = "gen"; const openCh = new Set();
+      function card(q) {
+        const pr = Math.min(q.goal, S.uid ? prog(q) : 0), done = !!(S.uid && S.c[q.id]), can = claimable(q), rc = q.reward && q.reward.char;
+        const rw = rc ? `<div class="rw ${done ? "" : "lockd"}">${imgOrPlaceholder(rc)}${escapeHtml(rc)}</div>`
+          : (q.reward && q.reward.fx) ? `<div class="rw ${done ? "" : "lockd"}"><div class="cx-ph" style="font-size:30px">✨</div>${q.reward.fx.map(k => escapeHtml(fxLabel(k))).join("<br>")}</div>`
+          : `<div class="rw"><div class="cx-ph" style="font-size:30px">${q.icon || "🎯"}</div></div>`;
+        const act = done ? `<span class="ok">${q.reward ? "入手済み ✓" : "達成 ✓"}</span>`
+          : !S.uid ? '<button data-q="login">ログイン</button>'
+          : can ? `<button data-q="claim" data-id="${q.id}">${q.reward ? "受け取る" : "達成を記録"}</button>` : '<span class="pg">進行中</span>';
+        return `<div class="q-card ${done ? "done" : ""}">${rw}<div class="bd"><div class="tt">${escapeHtml(q.title)}</div><div class="ds">${escapeHtml(q.desc || "")}</div><div class="q-bar"><i style="width:${Math.round(pr / q.goal * 100)}%"></i></div><div class="pg">${pr} / ${q.goal}</div></div>${act}</div>`;
+      }
       function render() {
         const L = $("qList"); if (!L) return;
         $("qNote").textContent = S.uid ? "進行状況は試合が終わったときに保存されます。" : "クエストの進行・報酬の保存にはログインが必要です（Googleログイン推奨）。";
-        L.innerHTML = QUESTS.map(q => {
-          const pr = Math.min(q.goal, S.uid ? (S.p[q.id] || 0) : 0), done = !!(S.uid && S.c[q.id]), can = claimable(q), rc = q.reward && q.reward.char;
-          const rw = rc ? `<div class="rw ${done ? "" : "lockd"}">${imgOrPlaceholder(rc)}${escapeHtml(rc)}</div>` : '<div class="rw"></div>';
-          const act = done ? '<span class="ok">入手済み ✓</span>'
-            : !S.uid ? '<button data-q="login">ログイン</button>'
-            : can ? `<button data-q="claim" data-id="${q.id}">受け取る</button>` : '<span class="pg">進行中</span>';
-          return `<div class="q-card ${done ? "done" : ""}">${rw}<div class="bd"><div class="tt">${escapeHtml(q.title)}</div><div class="ds">${escapeHtml(q.desc || "")}</div><div class="q-bar"><i style="width:${Math.round(pr / q.goal * 100)}%"></i></div><div class="pg">${pr} / ${q.goal}</div></div>${act}</div>`;
-        }).join("");
+        const gen = QUESTS.filter(q => !q.char), chq = QUESTS.filter(q => q.char), dot = l => l.some(claimable) ? '<i class="rd"></i>' : "";
+        let h = `<div class="q-tabs"><button data-qt="gen" class="${qTab === "gen" ? "on" : ""}">全体${dot(gen)}</button><button data-qt="char" class="${qTab === "char" ? "on" : ""}">キャラ別${dot(chq)}</button></div>`;
+        if (qTab === "gen") h += gen.map(card).join("");
+        else {
+          h += '<div class="q-note2">キャラをタップすると、そのキャラのクエストが開きます。</div>';
+          h += CHAR_NAMES.map(n => {
+            const qs = chq.filter(q => q.char === n); if (!qs.length) return "";
+            const lv = lvOf(n), open = openCh.has(n), dn = qs.filter(q => S.uid && S.c[q.id]).length;
+            return `<div class="q-grp ${open ? "open" : ""}"><div class="gh" data-qc="${escapeHtml(n)}">${imgOrPlaceholder(n)}<div class="gi"><div class="gn">${escapeHtml(n)}${isOwned(n) ? "" : " 🔒"}${dot(qs)}</div><div class="gl">${escapeHtml(n)} ${lv.short}<span>　${lv.next ? lv.pts + " / " + lv.next : "MAX"}</span></div><div class="q-bar"><i style="width:${lvPct(lv)}%"></i></div></div><div class="gc">${dn}/${qs.length}<br><b>${open ? "▲" : "▼"}</b></div></div>${open ? '<div class="gb">' + qs.map(card).join("") + "</div>" : ""}</div>`;
+          }).join("");
+        }
+        L.innerHTML = h;
+      }
+      function showChar(n) {   // 図鑑などから：そのキャラのクエストを開く
+        qTab = "char"; openCh.add(n); showScreen("questScreen"); render();
+        setTimeout(() => { const el = document.querySelector('#qList [data-qc="' + n.replace(/"/g, '\\"') + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" }); }, 60);
+      }
+      function codexHtml(n) {   // 図鑑：熟練度と関連クエスト
+        const lv = lvOf(n), qs = QUESTS.filter(q => q.char === n);
+        return `<div class="cd-sec cd-mast"><h4>熟練度</h4><div class="mlad">${MASTERY.map((l, k) => k === lv.i ? `<b>${l.n}</b>` : l.n).join(" › ")}</div>` +
+          `<div class="mrow"><b>${escapeHtml(n)} ${lv.short}</b><span>${S.uid ? (lv.next ? lv.pts + " / " + lv.next + "（次：" + lv.nextName + "）" : "最高ランク") : "ログインすると記録されます"}</span></div><div class="q-bar"><i style="width:${lvPct(lv)}%"></i></div>` +
+          `<div class="mlist">${qs.map(q => `<div class="mq">${S.uid && S.c[q.id] ? "✅" : "▫️"} ${escapeHtml(q.title)} <span>${Math.min(q.goal, S.uid ? prog(q) : 0)} / ${q.goal}</span></div>`).join("")}</div>` +
+          `<button class="mbtn" data-cq="${escapeHtml(n)}">このキャラのクエストを見る</button></div>`;
       }
       document.addEventListener("click", e => {
+        const t = e.target.closest("#qList [data-qt]"); if (t) { qTab = t.dataset.qt; render(); return; }
+        const g = e.target.closest("#qList [data-qc]"); if (g) { const n = g.dataset.qc; if (openCh.has(n)) openCh.delete(n); else openCh.add(n); render(); return; }
+        const c = e.target.closest("[data-cq]"); if (c) { showChar(c.dataset.cq); return; }
         const b = e.target.closest("#qList button"); if (!b) return;
         if (b.dataset.q === "login") Account_open(); else if (b.dataset.q === "claim") claim(b.dataset.id);
       });
-      return { show() { showScreen("questScreen"); render(); }, emit, claim, onUser, toast, render };
+            return { show() { showScreen("questScreen"); render(); }, emit, claim, onUser, toast, render, addMastery, showChar, codexHtml, lvOf };
     })();
   </script>
+  <style>
+    #settingsScreen { position: fixed; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 54px 14px 40px; box-sizing: border-box; color: #eef; z-index: 5; text-align: left; }
+    #settingsScreen.hidden { display: none; }
+    .st-wrap { max-width: 640px; margin: 0 auto; }
+    .st-wrap h2 { text-align: center; margin: 0 0 10px; }
+    .st-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+    .st-tabs button { margin: 0; padding: 8px 18px; font-size: 14px; border-radius: 20px; opacity: .65; }
+    .st-tabs button.on { opacity: 1; box-shadow: 0 0 0 2px #7f9bff inset; }
+    .st-sec { background: rgba(20,28,60,.85); border: 1px solid #34407a; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    .st-sec h3 { margin: 0 0 8px; font-size: 15px; color: #9fb4ff; }
+    .st-note { font-size: 12px; color: #9aa3c7; margin: 4px 0 8px; }
+    .st-keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px; }
+    .st-key { display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #0f1426; border-radius: 8px; padding: 4px 8px; font-size: 14px; }
+    .st-key button { margin: 0; min-width: 84px; padding: 6px 10px; font-size: 14px; }
+    .st-key button.wait { background: #ffb347; color: #222; animation: stBlink .7s infinite alternate; }
+    @keyframes stBlink { to { filter: brightness(1.35); } }
+    .st-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 14px; flex-wrap: wrap; }
+    .st-row input[type=range] { flex: 1; min-width: 120px; }
+    .st-reset { margin: 4px 0 0; padding: 8px 14px; font-size: 14px; background: #5a2540; border: 1px solid #ff6b8e; }
+    #tlPrev { position: relative; width: 100%; max-width: 520px; aspect-ratio: 2 / 1; margin: 6px auto; border: 2px solid #34407a; border-radius: 10px; background: linear-gradient(135deg, #10172e, #1a2447); overflow: hidden; touch-action: none; }
+    #tlPrev .stk { position: absolute; top: 0; bottom: 0; width: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #6f7db8; border: 1px dashed #34407a; box-sizing: border-box; }
+    #tlPrev .tlb { position: absolute; border-radius: 50%; border: 3px solid #3aa0ff; background: rgba(20,40,90,.8); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; cursor: grab; user-select: none; touch-action: none; }
+    .st-fxgrid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .st-fx { flex: 1 1 150px; min-width: 140px; background: #0f1426; border: 2px solid #2c3354; border-radius: 10px; padding: 8px; cursor: pointer; position: relative; }
+    .st-fx.sel { border-color: #7dffa8; }
+    .st-fx.lock { opacity: .6; }
+    .st-fx b { font-size: 14px; } .st-fx small { display: block; color: #9aa3c7; font-size: 11px; margin: 2px 0 6px; }
+    .st-fx button { margin: 0; padding: 4px 10px; font-size: 12px; }
+    .st-fx .lk { position: absolute; top: 6px; right: 8px; }
+    .st-char { display: flex; gap: 8px; align-items: center; margin: 10px 0 6px; font-weight: bold; }
+    .st-char .cx-ph, .st-char img { width: 30px; height: 30px; object-fit: contain; }
+    #fxPrev { display: block; width: 100%; max-width: 520px; margin: 4px auto 0; border-radius: 10px; border: 2px solid #34407a; background: #0b1020; }
+    .st-pvlabel { text-align: center; font-size: 12px; color: #9aa3c7; margin-top: 3px; }
+    body.compact .st-keys { grid-template-columns: repeat(3, 1fr); }
+  </style>
+  <div id="settingsScreen" class="hidden">
+    <div class="st-wrap">
+      <h2>⚙ 設定</h2>
+      <div class="st-tabs"><button id="stTabC" class="on" onclick="Settings.tab('c')">🎮 操作設定</button><button id="stTabF" onclick="Settings.tab('f')">✨ エフェクト設定</button></div>
+      <div id="stPaneC"></div>
+      <div id="stPaneF" class="hidden"></div>
+    </div>
+  </div>
+  <script>
+    /* ver49：設定（操作設定／エフェクト設定）。すべてこの端末の localStorage に保存（Firebaseの通信なし） */
+    window.Settings = (function () {
+      const $ = id => document.getElementById(id), TAU = Math.PI * 2;
+      const LS = "settings_v1";
+      const KEY_ACTS = [["up", "上へ", "w"], ["down", "下へ", "s"], ["left", "左へ", "a"], ["right", "右へ", "d"], ["atk", "攻撃", "f"], ["skl", "スキル", "g"]];
+      const DEF_KEYS = {}; KEY_ACTS.forEach(a => { DEF_KEYS[a[0]] = a[2]; });
+      const DEF_TOUCH = { size: 70, opacity: 100, lefty: false, atk: { x: 91, y: 80 }, skl: { x: 79, y: 63 } };
+      let cfg = { keys: null, touch: null, fx: { kill: "std", bullet: {} } };
+      try { const j = JSON.parse(localStorage.getItem(LS) || "null"); if (j) cfg = Object.assign(cfg, j); } catch (e) {}
+      cfg.fx = cfg.fx || { kill: "std", bullet: {} }; cfg.fx.bullet = cfg.fx.bullet || {};
+      const save = () => { try { localStorage.setItem(LS, JSON.stringify(cfg)); } catch (e) {} };
+      const norm = k => k.length === 1 ? k.toLowerCase() : k;
+      const keyName = k => ({ " ": "Space", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" }[k] || (k.length === 1 ? k.toUpperCase() : k));
+      const curKeys = () => Object.assign({}, DEF_KEYS, cfg.keys || {});
+
+      /* ======== キー入力の置き換え ======== */
+      let waiting = null, REV = {}, DEFSET = new Set(Object.values(DEF_KEYS));
+      function rebuild() { REV = {}; const k = curKeys(); Object.keys(k).forEach(a => { REV[k[a]] = a; }); }
+      rebuild();
+      function onKey(e) {
+        if (!e.isTrusted) return;
+        const t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+        const k = norm(e.key);
+        if (waiting) {   // キー割り当て待ち
+          e.preventDefault(); e.stopImmediatePropagation();
+          if (e.type !== "keydown") return;
+          const act = waiting; waiting = null;
+          if (k !== "Escape") {
+            const ks = curKeys(), old = ks[act], other = Object.keys(ks).find(a => a !== act && ks[a] === k);
+            ks[act] = k; if (other) ks[other] = old;   // 重複したら入れ替え
+            cfg.keys = ks; save(); rebuild();
+          }
+          renderC(); return;
+        }
+        if (!cfg.keys) return;
+        const act = REV[k];
+        if (act) { const d = DEF_KEYS[act]; if (d === k) return; e.stopImmediatePropagation(); e.preventDefault(); document.dispatchEvent(new KeyboardEvent(e.type, { key: d, bubbles: true })); return; }
+        if (DEFSET.has(k)) { e.stopImmediatePropagation(); e.preventDefault(); }   // 割り当てを外れた元のキーは無効
+      }
+      ["keydown", "keyup"].forEach(t => window.addEventListener(t, e => { if (window.__fxPv) { e.stopImmediatePropagation(); e.preventDefault(); } }, true));   // プレビュー中は操作を受け付けない（見るだけ）
+      window.addEventListener("keydown", onKey, true); window.addEventListener("keyup", onKey, true);
+
+      /* ======== タッチボタン配置 ======== */
+      let tstyle = null;
+      const tc = () => Object.assign({}, DEF_TOUCH, cfg.touch || {});
+      function applyTouch() {
+        const ui = $("touchUI"); if (!ui) return;
+        if (!cfg.touch) { ui.classList.remove("custom", "lefty"); return; }
+        const c = tc();
+        ui.classList.add("custom"); ui.classList.toggle("lefty", !!c.lefty);
+        ui.style.setProperty("--tb", c.size + "px"); ui.style.setProperty("--to", (c.opacity / 100).toFixed(2));
+        ui.style.setProperty("--ax", c.atk.x + "%"); ui.style.setProperty("--ay", c.atk.y + "%");
+        ui.style.setProperty("--sx", c.skl.x + "%"); ui.style.setProperty("--sy", c.skl.y + "%");
+        if (!tstyle) {
+          tstyle = document.createElement("style");
+          tstyle.textContent = `#touchUI.custom .tp1 .tbtn{position:fixed;margin:0;width:var(--tb);height:var(--tb);opacity:var(--to);font-size:calc(var(--tb)*.19)}
+#touchUI.custom .tp1 .tbtn.atk{left:calc(var(--ax) - var(--tb)/2);top:calc(var(--ay) - var(--tb)/2)}
+#touchUI.custom .tp1 .tbtn.skl{left:calc(var(--sx) - var(--tb)/2);top:calc(var(--sy) - var(--tb)/2)}
+#touchUI.custom.lefty .tp1 .joy{left:auto;right:0}`;
+          document.head.appendChild(tstyle);
+        }
+      }
+      function setTouch(p) { cfg.touch = Object.assign(tc(), p); save(); applyTouch(); drawTL(); }
+
+      function renderC() {
+        const ks = curKeys(), c = tc();
+        $("stPaneC").innerHTML = `
+          <div class="st-sec"><h3>⌨ キーボード（PC）</h3>
+            <div class="st-note">変更したい項目を押してから、割り当てたいキーを押してください（Escでキャンセル）。ほかの項目と重なったときは入れ替わります。矢印キーは常に移動として使えます。</div>
+            <div class="st-keys">${KEY_ACTS.map(a => `<div class="st-key"><span>${a[1]}</span><button data-k="${a[0]}" class="${waiting === a[0] ? "wait" : ""}">${waiting === a[0] ? "キーを押す…" : keyName(ks[a[0]])}</button></div>`).join("")}</div>
+            <button class="st-reset" id="stKeyReset">↺ キー設定を初期に戻す</button>
+          </div>
+          <div class="st-sec"><h3>📱 ボタン配置（モバイル）</h3>
+            <div class="st-note">下の画面イメージで「攻撃」「スキル」ボタンをドラッグして好きな位置に置けます。実際の画面でも同じ位置に表示されます。</div>
+            <div id="tlPrev"><div class="stk" style="${c.lefty ? "right" : "left"}:0">移動スティック<br>（この範囲のどこでも）</div>
+              <div class="tlb" id="tlAtk" data-b="atk">攻撃</div><div class="tlb" id="tlSkl" data-b="skl" style="border-color:#3aa0ff">スキル</div></div>
+            <div class="st-row"><span>大きさ</span><input type="range" id="tlSize" min="48" max="110" value="${c.size}"><b id="tlSizeV">${c.size}</b></div>
+            <div class="st-row"><span>濃さ</span><input type="range" id="tlOp" min="30" max="100" value="${c.opacity}"><b id="tlOpV">${c.opacity}%</b></div>
+            <div class="st-row"><label><input type="checkbox" id="tlLefty" ${c.lefty ? "checked" : ""}> スティックを右側にする（左利き向け）</label></div>
+            <button class="st-reset" id="stTouchReset">↺ ボタン配置を初期に戻す</button>
+          </div>`;
+        $("stPaneC").querySelectorAll(".st-key button").forEach(b => b.onclick = () => { waiting = b.dataset.k; renderC(); });
+        $("stKeyReset").onclick = () => { cfg.keys = null; waiting = null; save(); rebuild(); renderC(); };
+        $("stTouchReset").onclick = () => { cfg.touch = null; save(); applyTouch(); renderC(); };
+        $("tlSize").oninput = e => { $("tlSizeV").textContent = e.target.value; setTouch({ size: +e.target.value }); };
+        $("tlOp").oninput = e => { $("tlOpV").textContent = e.target.value + "%"; setTouch({ opacity: +e.target.value }); };
+        $("tlLefty").onchange = e => { setTouch({ lefty: e.target.checked }); renderC(); };
+        const box = $("tlPrev");
+        ["atk", "skl"].forEach(k => {
+          const el = box.querySelector(".tlb[data-b=" + k + "]"); let id = null;
+          el.addEventListener("pointerdown", e => { id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} e.preventDefault(); });
+          el.addEventListener("pointermove", e => {
+            if (e.pointerId !== id) return; const r = box.getBoundingClientRect();
+            const x = Math.max(4, Math.min(96, (e.clientX - r.left) / r.width * 100)), y = Math.max(6, Math.min(94, (e.clientY - r.top) / r.height * 100));
+            const o = {}; o[k] = { x: +x.toFixed(1), y: +y.toFixed(1) }; setTouch(o);
+          });
+          const end = e => { if (e.pointerId === id) id = null; }; el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+        });
+        drawTL();
+      }
+      function drawTL() {
+        const box = $("tlPrev"); if (!box) return; const c = tc(), w = box.clientWidth || 360, s = c.size * (w / 760);   // 画面イメージは横幅760px相当で縮小
+        [["atk", "tlAtk"], ["skl", "tlSkl"]].forEach(([k, id]) => { const el = $(id); if (!el) return; el.style.width = el.style.height = s + "px"; el.style.fontSize = Math.max(9, s * .26) + "px"; el.style.left = `calc(${c[k].x}% - ${s / 2}px)`; el.style.top = `calc(${c[k].y}% - ${s / 2}px)`; el.style.opacity = (c.opacity / 100).toFixed(2); });
+        const st = box.querySelector(".stk"); if (st) { st.style.left = c.lefty ? "auto" : "0"; st.style.right = c.lefty ? "0" : "auto"; }
+      }
+
+      /* ======== エフェクト ======== */
+      const sr = s => { s = (s | 0) ^ 0x9e3779b9; return () => { s = Math.imul(s ^ (s >>> 15), 1 | s); s ^= s + Math.imul(s ^ (s >>> 7), 61 | s); return ((s ^ (s >>> 14)) >>> 0) / 4294967296; }; };
+      function poly(c, pts, w, col) { c.strokeStyle = col; c.lineWidth = w; c.lineJoin = "miter"; c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); }
+      function boltPts(x1, y1, x2, y2, n, amp, rnd) {
+        const dx = x2 - x1, dy = y2 - y1, m = Math.hypot(dx, dy) || 1, nx = -dy / m, ny = dx / m, pts = [[x1, y1]];
+        for (let i = 1; i < n; i++) { const f = i / n, o = (rnd() - .5) * 2 * amp * Math.sin(f * Math.PI * .9 + .15); pts.push([x1 + dx * f + nx * o, y1 + dy * f + ny * o]); }
+        pts.push([x2, y2]); return pts;
+      }
+      function bolt(c, pts, w) { poly(c, pts, w + 3.2, "#0a0003"); poly(c, pts, w, "#ff1a3c"); poly(c, pts, Math.max(.8, w * .38), "#ffd6dc"); }
+      /* 紅雷：弾（黒×赤。ぼかしなし・描画は線と塗りだけで軽量） */
+      const RED_BULLET_SCALE = 0.85, RED_KILL_SCALE = 0.72;   // 紅雷の大きさ（1.0で従来どおり）
+      function redBullet(c, b, t) {   // 弾の位置を原点にして縮小して描く
+        const q = { x: 0, y: 0, vx: b.vx, vy: b.vy, r: b.r, sd: Math.round(b.x * 3 + b.y * 7) };
+        c.translate(b.x, b.y); c.scale(RED_BULLET_SCALE, RED_BULLET_SCALE); redBullet0(c, q, t);
+      }
+      function redBullet0(c, b, t) {
+        const sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp, uy = b.vy / sp, r = Math.max(4, b.r || 5);
+        const rnd = sr(Math.floor(t * 30) * 977 + b.sd), L = Math.min(120, 46 + sp * 6);
+        c.save(); c.lineCap = "round";
+        const tail = boltPts(b.x, b.y, b.x - ux * L, b.y - uy * L, 9, r * 1.5, rnd); bolt(c, tail, 2.6);
+        for (let k = 0; k < 2; k++) {   // 枝分かれ
+          const i = 2 + Math.floor(rnd() * 5), p = tail[i], a = Math.atan2(-uy, -ux) + (rnd() < .5 ? -1 : 1) * (.7 + rnd() * .6), l = 12 + rnd() * 16;
+          bolt(c, boltPts(p[0], p[1], p[0] + Math.cos(a) * l, p[1] + Math.sin(a) * l, 4, 4, rnd), 1.6);
+        }
+        for (let k = 0; k < 3; k++) {   // 弾のまわりのビリビリ
+          const a = rnd() * TAU, l = r * (2 + rnd() * 1.4); bolt(c, boltPts(b.x, b.y, b.x + Math.cos(a) * l, b.y + Math.sin(a) * l, 4, 3.2, rnd), 1.4);
+        }
+        c.fillStyle = "#06000a"; c.beginPath(); c.arc(b.x, b.y, r * 1.25, 0, TAU); c.fill();
+        c.strokeStyle = "#ff1a3c"; c.lineWidth = 2.2; c.beginPath(); c.arc(b.x, b.y, r * 1.25, 0, TAU); c.stroke();
+        c.fillStyle = "#ff3355"; c.beginPath(); c.arc(b.x, b.y, r * .55, 0, TAU); c.fill();
+        c.fillStyle = "#fff"; c.beginPath(); c.arc(b.x, b.y, r * .22, 0, TAU); c.fill();
+        c.restore();
+      }
+      /* 紅雷：キル（1000ms） */
+      function redKill(c, x, y, age) {   // 倒れた位置を原点にして縮小して描く
+        c.translate(x, y); c.scale(RED_KILL_SCALE, RED_KILL_SCALE); redKill0(c, 0, 0, age);
+      }
+      function redKill0(c, x, y, age) {
+        const e = k => 1 - Math.pow(1 - Math.min(1, Math.max(0, k)), 3), rnd = sr(Math.floor(age / 45) * 131 + 7), rs = sr(99);
+        c.save(); c.lineCap = "round";
+        if (age < 260) { const a = 1 - age / 260; c.fillStyle = `rgba(255,70,90,${(.8 * a).toFixed(2)})`; c.beginPath(); c.arc(x, y, 14 + age * .22, 0, TAU); c.fill(); c.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`; c.beginPath(); c.arc(x, y, 7 + age * .1, 0, TAU); c.fill(); }
+        if (age > 150) { const a = Math.max(0, 1 - (age - 150) / 850); c.fillStyle = `rgba(8,0,6,${(.55 * a).toFixed(2)})`; c.beginPath(); c.ellipse(x, y + 6, 26, 12, 0, 0, TAU); c.fill(); }
+        const R1 = 70 * e(age / 480); c.globalAlpha = Math.max(0, 1 - age / 650);
+        c.strokeStyle = "#0a0003"; c.lineWidth = 7; c.beginPath(); c.arc(x, y, R1, 0, TAU); c.stroke(); c.strokeStyle = "#ff1a3c"; c.lineWidth = 3.5; c.beginPath(); c.arc(x, y, R1, 0, TAU); c.stroke(); c.globalAlpha = 1;
+        if (age < 680) {
+          const len = 100 * e(age / 230), fade = age > 480 ? 1 - (age - 480) / 200 : 1; c.globalAlpha = Math.max(0, fade);
+          for (let i = 0; i < 9; i++) {
+            const a = i * TAU / 9 + rs() * .5, l = len * (.7 + rs() * .5), x2 = x + Math.cos(a) * l, y2 = y + Math.sin(a) * l, pts = boltPts(x, y, x2, y2, 7, 11, rnd); bolt(c, pts, 2.8);
+            const p = pts[3 + (i % 2)], fa = a + (i % 2 ? .8 : -.8); bolt(c, boltPts(p[0], p[1], p[0] + Math.cos(fa) * l * .4, p[1] + Math.sin(fa) * l * .4, 4, 5, rnd), 1.6);
+          }
+          c.globalAlpha = 1;
+        }
+        const dr = sr(2024);   // 破片
+        for (let i = 0; i < 14; i++) {
+          const a = dr() * TAU, v = .06 + dr() * .09, d = v * age, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d + age * age * .00008, al = Math.max(0, 1 - age / 900);
+          c.save(); c.translate(px, py); c.rotate(a + age * .006 * (i % 2 ? 1 : -1)); c.globalAlpha = al; c.fillStyle = "#0a0003"; c.fillRect(-4, -2, 8, 4); c.strokeStyle = "#ff1a3c"; c.lineWidth = 1.2; c.strokeRect(-4, -2, 8, 4); c.restore();
+        }
+        c.restore();
+      }
+      /* 無彩の断罪：キル（1500ms）。画面のモノクロ化＋白黒反転の円＋斬撃＋白黒の破片＋シネマ帯。
+         ぼかし(shadowBlur)なし・粒は14個・全画面の合成は1枚だけで軽量 */
+      function monoKill(c, x, y, age) {
+        const cl = k => Math.min(1, Math.max(0, k)), e3 = k => 1 - Math.pow(1 - cl(k), 3), W = c.canvas.width, H = c.canvas.height;
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        const s = cl(age / 70) * (age > 1000 ? cl(1 - (age - 1000) / 500) : 1);   // モノクロの強さ
+        if (s > 0) {
+          c.globalCompositeOperation = "saturation"; c.globalAlpha = s; c.fillStyle = "#808080"; c.fillRect(0, 0, W, H);
+          c.globalCompositeOperation = "source-over";
+          const g = c.createRadialGradient(x, y, 40, x, y, Math.max(W, H) * .8); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0," + (.7 * s).toFixed(2) + ")");
+          c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, 0, W, H);
+        }
+        if (age > 120 && age < 1250) {   // 背景に浮かぶ大きな「断」
+          const a = cl((age - 120) / 160) * (age > 800 ? cl(1 - (age - 800) / 450) : 1) * .16;
+          c.globalAlpha = a; c.fillStyle = "#fff"; c.font = "900 190px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("断", W / 2, H / 2); c.globalAlpha = 1;
+        }
+        if (age < 110) { c.fillStyle = "rgba(255,255,255," + (.85 * (1 - age / 110)).toFixed(2) + ")"; c.fillRect(0, 0, W, H); }   // 一瞬の閃光
+        if (age < 430) {   // 反転する円（白との差分＝色反転）
+          const R = 10 + 150 * e3(age / 430);
+          c.globalCompositeOperation = "difference"; c.globalAlpha = 1 - cl((age - 240) / 190); c.fillStyle = "#fff";
+          c.beginPath(); c.arc(x, y, R, 0, TAU); c.fill(); c.globalCompositeOperation = "source-over"; c.globalAlpha = 1;
+        }
+        const ra = Math.max(0, 1 - age / 650), R2 = 160 * e3(age / 520);   // 衝撃のリング
+        if (ra > 0) { c.globalAlpha = ra; c.strokeStyle = "#000"; c.lineWidth = 9; c.beginPath(); c.arc(x, y, R2, 0, TAU); c.stroke(); c.strokeStyle = "#fff"; c.lineWidth = 4; c.beginPath(); c.arc(x, y, R2, 0, TAU); c.stroke(); c.globalAlpha = 1; }
+        if (age > 50 && age < 820) {   // 斬撃：刃が走り抜け、切り口が開いて閉じる
+          const a = -.62, ux = Math.cos(a), uy = Math.sin(a), HL = 280, sw = e3((age - 50) / 120), fade = age > 470 ? cl(1 - (age - 470) / 350) : 1;
+          const x0 = x - ux * HL, y0 = y - uy * HL, x1 = x + ux * HL, y1 = y + uy * HL, xh = x0 + (x1 - x0) * sw, yh = y0 + (y1 - y0) * sw;
+          const tap = (ax, ay, bx, by, w, k) => { const dx = bx - ax, dy = by - ay, m = Math.hypot(dx, dy) || 1, nx = -dy / m * w, ny = dx / m * w, mx = ax + dx * k, my = ay + dy * k; c.beginPath(); c.moveTo(ax, ay); c.lineTo(mx + nx, my + ny); c.lineTo(bx, by); c.lineTo(mx - nx, my - ny); c.closePath(); };
+          const star = (px, py, r) => { c.beginPath(); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4 + a, rr = i % 2 ? r * .16 : r; c.lineTo(px + Math.cos(an) * rr, py + Math.sin(an) * rr); } c.closePath(); };
+          if (age > 150) {   // 切り口：黒い裂け目＋白い縁
+            const g = 17 * e3((age - 150) / 150) * (age > 430 ? cl(1 - (age - 430) / 300) : 1);
+            if (g > .4) { c.globalAlpha = 1; tap(x0, y0, x1, y1, g, .5); c.fillStyle = "#000"; c.fill(); c.strokeStyle = "#fff"; c.lineWidth = 2; c.lineJoin = "miter"; c.stroke(); }
+          }
+          c.globalAlpha = fade;
+          [-1, 1].forEach(sd => {   // 残像の細い線
+            const nx = -uy * 24 * sd, ny = ux * 24 * sd, t0 = Math.max(0, sw - .25);
+            tap(x0 + nx + (x1 - x0) * t0 * .5, y0 + ny + (y1 - y0) * t0 * .5, xh + nx, yh + ny, 2.6, .8); c.fillStyle = "rgba(255,255,255,.6)"; c.fill();
+          });
+          const tl = Math.max(0, sw - .8);   // 刃本体：先端が鋭く、後ろへ細くなる
+          const bx0 = x0 + (x1 - x0) * tl, by0 = y0 + (y1 - y0) * tl;
+          tap(bx0, by0, xh, yh, 11, .72); c.fillStyle = "#000"; c.fill();
+          tap(bx0, by0, xh, yh, 7, .72); c.fillStyle = "#fff"; c.fill();
+          c.strokeStyle = "#000"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(bx0 + (xh - bx0) * .25, by0 + (yh - by0) * .25); c.lineTo(xh, yh); c.stroke();   // 芯の影
+          if (sw < 1) { c.fillStyle = "#fff"; star(xh, yh, 20); c.fill(); }   // 刃先の閃光
+          if (age > 140 && age < 330) { const r = 34 * (1 - (age - 140) / 190); c.globalAlpha = fade; c.fillStyle = "#000"; star(x, y, r * 1.25); c.fill(); c.fillStyle = "#fff"; star(x, y, r); c.fill(); }   // 交点の火花
+          c.globalAlpha = 1;
+        }
+        const dr = sr(777);   // 白黒の破片
+        for (let i = 0; i < 14; i++) {
+          const a = dr() * TAU, v = .08 + dr() * .13, d = v * age, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d + age * age * .00006, sz = 4 + dr() * 6, al = Math.max(0, 1 - age / 1100), wh = i % 2 === 0;
+          c.save(); c.translate(px, py); c.rotate(a * 2 + age * .008 * (i % 3 - 1)); c.globalAlpha = al;
+          c.fillStyle = wh ? "#fff" : "#000"; c.strokeStyle = wh ? "#000" : "#fff"; c.lineWidth = 1.4;
+          c.beginPath(); c.moveTo(-sz, -sz * .5); c.lineTo(sz, 0); c.lineTo(-sz * .4, sz * .6); c.closePath(); c.fill(); c.stroke(); c.restore();
+        }
+        if (age < 220) { c.fillStyle = "#000"; c.beginPath(); c.arc(x, y, 18 * (1 - age / 220) + 3, 0, TAU); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.arc(x, y, 13 * (1 - age / 220) + 1, 0, TAU); c.fill(); }
+        const bh = 30 * e3(age / 140) * (age > 1150 ? cl(1 - (age - 1150) / 350) : 1);   // シネマ帯
+        if (bh > 0.5) { c.fillStyle = "#000"; c.fillRect(0, 0, W, bh); c.fillRect(0, H - bh, W, bh); c.fillStyle = "#fff"; c.fillRect(0, bh, W, 1.5); c.fillRect(0, H - bh - 1.5, W, 1.5); }
+      }
+      /* ================= キャラ別キルエフェクト（全キャラ共通で使える／各キャラの「達人」クエストの報酬） =================
+         どれも ぼかし(shadowBlur)なし・粒は少数・全画面の塗りは数枚だけで軽量。(c, x, y, age[ms]) で描く */
+      const kc = k => Math.min(1, Math.max(0, k)), kE = k => 1 - Math.pow(1 - kc(k), 3);
+      const kImgs = {};
+      function kImg(n) { let i = kImgs[n]; if (!i) { i = kImgs[n] = new Image(); try { i.src = characterImages[n]; } catch (e) {} } return (i.complete && i.naturalWidth) ? i : null; }
+      function kGhost(c, n, x, y, w, a) {   // キャラ画像をうっすら重ねる（読み込み前は四角で代用）
+        const i = kImg(n); c.globalAlpha = Math.max(0, a);
+        if (i) { const h = w * i.naturalHeight / i.naturalWidth; c.drawImage(i, x - w / 2, y - h / 2, w, h); } else { c.fillStyle = "#fff"; c.fillRect(x - w / 4, y - w / 4, w / 2, w / 2); }
+        c.globalAlpha = 1;
+      }
+      const kRR = (c, x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+      const kPre = c => { c.setTransform(1, 0, 0, 1, 0, 0); return [c.canvas.width, c.canvas.height]; };
+      const kTap = (c, ax, ay, bx, by, w, k) => { const dx = bx - ax, dy = by - ay, m = Math.hypot(dx, dy) || 1, nx = -dy / m * w, ny = dx / m * w, mx = ax + dx * k, my = ay + dy * k; c.beginPath(); c.moveTo(ax, ay); c.lineTo(mx + nx, my + ny); c.lineTo(bx, by); c.lineTo(mx - nx, my - ny); c.closePath(); };
+
+      /* ジョーカー：スロットが回って 7・7・7 が揃い、ジャックポット！ コインが噴き出す */
+      function slotKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kc(age / 120) * (age > 1280 ? kc(1 - (age - 1280) / 220) : 1);
+        c.globalAlpha = .6 * vis; c.fillStyle = "#14001f"; c.fillRect(0, 0, W, H); c.globalAlpha = 1;
+        const pw = 258, ph = 116, px = Math.min(W - pw / 2 - 8, Math.max(pw / 2 + 8, x)), py = Math.min(H - ph / 2 - 8, Math.max(ph / 2 + 8, y)), s = .6 + .4 * kE(age / 200);
+        const won = age >= 1000, blink = won && Math.floor(age / 90) % 2 === 0, stops = [540, 780, 1000], sym = ["7", "♥", "★", "BAR", "♦"];
+        c.save(); c.translate(px, py); c.scale(s, s); c.globalAlpha = vis;
+        kRR(c, -pw / 2, -ph / 2, pw, ph, 16); c.fillStyle = blink ? "#fff3a0" : "#ffcb2e"; c.fill(); c.lineWidth = 5; c.strokeStyle = "#7a1f00"; c.stroke();
+        kRR(c, -pw / 2 + 9, -ph / 2 + 9, pw - 18, ph - 18, 10); c.fillStyle = "#2a0a10"; c.fill();
+        c.textAlign = "center"; c.textBaseline = "middle";
+        for (let i = 0; i < 3; i++) {
+          const rx = (i - 1) * 78, w = 68, h = 84;
+          c.save(); kRR(c, rx - w / 2, -h / 2, w, h, 7); c.fillStyle = "#fff"; c.fill(); c.clip();
+          if (age < stops[i]) {   // 回転中：記号が縦に流れる
+            const off = (age * (1.1 + i * .12)) % 60, base = Math.floor(age / 60 + i * 2);
+            c.font = "bold 40px sans-serif";
+            for (let k = -1; k <= 1; k++) { const si = (((base + k) % 5) + 5) % 5; c.fillStyle = si === 0 ? "#d00" : "#333"; c.fillText(sym[si], rx, k * 60 + off); }
+            c.fillStyle = "rgba(255,255,255,.35)"; c.fillRect(rx - w / 2, -h / 2, w, h);
+          } else {   // 停止：7（止まる瞬間に少しバウンド）
+            const bo = Math.max(0, 1 - (age - stops[i]) / 120), dy = Math.sin(bo * Math.PI) * 6 * bo;
+            c.font = "900 66px Georgia, serif"; c.lineWidth = 4; c.strokeStyle = "#fff"; c.fillStyle = "#e01818"; c.strokeText("7", rx, dy + 3); c.fillText("7", rx, dy + 3);
+          }
+          c.restore();
+        }
+        if (won) { c.strokeStyle = blink ? "#fff" : "#ff2a2a"; c.lineWidth = 3; c.beginPath(); c.moveTo(-pw / 2 + 12, 0); c.lineTo(pw / 2 - 12, 0); c.stroke(); }
+        c.restore();
+        if (won) {
+          const t = age - 1000, dr = sr(31), ty = py - ph / 2 * s - 20;
+          c.globalAlpha = vis; c.font = "900 30px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.lineWidth = 5; c.strokeStyle = "#7a1f00"; c.fillStyle = blink ? "#fff" : "#ffe14a";
+          c.strokeText("JACKPOT!", px, ty); c.fillText("JACKPOT!", px, ty);
+          for (let i = 0; i < 16; i++) {   // コインが噴き出す
+            const a = -Math.PI / 2 + (dr() - .5) * 2.6, v = .2 + dr() * .3, cx = px + Math.cos(a) * v * t, cy = py - 10 + Math.sin(a) * v * t + .0009 * t * t, al = Math.max(0, 1 - t / 520);
+            if (al <= 0) continue;
+            c.globalAlpha = al; c.fillStyle = "#ffd21a"; c.strokeStyle = "#8a5a00"; c.lineWidth = 2;
+            c.beginPath(); c.ellipse(cx, cy, 7 * Math.abs(Math.cos(t * .012 + i)) + 1, 7, 0, 0, TAU); c.fill(); c.stroke();
+          }
+          c.globalAlpha = 1;
+        }
+      }
+
+      /* スナイパー太郎：スコープがズームして照準が合い、一発の弾道が貫く */
+      function scopeKill(c, x, y, age) {
+        const [W, H] = kPre(c), R = age < 620 ? 170 - 100 * kE(age / 620) : 70 + (age > 900 ? (age - 900) * .35 : 0), dim = kc(age / 120) * (age > 1050 ? kc(1 - (age - 1050) / 300) : 1);
+        c.globalAlpha = .78 * dim; c.fillStyle = "#000"; c.beginPath(); c.rect(0, 0, W, H); c.arc(x, y, R, 0, TAU, true); c.fill("evenodd");
+        c.globalAlpha = dim; c.strokeStyle = "#e6ffe9"; c.fillStyle = "#e6ffe9"; c.lineWidth = 2; c.beginPath(); c.arc(x, y, R, 0, TAU); c.stroke();
+        c.lineWidth = 1.5; c.beginPath(); [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => { c.moveTo(x + dx * 10, y + dy * 10); c.lineTo(x + dx * R, y + dy * R); });
+        c.stroke();
+        for (let k = 1; k <= 4; k++) [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => c.fillRect(x + dx * k * R / 5 - 1.5, y + dy * k * R / 5 - 1.5, 3, 3));
+        const bs = 34 - 18 * kE(age / 500), rot = (1 - kE(age / 600)) * 1.3;   // ロックオンの角（回りながら絞られる）
+        c.save(); c.translate(x, y); c.rotate(rot); c.strokeStyle = age > 600 ? "#ff3a3a" : "#e6ffe9"; c.lineWidth = 2.5;
+        [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy]) => { c.beginPath(); c.moveTo(sx * bs, sy * (bs - 12)); c.lineTo(sx * bs, sy * bs); c.lineTo(sx * (bs - 12), sy * bs); c.stroke(); });
+        c.restore();
+        if (age > 600) { const p = 1 + Math.sin(age * .03) * .15; c.fillStyle = "#ff2a2a"; c.beginPath(); c.arc(x, y, 3.2 * p, 0, TAU); c.fill(); }
+        if (age > 720) {   // 発砲：弾道 → 着弾
+          const t = age - 720, ta = Math.max(0, 1 - t / 170);
+          if (ta > 0) { c.globalAlpha = ta; c.strokeStyle = "#fffbd0"; c.lineWidth = 4 * ta + .5; c.beginPath(); c.moveTo(x - 560, y - 290); c.lineTo(x, y); c.stroke(); }
+          const k = kc(t / 420), ra = 1 - k;
+          if (ra > 0) {
+            c.globalAlpha = ra; c.strokeStyle = "#ff3a3a"; c.lineWidth = 3; c.beginPath(); c.arc(x, y, 6 + 80 * kE(k), 0, TAU); c.stroke();
+            c.strokeStyle = "#fff"; c.lineWidth = 2; c.beginPath(); for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + .3, r0 = 8 + 14 * kE(k), r1 = 20 + 34 * kE(k); c.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); c.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1); } c.stroke();
+          }
+          if (t < 90) { c.globalAlpha = 1 - t / 90; c.fillStyle = "#fff"; c.beginPath(); c.arc(x, y, 22 * (1 - t / 90) + 4, 0, TAU); c.fill(); }
+          c.globalAlpha = dim * kc(t / 100); c.fillStyle = "#ff4a4a"; c.font = "900 17px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("HEADSHOT", x, Math.max(14, y - R - 14));
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* 白い死神：大鎌が弧を描いて一閃し、青白い魂が昇って羽が舞い落ちる */
+      function reaperKill(c, x, y, age) {
+        const [W, H] = kPre(c), fade = age > 1100 ? kc(1 - (age - 1100) / 400) : 1;
+        const g = c.createRadialGradient(x, y, 20, x, y, 260); g.addColorStop(0, "rgba(215,242,255," + (.4 * kc(age / 150) * fade).toFixed(2) + ")"); g.addColorStop(1, "rgba(120,160,200,0)");
+        c.fillStyle = g; c.fillRect(0, 0, W, H);
+        const px = x, py = y + 58, R = 112, sw = kE((age - 40) / 260), a1 = -2.75 + 2.35 * sw, la = age > 500 ? kc(1 - (age - 500) / 300) : 1;
+        if (age > 40 && la > 0) {
+          c.lineCap = "round";
+          for (let k = 0; k < 9; k++) { c.globalAlpha = (1 - k / 9) * .5 * la; c.strokeStyle = "#cfeaff"; c.lineWidth = 16 - k * 1.6; c.beginPath(); c.arc(px, py, R - 8, a1 - .09 * k - .05, a1 - .09 * k); c.stroke(); }
+          c.globalAlpha = la; c.strokeStyle = "#8aa0b8"; c.lineWidth = 4; c.beginPath(); c.moveTo(px, py); c.lineTo(px + Math.cos(a1) * R * .86, py + Math.sin(a1) * R * .86); c.stroke();   // 柄
+          c.beginPath(); c.arc(px, py, R, a1 - .42, a1); c.arc(px, py, R - 22, a1, a1 - .42, true); c.closePath(); c.fillStyle = "#f4fbff"; c.fill(); c.strokeStyle = "#7f9bb5"; c.lineWidth = 1.5; c.stroke();   // 刃
+          c.globalAlpha = 1;
+        }
+        const dr = sr(5);
+        for (let i = 0; i < 9; i++) {   // 昇る魂
+          const sx = x + (dr() - .5) * 74, t = age - 230 - dr() * 300; if (t < 0) continue;
+          const al = Math.max(0, 1 - t / 1000) * fade; if (al <= 0) continue;
+          c.globalAlpha = al; c.strokeStyle = "#e9f8ff"; c.lineWidth = 3; c.beginPath();
+          for (let j = 0; j < 7; j++) { const yy = y + 6 - t * .085 + j * 7, xx = sx + Math.sin((t - j * 40) * .008 + i) * 10; if (j) c.lineTo(xx, yy); else c.moveTo(xx, yy); }
+          c.stroke(); c.fillStyle = "#fff"; c.beginPath(); c.arc(sx + Math.sin(t * .008 + i) * 10, y + 6 - t * .085, 4, 0, TAU); c.fill();
+        }
+        for (let i = 0; i < 8; i++) {   // 舞い落ちる羽
+          const fx = x + (dr() - .5) * 150, t = age - 150 - dr() * 400; if (t < 0) continue;
+          const al = Math.max(0, 1 - t / 1000) * fade; if (al <= 0) continue;
+          c.globalAlpha = al * .9; c.fillStyle = "#fff"; c.save(); c.translate(fx + Math.sin(t * .006 + i) * 16, y - 90 + t * .1); c.rotate(Math.sin(t * .005 + i) * 1.2); c.beginPath(); c.ellipse(0, 0, 2.6, 8, 0, 0, TAU); c.fill(); c.restore();
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* 怪盗レッド：スポットライトに浮かぶ予告状、トランプと薔薇の花びらが舞う */
+      function phantomKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kc(age / 100) * (age > 1250 ? kc(1 - (age - 1250) / 250) : 1);
+        c.globalAlpha = .62 * vis; c.fillStyle = "#07040e"; c.beginPath(); c.rect(0, 0, W, H); c.ellipse(x, y + 18, 62, 24, 0, 0, TAU, true); c.fill("evenodd");
+        c.globalAlpha = .24 * vis; c.fillStyle = "#fff4c8"; c.beginPath(); c.moveTo(x - 14, 0); c.lineTo(x + 14, 0); c.lineTo(x + 66, y + 18); c.lineTo(x - 66, y + 18); c.closePath(); c.fill();
+        c.beginPath(); c.ellipse(x, y + 18, 62, 24, 0, 0, TAU); c.fill();
+        const dr = sr(9);
+        c.textAlign = "center"; c.textBaseline = "middle";
+        for (let i = 0; i < 8; i++) {   // トランプが集まって弾ける
+          const a = i / 8 * TAU + dr() * .4, r = age < 420 ? 250 * (1 - kE((age - 80) / 340)) + 18 : 18 + (age - 420) * .36, al = (age > 900 ? kc(1 - (age - 900) / 350) : 1) * vis;
+          if (age < 80 || al <= 0) continue;
+          c.save(); c.translate(x + Math.cos(a) * r, y + Math.sin(a) * r * .8); c.rotate(age * .006 + i); c.globalAlpha = al;
+          c.fillStyle = "#fff"; c.fillRect(-8, -11, 16, 22); c.strokeStyle = "#222"; c.lineWidth = 1; c.strokeRect(-8, -11, 16, 22);
+          c.fillStyle = i % 2 ? "#d11" : "#111"; c.font = "bold 13px sans-serif"; c.fillText(i % 2 ? "♥" : "♠", 0, 1); c.restore();
+        }
+        if (age > 420) {   // 予告状
+          const k = kE((age - 420) / 220), al = vis;
+          c.save(); c.translate(x, y - 34 - 10 * k); c.rotate(-.2 + .2 * k); c.scale(.2 + .8 * k, .2 + .8 * k); c.globalAlpha = al;
+          kRR(c, -34, -46, 68, 92, 4); c.fillStyle = "#fff8e6"; c.fill(); c.strokeStyle = "#b3001b"; c.lineWidth = 3; c.stroke();
+          c.fillStyle = "#b3001b"; c.font = "900 24px serif"; c.fillText("頂", 0, -18); c.fillText("戴", 0, 8);
+          c.beginPath(); c.arc(0, 32, 9, 0, TAU); c.fill(); c.fillStyle = "#fff"; c.font = "900 11px serif"; c.fillText("R", 0, 33); c.restore();
+        }
+        for (let i = 0; i < 12; i++) {   // 薔薇の花びら
+          const t = age - 300 - dr() * 300, bx = x + (dr() - .5) * 150; if (t < 0) continue;
+          const al = Math.max(0, 1 - t / 950) * vis; if (al <= 0) continue;
+          c.globalAlpha = al; c.fillStyle = i % 3 ? "#c4001f" : "#ff3b55"; c.save(); c.translate(bx + Math.sin(t * .006 + i) * 14, y - 120 + t * .13); c.rotate(t * .004 + i); c.beginPath(); c.ellipse(0, 0, 3, 6, 0, 0, TAU); c.fill(); c.restore();
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* ガジェットボット：SYSTEM DOWN。歯車と走査線、バイナリが流れてエラー表示 */
+      function gadgetKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kc(age / 80) * (age > 1150 ? kc(1 - (age - 1150) / 250) : 1);
+        c.globalAlpha = .45 * vis; c.fillStyle = "#001a2b"; c.fillRect(0, 0, W, H);
+        c.globalAlpha = .22 * vis; c.strokeStyle = "#35e6ff"; c.lineWidth = 1; c.beginPath(); for (let yy = (age * .06) % 5; yy < H; yy += 5) { c.moveTo(0, yy); c.lineTo(W, yy); } c.stroke();
+        const gear = (r, n, rot, col, lw, al) => { c.globalAlpha = al * vis; c.beginPath(); for (let i = 0; i < n * 2; i++) { const a = rot + i * Math.PI / n, rr = i % 2 ? r * .84 : r; c.lineTo(x + Math.cos(a - .13) * rr, y + Math.sin(a - .13) * rr); c.lineTo(x + Math.cos(a + .13) * rr, y + Math.sin(a + .13) * rr); } c.closePath(); c.strokeStyle = col; c.lineWidth = lw; c.stroke(); };
+        gear(20 + 78 * kE(age / 480), 12, age * .006, "#35e6ff", 3, Math.max(0, 1 - age / 800));
+        gear(10 + 44 * kE(age / 480), 8, -age * .009, "#fff", 2, Math.max(0, 1 - age / 650));
+        gear(120 * kE(age / 600), 16, age * .003, "#2a8cff", 2, Math.max(0, .7 - age / 800));
+        c.globalAlpha = Math.max(0, 1 - age / 700) * vis; c.strokeStyle = "#35e6ff"; c.lineWidth = 2; c.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + .5, r = 96 * kE(age / 300); c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); c.stroke();
+        c.font = "12px monospace"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#4dffb0";
+        for (let i = 0; i < 14; i++) { const t = age - i * 30; if (t < 0) continue; c.globalAlpha = (.75 - i % 3 * .15) * vis * Math.max(0, 1 - age / 1200); c.fillText((i * 7 + Math.floor(age / 90)) % 2 ? "1" : "0", x - 98 + i * 15, y - 110 + (t * .22 + i * 37) % 220); }
+        if (age > 150 && Math.floor(age / 110) % 5 !== 3) {
+          c.globalAlpha = vis; c.font = "900 20px monospace"; const ty = y - 74;
+          c.fillStyle = "#ff3df2"; c.fillText("SYSTEM DOWN", x - 2, ty); c.fillStyle = "#35e6ff"; c.fillText("SYSTEM DOWN", x + 2, ty); c.fillStyle = "#fff"; c.fillText("SYSTEM DOWN", x, ty);
+          c.font = "11px monospace"; c.fillStyle = "#ff6a6a"; c.fillText("ERR_0x0000DEAD", x, ty + 17);
+        }
+        const dr = sr(17); c.strokeStyle = "#ffb43a"; c.lineWidth = 2; c.beginPath();
+        for (let i = 0; i < 10; i++) { const a = dr() * TAU, v = .1 + dr() * .15, t = Math.min(age, 420); c.moveTo(x + Math.cos(a) * v * t, y + Math.sin(a) * v * t); c.lineTo(x + Math.cos(a) * (v * t + 9), y + Math.sin(a) * (v * t + 9)); }
+        c.globalAlpha = Math.max(0, 1 - age / 450) * vis; c.stroke(); c.globalAlpha = 1;
+      }
+
+      /* サンダーマウス：アメコミ調の「ZAP!」。集中線とハーフトーンの爆発、黄色い稲妻 */
+      function popKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kc(age / 60) * (age > 1050 ? kc(1 - (age - 1050) / 250) : 1);
+        c.globalAlpha = .32 * vis; c.fillStyle = "#ffe600"; c.fillRect(0, 0, W, H);
+        c.globalAlpha = .5 * vis; c.strokeStyle = "#000"; c.lineWidth = 2; c.beginPath();
+        for (let i = 0; i < 28; i++) { const a = i / 28 * TAU + .05, r0 = 70 + (i % 3) * 14; c.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); c.lineTo(x + Math.cos(a) * 560, y + Math.sin(a) * 560); }
+        c.stroke(); c.globalAlpha = vis;
+        const s = .15 + .85 * kE(age / 160) + (age < 160 ? 0 : Math.sin((age - 160) * .03) * .03), burst = (R1, R2, n) => { c.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i * Math.PI / n, r = i % 2 ? R2 : R1; c.lineTo(x + Math.cos(a) * r * s, y + Math.sin(a) * r * s * .92); } c.closePath(); };
+        burst(96, 58, 9); c.fillStyle = "#ffe600"; c.fill(); c.lineWidth = 5; c.strokeStyle = "#000"; c.lineJoin = "miter"; c.stroke();
+        c.save(); burst(96, 58, 9); c.clip(); c.fillStyle = "#ff8a00"; c.beginPath();
+        for (let gx = -110; gx <= 110; gx += 13) for (let gy = -110; gy <= 110; gy += 13) { const ox = ((gy / 13) & 1) * 6.5; c.moveTo(x + gx + ox + 2.6, y + gy); c.arc(x + gx + ox, y + gy, 2.6, 0, TAU); }
+        c.fill(); c.restore();
+        const dr = sr(3); c.lineJoin = "round";
+        for (let b = 0; b < 4; b++) {   // 稲妻
+          const a = b / 4 * TAU + .6, pts = [], t = kE((age - 60 - b * 40) / 160); if (t <= 0) continue;
+          let px = x + Math.cos(a) * 86 * s, py = y + Math.sin(a) * 86 * s;
+          for (let j = 0; j < 5; j++) { pts.push([px, py]); px += Math.cos(a) * 22 * t + (dr() - .5) * 20; py += Math.sin(a) * 22 * t + (dr() - .5) * 20; }
+          [[7, "#000"], [3, "#fff200"]].forEach(([lw, col]) => { c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); pts.forEach((p, j) => j ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); });
+        }
+        c.save(); c.translate(x, y + 2); c.rotate(-.12); const ts = .4 + .6 * kE((age - 60) / 140); c.scale(ts, ts);
+        c.font = "italic 900 46px Impact, 'Arial Black', sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.lineWidth = 9; c.strokeStyle = "#000";
+        c.fillStyle = "#000"; c.fillText("ZAP!", 3, 3); c.strokeText("ZAP!", 0, 0); c.fillStyle = "#fff"; c.fillText("ZAP!", 0, 0); c.restore();
+        c.globalAlpha = 1;
+      }
+
+      /* 怪獣王：巨影が浮かび、三本の爪痕が走って地面が割れ、土煙が上がる */
+      function kaijuKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kc(age / 100) * (age > 1200 ? kc(1 - (age - 1200) / 300) : 1);
+        c.globalAlpha = .58 * vis; c.fillStyle = "#12000a"; c.fillRect(0, 0, W, H); c.globalAlpha = 1;
+        kGhost(c, "怪獣王", W / 2, H / 2 + 8, 320, .14 * vis * kc((age - 60) / 300));
+        const dr = sr(21), g = kE((age - 80) / 300), cr = [];
+        c.lineJoin = "round";
+        for (let i = 0; i < 9; i++) { let a = i / 9 * TAU + dr() * .3, px = x, py = y + 12; const L = 40 + dr() * 80, pts = [[px, py]]; for (let j = 1; j <= 6; j++) { a += (dr() - .5) * .8; px += Math.cos(a) * L / 6 * g; py += Math.sin(a) * L / 6 * g * .55; pts.push([px, py]); } cr.push(pts); }
+        [["#000", 4], ["#ff5a1a", 1.4]].forEach(([col, lw]) => { c.globalAlpha = vis; c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); cr.forEach(p => p.forEach((q, j) => j ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.stroke(); });
+        const sw = kE((age - 120) / 170), ang = 1.0, ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy, ny = ux;
+        for (let k = -1; k <= 1; k++) {   // 三本の爪痕
+          const ox = x + nx * k * 32 - ux * 120, oy = y + ny * k * 32 - uy * 120 - 6, len = (230 + k * 12) * sw; if (len < 4) continue;
+          kTap(c, ox, oy, ox + ux * len, oy + uy * len, 9, .45);
+          c.globalAlpha = vis; c.fillStyle = "#b3001b"; c.fill(); c.strokeStyle = "#000"; c.lineWidth = 2.2; c.stroke();
+          c.strokeStyle = "#ff8a6a"; c.lineWidth = 1; c.beginPath(); c.moveTo(ox + ux * len * .12, oy + uy * len * .12); c.lineTo(ox + ux * len * .7, oy + uy * len * .7); c.stroke();
+        }
+        c.fillStyle = "#8a7a74";
+        for (let i = 0; i < 14; i++) { const a = i / 14 * TAU, t = age - 160 - dr() * 150; if (t < 0) continue; const al = Math.max(0, 1 - t / 800) * .55 * vis; if (al <= 0) continue; c.globalAlpha = al; c.beginPath(); c.arc(x + Math.cos(a) * (14 + t * .09), y + 14 + Math.sin(a) * (6 + t * .035), 5 + t * .012, 0, TAU); c.fill(); }
+        c.globalAlpha = 1;
+      }
+
+      /* 不死鳥：炎の翼が大きく開き、火の粉が舞い上がって再誕の輪が広がる */
+      function phoenixKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = age > 1150 ? kc(1 - (age - 1150) / 350) : 1, open = kE(age / 420);
+        const g = c.createRadialGradient(x, y, 10, x, y, 230); g.addColorStop(0, "rgba(255,200,80," + (.5 * kc(age / 150) * vis).toFixed(2) + ")"); g.addColorStop(1, "rgba(255,80,0,0)"); c.fillStyle = g; c.fillRect(0, 0, W, H);
+        const cols = ["#ff4a1a", "#ff8a1a", "#ffc21a", "#ffe97a", "#fff6c8", "#ff6a1a"];
+        c.globalAlpha = vis; c.lineWidth = 1.2; c.strokeStyle = "#8a1a00";
+        [-1, 1].forEach(sd => { for (let i = 0; i < 6; i++) {
+          const ang = -Math.PI / 2 + sd * (.3 + i * .21 * open), len = (46 + (5 - Math.abs(i - 2)) * 11 + i * 6) * (.35 + .65 * open);
+          kTap(c, x + sd * 5, y + 4, x + sd * 5 + Math.cos(ang) * len, y + 4 + Math.sin(ang) * len, 8, .42); c.fillStyle = cols[i]; c.fill(); c.stroke();
+        } });
+        const fl = 40 + Math.sin(age * .03) * 5 + 22 * open;   // 中央の炎
+        c.fillStyle = "#ff7a18"; kTap(c, x, y + 14, x, y - fl, 15, .35); c.fill(); c.fillStyle = "#ffd23f"; kTap(c, x, y + 12, x, y - fl * .66, 9, .35); c.fill(); c.fillStyle = "#fff6c8"; kTap(c, x, y + 10, x, y - fl * .38, 4.5, .35); c.fill();
+        const dr = sr(41);
+        for (let i = 0; i < 22; i++) {   // 火の粉
+          const t = age - 80 - dr() * 500, bx = x + (dr() - .5) * 90, sz = 1.6 + dr() * 2.4; if (t < 0) continue;
+          const al = Math.max(0, 1 - t / 900) * vis; if (al <= 0) continue; c.globalAlpha = al; c.fillStyle = i % 3 ? "#ffb43a" : "#fff2a0";
+          c.beginPath(); c.arc(bx + Math.sin(t * .008 + i) * 12, y - 10 - t * .13, sz, 0, TAU); c.fill();
+        }
+        const k = kc((age - 120) / 700); if (k > 0 && k < 1) { c.globalAlpha = (1 - k) * vis; c.strokeStyle = "#ffd23f"; c.lineWidth = 4 - 2.5 * k; c.beginPath(); c.arc(x, y, 18 + 120 * kE(k), 0, TAU); c.stroke(); c.strokeStyle = "#ff6a1a"; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 10 + 96 * kE(k), 0, TAU); c.stroke(); }
+        c.globalAlpha = 1;
+      }
+
+      /* 元素の魔女：地面に魔法陣が開き、炎・氷・雷の三つの球が収束して三色に弾ける */
+      function elementalKill(c, x, y, age) {
+        const vis = age > 1150 ? kc(1 - (age - 1150) / 350) : 1, tilt = .55, gr = kE(age / 260), rot = age * .004, cols = ["#ff5a2a", "#6fd8ff", "#ffe34a"];
+        c.save(); c.translate(x, y + 14); c.scale(1, tilt); c.globalAlpha = vis * kc(age / 100); c.strokeStyle = "#d9b8ff";
+        c.lineWidth = 3; c.beginPath(); c.arc(0, 0, 76 * gr, 0, TAU); c.stroke(); c.lineWidth = 2; c.beginPath(); c.arc(0, 0, 58 * gr, 0, TAU); c.stroke();
+        c.beginPath(); for (let i = 0; i < 24; i++) { const a = rot + i * TAU / 24; c.moveTo(Math.cos(a) * 60 * gr, Math.sin(a) * 60 * gr); c.lineTo(Math.cos(a) * 74 * gr, Math.sin(a) * 74 * gr); } c.stroke();
+        c.strokeStyle = "#fff"; [1, -1].forEach(sd => { c.beginPath(); for (let i = 0; i < 3; i++) { const a = sd * rot * 1.5 + (sd > 0 ? -Math.PI / 2 : Math.PI / 2) + i * TAU / 3; c.lineTo(Math.cos(a) * 56 * gr, Math.sin(a) * 56 * gr); } c.closePath(); c.stroke(); });
+        for (let i = 0; i < 3; i++) { const a = rot * 1.5 - Math.PI / 2 + i * TAU / 3; c.fillStyle = cols[i]; c.beginPath(); c.arc(Math.cos(a) * 56 * gr, Math.sin(a) * 56 * gr, 6, 0, TAU); c.fill(); }
+        c.restore();
+        if (age < 760) {   // 三つの球が回りながら中心へ
+          const conv = kE((age - 200) / 500);
+          for (let i = 0; i < 3; i++) for (let j = 4; j >= 0; j--) {
+            const a = rot * 3 - j * .2 + i * TAU / 3, rr = 64 * (1 - conv), ox = x + Math.cos(a) * rr, oy = y + 14 + Math.sin(a) * rr * tilt - 18 * kE(age / 300);
+            c.globalAlpha = (1 - j * .18) * vis * kc(age / 80); c.fillStyle = cols[i]; c.beginPath(); c.arc(ox, oy, j ? 6 - j : 9, 0, TAU); c.fill();
+            if (!j) { c.fillStyle = "#fff"; c.beginPath(); c.arc(ox, oy, 3.5, 0, TAU); c.fill(); }
+          }
+        }
+        if (age >= 700) {   // 炸裂：三色の破片と光の柱
+          const t = age - 700, k = kc(t / 650), a0 = (1 - k) * vis;
+          c.globalAlpha = a0; c.fillStyle = "#fff"; c.fillRect(x - 13 * (1 - k), y - 130, 26 * (1 - k), 146);
+          c.lineWidth = 3; c.lineCap = "round";
+          for (let i = 0; i < 30; i++) { const a = i / 30 * TAU, e = kE(t / 320); c.strokeStyle = cols[i % 3]; c.beginPath(); c.moveTo(x + Math.cos(a) * 12 * e, y + Math.sin(a) * 12 * e); c.lineTo(x + Math.cos(a) * (26 + 84 * e), y + Math.sin(a) * (26 + 84 * e)); c.stroke(); }
+          for (let i = 0; i < 3; i++) { c.strokeStyle = cols[i]; c.lineWidth = 2.5; c.beginPath(); c.arc(x, y, 16 + (80 + i * 18) * kE(k), 0, TAU); c.stroke(); }
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* 既視感のあるGAY：同じ姿が次々と現れる“既視感”。青とピンクの帯が走り抜ける */
+      function dejavuKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kc(age / 100) * (age > 1200 ? kc(1 - (age - 1200) / 300) : 1);
+        c.globalAlpha = .4 * vis; c.fillStyle = "#0b1030"; c.fillRect(0, 0, W, H);
+        const sx = -W + W * 2.3 * kE(age / 560);
+        [["#ff7fbf", 0], ["#3a6bff", 150]].forEach(([col, dx]) => { c.globalAlpha = .5 * vis; c.fillStyle = col; c.beginPath(); c.moveTo(sx + dx, 0); c.lineTo(sx + dx + 110, 0); c.lineTo(sx + dx - 90, H); c.lineTo(sx + dx - 200, H); c.closePath(); c.fill(); });
+        for (let i = 0; i < 7; i++) {   // 残像が等間隔に並ぶ
+          const t = age - 120 - i * 90; if (t < 0) continue;
+          const a = kc(t / 120) * (age > 1000 ? kc(1 - (age - 1000) / 300) : 1) * (.62 - Math.abs(i - 3) * .06);
+          kGhost(c, "既視感のあるGAY", Math.min(W - 30, Math.max(30, x + (i - 3) * 36)), y, 46, a);
+        }
+        if (age > 650) {
+          const k = kE((age - 650) / 160), al = vis; c.save(); c.translate(x, Math.max(34, y - 52)); c.rotate(-.08); c.scale(.3 + .7 * k, .3 + .7 * k); c.globalAlpha = al;
+          c.font = "900 26px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.lineWidth = 7; c.lineJoin = "round"; c.strokeStyle = "#fff"; c.strokeText("既視感!?", 0, 0); c.fillStyle = "#e0338f"; c.fillText("既視感!?", 0, 0); c.restore();
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* ================= ver55：残りキャラのキルエフェクト（キャラごとに全部作り下ろし）＋アクア作り直し =================
+         試合終了時にだけ出るので大きめ。ぼかしなし・線と塗りだけで軽量 */
+      const kFade = (age, a, b, d) => kc(age / a) * (age > b ? kc(1 - (age - b) / d) : 1);
+      function kStar(c, x, y, R1, R2, n, rot) { c.beginPath(); for (let i = 0; i < n * 2; i++) { const a = rot + i * Math.PI / n, r = i % 2 ? R2 : R1; c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); }
+      function kTxt(c, s, x, y, px, rot, fill, line, a) { c.save(); c.translate(x, y); c.rotate(rot); c.globalAlpha = a; c.font = "900 " + px + "px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.lineJoin = "round"; c.lineWidth = Math.max(4, px * .2); c.strokeStyle = line; c.strokeText(s, 0, 0); c.fillStyle = fill; c.fillText(s, 0, 0); c.restore(); }
+      function kBall(c, x, y, r, rot) {
+        c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = "#fff"; c.strokeStyle = "#111"; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); c.stroke();
+        c.fillStyle = "#111"; kStar(c, 0, 0, r * .42, r * .42, 5, -Math.PI / 2); c.fill();
+        for (let i = 0; i < 5; i++) { const a = i / 5 * TAU - Math.PI / 2; c.beginPath(); c.moveTo(Math.cos(a) * r * .42, Math.sin(a) * r * .42); c.lineTo(Math.cos(a) * r * .8, Math.sin(a) * r * .8); c.stroke(); kStar(c, Math.cos(a) * r * .92, Math.sin(a) * r * .92, r * .2, r * .2, 5, a); c.fill(); }
+        c.restore();
+      }
+
+      /* アクアファイター：画面いっぱいの大海嘯。水柱が天へ突き抜け、巨大な魚が跳ね、大波が画面を洗う */
+      function aquaKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 90, 1500, 300), gy = Math.min(H - 24, y + 20);
+        c.globalAlpha = .55 * vis; c.fillStyle = "#021a38"; c.fillRect(0, 0, W, H);
+        for (let i = 0; i < 4; i++) { const k = kc((age - i * 120) / 800); if (k <= 0 || k >= 1) continue; const rr = 20 + 380 * kE(k); c.globalAlpha = (1 - k) * .95 * vis; c.strokeStyle = i % 2 ? "#fff" : "#5cd0ff"; c.lineWidth = 6 - i; c.beginPath(); c.ellipse(x, gy, rr, rr * .36, 0, 0, TAU); c.stroke(); }
+        const up = age < 850 ? kE(age / 850) : 1 - kE((age - 1100) / 700), wy = H - H * .42 * up;
+        [["#0b63b8", .6, 0, 16], ["#1fa2f0", .62, 1.6, 11], ["#bfefff", .5, 3.2, 6]].forEach(([col, al, ph, am], i) => {
+          c.globalAlpha = al * vis; c.fillStyle = col; c.beginPath(); c.moveTo(0, H); for (let px = 0; px <= W; px += 16) c.lineTo(px, wy + i * 9 + Math.sin(px * .017 + age * .007 + ph) * am); c.lineTo(W, H); c.closePath(); c.fill();
+        });
+        const pj = (gy + 30) * kE(age / 300) * (age > 700 ? 1 - kE((age - 700) / 700) : 1);
+        if (pj > 2) {   // 天まで届く水柱
+          const top = gy - pj, wb = 30, wt = 14;
+          c.globalAlpha = .95 * vis; c.beginPath(); c.moveTo(x - wb, gy);
+          for (let i = 0; i <= 12; i++) { const f = i / 12; c.lineTo(x - (wb + (wt - wb) * f) + Math.sin(f * 9 + age * .02) * 3, gy - pj * f); }
+          for (let i = 12; i >= 0; i--) { const f = i / 12; c.lineTo(x + (wb + (wt - wb) * f) + Math.sin(f * 9 + 2 + age * .02) * 3, gy - pj * f); }
+          c.closePath(); c.fillStyle = "#37b8ff"; c.fill(); c.strokeStyle = "#e9fbff"; c.lineWidth = 3; c.stroke();
+          c.strokeStyle = "#fff"; c.lineWidth = 3; c.beginPath(); c.moveTo(x - wb * .4, gy - 6); c.lineTo(x - wt * .4, top + 14); c.stroke();
+          c.fillStyle = "#e9fbff"; c.beginPath(); c.arc(x, top, 22 * kc(pj / 90), 0, TAU); c.fill();
+        }
+        const hold = age < 380 ? kE(age / 380) : Math.max(0, 1 - (age - 380) / 700);
+        for (let i = 0; i < 16; i++) {   // 王冠状の大しぶき
+          const a = i / 16 * TAU, bx = x + Math.cos(a) * 64, by = gy + Math.sin(a) * 22, h = (50 + (i % 2) * 34) * hold; if (h < 2) continue;
+          c.globalAlpha = .95 * vis; kTap(c, bx, by, bx + Math.cos(a) * 14, by - h, 8, .35); c.fillStyle = "#8fe0ff"; c.fill(); c.strokeStyle = "#f0fcff"; c.lineWidth = 2; c.stroke();
+        }
+        if (age > 250 && age < 1350) {   // 弧を描いて跳ねる巨大な魚
+          const k = kc((age - 250) / 1000), fx = x - 330 + 660 * k, fy = gy - Math.sin(k * Math.PI) * (gy - 70), ang = Math.atan2(-Math.cos(k * Math.PI) * (gy - 70) * Math.PI, 660);
+          c.save(); c.translate(fx, fy); c.rotate(ang); c.globalAlpha = vis; c.fillStyle = "#6fd8ff"; c.strokeStyle = "#fff"; c.lineWidth = 3;
+          c.beginPath(); c.ellipse(0, 0, 54, 24, 0, 0, TAU); c.fill(); c.stroke();
+          c.beginPath(); c.moveTo(-48, 0); c.lineTo(-84, -26); c.lineTo(-76, 0); c.lineTo(-84, 26); c.closePath(); c.fill(); c.stroke();
+          c.beginPath(); c.moveTo(-8, -22); c.lineTo(8, -42); c.lineTo(20, -20); c.closePath(); c.fill(); c.stroke();
+          c.fillStyle = "#fff"; c.beginPath(); c.ellipse(4, 8, 36, 10, 0, 0, TAU); c.fill(); c.fillStyle = "#06223f"; c.beginPath(); c.arc(30, -6, 4.5, 0, TAU); c.fill(); c.restore();
+        }
+        const dr = sr(11), tt = age - 60;
+        for (let i = 0; i < 40; i++) {   // 画面に降りそそぐしぶき
+          const px = dr() * W, v = .12 + dr() * .2, r = 2 + dr() * 3.5, d0 = dr() * 500, t = tt - d0, al = Math.max(0, 1 - age / 1500) * vis; if (t < 0 || al <= 0) continue;
+          c.globalAlpha = al; c.fillStyle = "#d6f4ff"; c.strokeStyle = "#4fb8f0"; c.lineWidth = 1; c.beginPath(); c.arc(px + (px - x) * .15 * t * .001, -10 + t * v + .0006 * t * t, r, 0, TAU); c.fill(); c.stroke();
+        }
+        c.globalAlpha = .8 * vis; c.strokeStyle = "#e8fbff"; c.lineWidth = 1.6;
+        for (let i = 0; i < 14; i++) { const t = age - 80 - i * 70; if (t < 0 || t > 1100) continue; c.beginPath(); c.arc(x + (i - 6.5) * 26 + Math.sin(t * .01 + i) * 7, gy - t * .11, 3 + i % 4, 0, TAU); c.stroke(); }
+        c.globalAlpha = 1;
+      }
+
+      /* ツインブラザーズ：兄は爆発弾、弟は散弾。二つの爆心がぶつかり合って「W BLAST!!」 */
+      function twinKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 80, 1550, 250);
+        c.globalAlpha = .6 * vis; c.fillStyle = "#0a0414"; c.fillRect(0, 0, W, H);
+        const ex = Math.min(W - 40, x + 90), bx = Math.max(40, x - 90), gk = kE(age / 460);
+        c.globalAlpha = vis;
+        [["#ff3b1a", 1], ["#ff9a1a", .72], ["#ffe27a", .42]].forEach(([col, f]) => { c.fillStyle = col; kStar(c, bx, y, 150 * gk * f, 100 * gk * f, 14, age * .004 * (f > .6 ? 1 : -1)); c.fill(); if (f === 1) { c.strokeStyle = "#2a0500"; c.lineWidth = 4; c.stroke(); } });
+        c.strokeStyle = "#ff6a2a"; c.lineWidth = 5; for (let i = 0; i < 3; i++) { const k = kc((age - i * 110) / 700); if (k <= 0 || k >= 1) continue; c.globalAlpha = (1 - k) * vis; c.beginPath(); c.arc(bx, y, 20 + 260 * kE(k), 0, TAU); c.stroke(); }
+        const dr = sr(5);
+        for (let i = 0; i < 32; i++) {   // 散弾
+          const a = i / 32 * TAU + dr() * .15, t = kc((age - 40) / 800), r = 24 + (160 + dr() * 220) * kE(t), r0 = Math.max(10, r - 90 * (1 - t) - 20), al = (1 - t * t) * vis;
+          c.globalAlpha = al; c.strokeStyle = "#7fe6ff"; c.lineWidth = 3; c.beginPath(); c.moveTo(ex + Math.cos(a) * r0, y + Math.sin(a) * r0); c.lineTo(ex + Math.cos(a) * r, y + Math.sin(a) * r); c.stroke();
+          c.fillStyle = "#fff"; c.beginPath(); c.arc(ex + Math.cos(a) * r, y + Math.sin(a) * r, 4.6, 0, TAU); c.fill();
+        }
+        c.strokeStyle = "#35c8ff"; c.lineWidth = 5; for (let i = 0; i < 3; i++) { const k = kc((age - 40 - i * 110) / 700); if (k <= 0 || k >= 1) continue; c.globalAlpha = (1 - k) * vis; c.beginPath(); c.arc(ex, y, 20 + 260 * kE(k), 0, TAU); c.stroke(); }
+        if (age > 420) {   // 衝突：Xの閃光
+          const k = kE((age - 420) / 220), f = kc(1 - (age - 420) / 520);
+          c.globalAlpha = .55 * f * vis; c.fillStyle = "#fff"; c.fillRect(0, 0, W, H);
+          [[.5, "#ff5a2a"], [-.5, "#35c8ff"]].forEach(([sl, col]) => { c.save(); c.translate(x, y); c.rotate(sl); c.globalAlpha = vis; const L = 520 * k; kTap(c, -L, 0, L, 0, 16, .5); c.fillStyle = col; c.fill(); kTap(c, -L, 0, L, 0, 5, .5); c.fillStyle = "#fff"; c.fill(); c.restore(); });
+          c.globalAlpha = vis; c.fillStyle = "#fff"; kStar(c, x, y, 120 * k, 36 * k, 12, .2); c.fill();
+        }
+        if (age > 520) kTxt(c, "W BLAST!!", x, Math.max(48, y - 120), 46 * (.4 + .6 * kE((age - 520) / 180)), -.08, "#ffe14a", "#2b0a00", vis);
+        c.globalAlpha = 1;
+      }
+
+      /* 聖なる使者：天から光柱が降り、六枚の大翼と光輪が開き、羽が舞い落ちる */
+      function holyKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 100, 1550, 250), wy = y - 6;
+        c.globalAlpha = .62 * vis; c.fillStyle = "#0c0a2a"; c.fillRect(0, 0, W, H);
+        const cl = kE(age / 320); c.globalAlpha = .34 * vis; c.fillStyle = "#ffe9a0"; c.beginPath(); c.moveTo(x - 46 * cl, 0); c.lineTo(x + 46 * cl, 0); c.lineTo(x + 100 * cl, H); c.lineTo(x - 100 * cl, H); c.closePath(); c.fill();
+        c.globalAlpha = .55 * vis; c.fillStyle = "#fffdf0"; c.beginPath(); c.moveTo(x - 16 * cl, 0); c.lineTo(x + 16 * cl, 0); c.lineTo(x + 38 * cl, H); c.lineTo(x - 38 * cl, H); c.closePath(); c.fill();
+        c.globalAlpha = .2 * vis; c.fillStyle = "#ffe9a0";
+        for (let i = 0; i < 22; i++) { const a = i / 22 * TAU + age * .0007, L = 420 * kE((age - 80) / 420); c.beginPath(); c.moveTo(x, wy); c.lineTo(x + Math.cos(a - .045) * L, wy + Math.sin(a - .045) * L); c.lineTo(x + Math.cos(a + .045) * L, wy + Math.sin(a + .045) * L); c.closePath(); c.fill(); }
+        const op = kE((age - 160) / 520);
+        for (let s = -1; s <= 1; s += 2) for (let i = 0; i < 6; i++) {   // 6枚の羽を扇状に
+          const a = -Math.PI / 2 + s * (.35 + i * .28) * op, L = (90 + i * 26) * op; if (L < 6) continue;
+          const ox = x + s * 12, oy = wy - 4, tx = ox + Math.cos(a) * L, ty = oy + Math.sin(a) * L;
+          c.globalAlpha = vis; kTap(c, ox, oy, tx, ty, 14 + i * 1.5, .4); c.fillStyle = i % 2 ? "#fff" : "#fff6d6"; c.fill(); c.strokeStyle = "#e0b84a"; c.lineWidth = 2; c.stroke();
+        }
+        const hk = kE((age - 200) / 360);
+        c.globalAlpha = vis; c.strokeStyle = "#ffd75a"; c.lineWidth = 9 * hk; c.beginPath(); c.ellipse(x, wy - 120, 96 * hk, 26 * hk, 0, 0, TAU); c.stroke(); c.strokeStyle = "#fff"; c.lineWidth = 3 * hk; c.stroke();
+        if (age > 150) { const k = kc((age - 150) / 500), f = kc(1 - (age - 450) / 400); c.globalAlpha = vis * f; c.fillStyle = "#fff"; kStar(c, x, wy, 190 * kE(k), 8, 4, 0); c.fill(); kStar(c, x, wy, 110 * kE(k), 6, 4, Math.PI / 4); c.fill(); }
+        const dr = sr(31);
+        for (let i = 0; i < 18; i++) {   // 降りしきる羽
+          const fx = x + (dr() - .5) * 560, t = age - 120 - dr() * 700; if (t < 0) continue; const al = Math.max(0, 1 - t / 1200) * vis; if (al <= 0) continue;
+          c.globalAlpha = al; c.fillStyle = "#fff"; c.strokeStyle = "#e0c870"; c.lineWidth = 1; c.save(); c.translate(fx + Math.sin(t * .005 + i) * 22, -20 + t * .24); c.rotate(Math.sin(t * .004 + i) * 1.1); c.beginPath(); c.ellipse(0, 0, 4, 13, 0, 0, TAU); c.fill(); c.stroke(); c.restore();
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* ジャンパー：跳ねるたびに加速して巨大化し、最後は特大のボールが叩きつけられる */
+      function jumpKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 80, 1500, 300), gy = Math.min(H - 30, y + 24);
+        c.globalAlpha = .45 * vis; c.fillStyle = "#031a20"; c.fillRect(0, 0, W, H);
+        const L = [x - 340, x - 220, x - 110], T = [[0, 260], [260, 520], [520, 780]], R = [12, 24, 40], Hh = [70, 100, 130];
+        c.globalAlpha = vis; c.strokeStyle = "#7fffe0"; c.lineWidth = 2; c.setLineDash([6, 8]);
+        for (let i = 0; i < 3; i++) { const a0 = i ? L[i - 1] : L[0] - 110, a1 = L[i]; c.beginPath(); for (let k = 0; k <= 12; k++) { const f = k / 12; c.lineTo(a0 + (a1 - a0) * f, gy - R[i] - Math.sin(f * Math.PI) * Hh[i]); } c.stroke(); }
+        c.setLineDash([]);
+        let bx = -999, by = 0, br = 0;
+        for (let i = 0; i < 3; i++) { const [t0, t1] = T[i]; if (age >= t0 && age < t1) { const f = (age - t0) / (t1 - t0), a0 = i ? L[i - 1] : L[0] - 110; bx = a0 + (L[i] - a0) * f; by = gy - R[i] - Math.sin(f * Math.PI) * Hh[i]; br = R[i]; } if (age >= t1) { const k = kc((age - t1) / 420); c.globalAlpha = (1 - k) * vis; c.strokeStyle = "#bfffee"; c.lineWidth = 3; c.beginPath(); c.ellipse(L[i], gy, 10 + 44 * (i + 1) * kE(k), (10 + 44 * (i + 1) * kE(k)) * .3, 0, 0, TAU); c.stroke(); } }
+        if (age >= 780 && age < 1020) { const f = kE((age - 780) / 240); bx = x; by = -90 + (gy - 80 + 90) * f; br = 74; }
+        if (age >= 1020) { const f = kc((age - 1020) / 480); bx = x; by = gy - 74 - Math.sin(Math.min(1, f * 1.3) * Math.PI) * 70 * (1 - f); br = 74 * (1 - f * .7); }
+        if (bx > -900) {
+          for (let g = 3; g >= 1; g--) { c.globalAlpha = .18 * (4 - g) * vis; c.fillStyle = "#44ffd0"; c.beginPath(); c.arc(bx - g * 14 * (age < 780 ? 1 : 0), by - (age >= 780 && age < 1020 ? g * 30 : 0), br, 0, TAU); c.fill(); }
+          c.globalAlpha = vis; c.fillStyle = "#1ee8b0"; c.strokeStyle = "#042a20"; c.lineWidth = 4; c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fill(); c.stroke();
+          c.fillStyle = "#b9fff0"; c.beginPath(); c.arc(bx - br * .35, by - br * .35, br * .28, 0, TAU); c.fill(); c.strokeStyle = "#0a7a5e"; c.lineWidth = 3; c.beginPath(); c.arc(bx, by, br * .62, .4, 2.2); c.stroke();
+        }
+        if (age >= 1000) {
+          const k = kc((age - 1000) / 600), f = kc(1 - (age - 1000) / 160);
+          c.globalAlpha = .6 * f * vis; c.fillStyle = "#fff"; c.fillRect(0, 0, W, H); c.globalAlpha = vis;
+          for (let i = 0; i < 3; i++) { const kk = kc((age - 1000 - i * 90) / 650); if (kk <= 0 || kk >= 1) continue; c.globalAlpha = (1 - kk) * vis; c.strokeStyle = i % 2 ? "#fff" : "#2bffc8"; c.lineWidth = 8 - i * 2; c.beginPath(); c.ellipse(x, gy, 440 * kE(kk), 440 * kE(kk) * .3, 0, 0, TAU); c.stroke(); }
+          const dr = sr(8); c.globalAlpha = vis; c.strokeStyle = "#042a20"; c.lineWidth = 4; c.lineJoin = "miter";
+          for (let i = 0; i < 11; i++) { let a = Math.PI + (dr() - .5) * 1.5 + (i % 2 ? Math.PI * .0 : 0); if (i % 2) a = (dr() - .5) * 1.5; let px = x, py = gy; const Lc = 80 + dr() * 130 * kE(k); c.beginPath(); c.moveTo(px, py); for (let j = 1; j <= 5; j++) { a += (dr() - .5) * .6; px += Math.cos(a) * Lc / 5; py += Math.sin(a) * Lc / 5 * .35; c.lineTo(px, py); } c.stroke(); }
+          for (let i = 0; i < 18; i++) { const a = -Math.PI / 2 + (dr() - .5) * 2.4, v = .22 + dr() * .3, t = age - 1000, rr = 3 + dr() * 6, al = Math.max(0, 1 - t / 600) * vis; c.globalAlpha = al; c.fillStyle = i % 2 ? "#7a6a58" : "#bfffee"; c.fillRect(x + Math.cos(a) * v * t - rr, gy + Math.sin(a) * v * t + .0007 * t * t - rr, rr * 2, rr * 2); }
+          kTxt(c, "SMASH!!", x, Math.max(52, gy - 160), 56 * (.5 + .5 * kE((age - 1020) / 160)), .06, "#37ffd2", "#022b20", vis);
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* ボマー：特大の爆弾が落ち、閃光とともにキノコ雲が立ち上る */
+      function bombKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 60, 1550, 250), gy = Math.min(H - 20, y + 26);
+        c.globalAlpha = .5 * vis; c.fillStyle = "#1a0600"; c.fillRect(0, 0, W, H);
+        if (age < 430) {   // 落ちてくる巨大爆弾と導火線
+          const f = kE(age / 380), by = -70 + (y - 6 + 70) * f, r = 52, blink = age > 260 && Math.floor(age / 50) % 2;
+          c.globalAlpha = vis; c.fillStyle = blink ? "#d2201a" : "#1c1c24"; c.strokeStyle = "#000"; c.lineWidth = 4; c.beginPath(); c.arc(x, by, r, 0, TAU); c.fill(); c.stroke();
+          c.fillStyle = "rgba(255,255,255,.3)"; c.beginPath(); c.arc(x - 18, by - 18, 14, 0, TAU); c.fill();
+          c.fillStyle = "#555"; kRR(c, x - 14, by - r - 12, 28, 16, 3); c.fill(); c.stroke();
+          c.strokeStyle = "#caa86a"; c.lineWidth = 4; c.beginPath(); c.moveTo(x, by - r - 10); c.quadraticCurveTo(x + 24, by - r - 40, x + 12, by - r - 56); c.stroke();
+          c.fillStyle = "#ffe14a"; kStar(c, x + 12, by - r - 58, 15 + Math.sin(age * .5) * 4, 5, 8, age * .3); c.fill();
+        }
+        if (age >= 430) {
+          const t = age - 430, k = kE(t / 900), fl = kc(1 - t / 260);
+          c.globalAlpha = .9 * fl * vis; c.fillStyle = "#fff6d0"; c.fillRect(0, 0, W, H);
+          const sh = kE(t / 520); c.globalAlpha = (1 - kc(t / 700)) * vis; c.strokeStyle = "#ffcf5a"; c.lineWidth = 9; c.beginPath(); c.ellipse(x, gy, 420 * sh, 420 * sh * .3, 0, 0, TAU); c.stroke(); c.strokeStyle = "#fff"; c.lineWidth = 3; c.stroke();
+          const hh = 150 * k, capY = gy - hh;
+          c.globalAlpha = vis; c.fillStyle = "#4a2a1a"; c.beginPath(); c.moveTo(x - 40 * kc(k * 1.3), gy); c.lineTo(x - 20, capY + 10); c.lineTo(x + 20, capY + 10); c.lineTo(x + 40 * kc(k * 1.3), gy); c.closePath(); c.fill();
+          c.fillStyle = "#ff7a1a"; c.beginPath(); c.moveTo(x - 24 * kc(k * 1.3), gy); c.lineTo(x - 10, capY + 20); c.lineTo(x + 10, capY + 20); c.lineTo(x + 24 * kc(k * 1.3), gy); c.closePath(); c.fill();
+          const cr = 92 * k, cs = [[0, 0, 1], [-1, .25, .78], [1, .25, .78], [-.55, -.45, .7], [.55, -.45, .7], [0, -.62, .62], [-1.15, .1, .5], [1.15, .1, .5]];
+          [["#3a2118", 1], ["#8a3410", .86], ["#ff7a1a", .68], ["#ffd24a", .42]].forEach(([col, sc]) => { c.fillStyle = col; cs.forEach(([ox, oy, s]) => { c.beginPath(); c.arc(x + ox * cr * .7, capY + oy * cr * .6, cr * s * sc * .62, 0, TAU); c.fill(); }); });
+          const dr = sr(13);
+          for (let i = 0; i < 18; i++) { const a = -Math.PI / 2 + (dr() - .5) * 3, v = .18 + dr() * .35, r = 3 + dr() * 6, al = Math.max(0, 1 - t / 1000) * vis; c.globalAlpha = al; c.fillStyle = i % 3 ? "#ffa21a" : "#2a1a14"; c.beginPath(); c.arc(x + Math.cos(a) * v * t, gy + Math.sin(a) * v * t + .0006 * t * t, r, 0, TAU); c.fill(); }
+          kTxt(c, "BOOM!!", x, Math.max(50, capY - cr * .8 - 34), 70 * (.4 + .6 * kE(t / 140)) + Math.sin(t * .05) * 2, -.05, "#ffe14a", "#3a0e00", vis);
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* ブーメランボーイ：三本のブーメランが大きな弧を描いて回り込み、獲物へ収束して十字に断つ */
+      function boomKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 90, 1550, 250);
+        c.globalAlpha = .6 * vis; c.fillStyle = "#06140e"; c.fillRect(0, 0, W, H);
+        const sc = 1 - .86 * kE((age - 650) / 700), rx = 340 * sc, ry = 150 * sc, tilt = -.25, ct = Math.cos(tilt), st = Math.sin(tilt);
+        const pos = th => [x + Math.cos(th) * rx * ct - Math.sin(th) * ry * st, y + Math.cos(th) * rx * st + Math.sin(th) * ry * ct];
+        c.globalAlpha = .35 * vis; c.strokeStyle = "#a6ff6a"; c.lineWidth = 2; c.setLineDash([5, 9]); c.beginPath(); c.ellipse(x, y, rx, ry, tilt, 0, TAU); c.stroke(); c.setLineDash([]);
+        for (let s = -1; s <= 1; s += 2) { const [px, py] = pos(s > 0 ? 0 : Math.PI), k = kFade(age, 120, 900, 400); c.globalAlpha = vis * k; c.strokeStyle = "#7affc8"; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(px, py, 10 + i * 9 + Math.sin(age * .02 + i) * 2, (10 + i * 9) * .6, age * .006 * s, 0, TAU); c.stroke(); } }
+        const drawB = (bx, by, rot, sz, al) => { c.save(); c.translate(bx, by); c.rotate(rot); c.globalAlpha = al; c.lineCap = "round"; c.lineJoin = "round"; c.beginPath(); c.moveTo(-sz, -sz * .62); c.lineTo(0, sz * .2); c.lineTo(sz, -sz * .62); c.strokeStyle = "#4a3004"; c.lineWidth = sz * .62; c.stroke(); c.strokeStyle = "#ffcc4a"; c.lineWidth = sz * .36; c.stroke(); c.restore(); };
+        for (let b = 0; b < 3; b++) {
+          const base = age * .0062 + b * TAU / 3;
+          for (let g = 6; g >= 0; g--) { const [px, py] = pos(base - g * .05); drawB(px, py, age * .03, 30, (g ? .08 + .02 * (6 - g) : 1) * vis); }
+        }
+        if (age > 1250) {
+          const k = kE((age - 1250) / 160), f = kc(1 - (age - 1250) / 420);
+          c.globalAlpha = .6 * f * vis; c.fillStyle = "#fff"; c.fillRect(0, 0, W, H);
+          [[.7, "#a6ff6a"], [-.7, "#ffcc4a"]].forEach(([sl, col]) => { c.save(); c.translate(x, y); c.rotate(sl); c.globalAlpha = vis * (.4 + .6 * f); const Lc = 560 * k; kTap(c, -Lc, 0, Lc, 0, 20, .5); c.fillStyle = col; c.fill(); kTap(c, -Lc, 0, Lc, 0, 6, .5); c.fillStyle = "#fff"; c.fill(); c.restore(); });
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* パイハークン：大玉が膨らみ、二十四発に破裂。二重の弾の花が画面いっぱいに咲く */
+      function pieKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 80, 1550, 250);
+        c.globalAlpha = .6 * vis; c.fillStyle = "#12041c"; c.fillRect(0, 0, W, H);
+        const cols = ["#ff5fa8", "#ffd84a", "#5fe6ff"], bt = 520;
+        if (age < bt) {
+          const f = kE(age / 440), r = 70 * f + Math.sin(age * .06) * 3 * f;
+          for (let i = 3; i >= 1; i--) { c.globalAlpha = .2 * vis; c.fillStyle = "#ff8ad0"; c.beginPath(); c.arc(x, y, r + i * 12, 0, TAU); c.fill(); }
+          c.globalAlpha = vis; c.fillStyle = "#ff6ab4"; c.strokeStyle = "#2a0430"; c.lineWidth = 5; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.stroke();
+          c.fillStyle = "#ffd0ec"; c.beginPath(); c.arc(x - r * .3, y - r * .32, r * .26, 0, TAU); c.fill();
+          kTxt(c, "24", x, y + 3, r * .9, 0, "#fff", "#2a0430", vis);
+        } else {
+          const t = age - bt;
+          const k0 = kc(1 - t / 300); if (k0 > 0) { c.globalAlpha = .7 * k0 * vis; c.fillStyle = "#fff"; c.fillRect(0, 0, W, H); }
+          for (let w = 0; w < 2; w++) for (let i = 0; i < 24; i++) {
+            const tt = t - w * 140; if (tt < 0) continue; const k = kc(tt / 900), a = i / 24 * TAU + w * Math.PI / 24, R = (w ? 300 : 430) * kE(k), R0 = Math.max(0, R - 100 * (1 - k * .7)), al = (1 - k * k) * vis, col = cols[(i + w) % 3];
+            c.globalAlpha = al; c.strokeStyle = col; c.lineWidth = w ? 4 : 6; c.beginPath(); c.moveTo(x + Math.cos(a) * R0, y + Math.sin(a) * R0); c.lineTo(x + Math.cos(a) * R, y + Math.sin(a) * R); c.stroke();
+            c.fillStyle = "#fff"; c.strokeStyle = col; c.lineWidth = 3; c.beginPath(); c.arc(x + Math.cos(a) * R, y + Math.sin(a) * R, w ? 7 : 10, 0, TAU); c.fill(); c.stroke();
+          }
+          for (let i = 0; i < 3; i++) { const k = kc((t - i * 100) / 700); if (k <= 0 || k >= 1) continue; c.globalAlpha = (1 - k) * vis; c.strokeStyle = cols[i]; c.lineWidth = 8 - i * 2; c.beginPath(); c.arc(x, y, 30 + 330 * kE(k), 0, TAU); c.stroke(); }
+          c.globalAlpha = vis * kc(1 - t / 700); c.fillStyle = "#ffd84a"; kStar(c, x, y, 130 * kE(t / 200), 44 * kE(t / 200), 12, t * .004); c.fill();
+          kTxt(c, "×24!!", x, Math.max(46, y - 130), 58 * (.5 + .5 * kE(t / 200)), -.07, "#fff", "#4a0a5a", vis * kc(1 - (t - 700) / 300));
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* ペット＆テイマー：三匹の相棒が三方から突撃し、肉球の足跡を残して駆け抜ける */
+      function kPaw(c, x, y, s, rot) {
+        c.save(); c.translate(x, y); c.rotate(rot); c.beginPath(); c.ellipse(0, 4 * s, 11 * s, 9 * s, 0, 0, TAU); c.fill();
+        [[-13, -8], [-5, -16], [5, -16], [13, -8]].forEach(([px, py]) => { c.beginPath(); c.ellipse(px * s, py * s, 4.6 * s, 6 * s, px * .04, 0, TAU); c.fill(); }); c.restore();
+      }
+      function tamerKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 80, 1550, 250);
+        c.globalAlpha = .55 * vis; c.fillStyle = "#1a0a14"; c.fillRect(0, 0, W, H);
+        const cols = ["#ff6b9a", "#5fd3ff", "#ffd84a"], starts = [[-60, 50], [W + 60, 70], [x, H + 80]], at = 520;
+        for (let i = 0; i < 3; i++) {   // 突撃
+          const [sx, sy] = starts[i], k = kE(age / at), bx = sx + (x - sx) * k, by = sy + (y - sy) * k, ang = Math.atan2(y - sy, x - sx), al = age < at + 200 ? vis : 0;
+          if (!al) continue;
+          for (let g = 1; g <= 6; g++) { const kk = kE(Math.max(0, age - g * 25) / at); c.globalAlpha = .13 * (7 - g) * al; c.fillStyle = cols[i]; c.beginPath(); c.ellipse(sx + (x - sx) * kk, sy + (y - sy) * kk, 34, 22, ang, 0, TAU); c.fill(); }
+          c.save(); c.translate(bx, by); c.rotate(ang); c.globalAlpha = al; c.fillStyle = cols[i]; c.strokeStyle = "#1a0a14"; c.lineWidth = 4;
+          c.beginPath(); c.ellipse(0, 0, 40, 25, 0, 0, TAU); c.fill(); c.stroke();
+          c.beginPath(); c.moveTo(-36, 0); c.quadraticCurveTo(-64, -22, -58, -4); c.lineTo(-36, 6); c.closePath(); c.fill(); c.stroke();
+          c.beginPath(); c.arc(40, -2, 21, 0, TAU); c.fill(); c.stroke();
+          c.beginPath(); c.moveTo(34, -18); c.lineTo(32, -38); c.lineTo(46, -22); c.closePath(); c.fill(); c.stroke(); c.beginPath(); c.moveTo(46, -16); c.lineTo(52, -34); c.lineTo(56, -14); c.closePath(); c.fill(); c.stroke();
+          c.fillStyle = "#fff"; c.beginPath(); c.arc(48, -6, 5.5, 0, TAU); c.fill(); c.fillStyle = "#1a0a14"; c.beginPath(); c.arc(50, -6, 2.6, 0, TAU); c.fill(); c.restore();
+        }
+        if (age >= at) {
+          const t = age - at, k = kE(t / 200), f = kc(1 - t / 380);
+          c.globalAlpha = .5 * f * vis; c.fillStyle = "#fff"; c.fillRect(0, 0, W, H); c.globalAlpha = vis;
+          cols.forEach((col, i) => { c.fillStyle = col; kStar(c, x, y, (150 - i * 22) * k, (46 - i * 6) * k, 9 + i * 2, t * .004 * (i % 2 ? -1 : 1) + i); c.fill(); });
+          for (let i = 0; i < 3; i++) { const kk = kc((t - i * 90) / 650); if (kk <= 0 || kk >= 1) continue; c.globalAlpha = (1 - kk) * vis; c.strokeStyle = cols[i]; c.lineWidth = 8; c.beginPath(); c.arc(x, y, 30 + 340 * kE(kk), 0, TAU); c.stroke(); }
+          for (let i = 0; i < 3; i++) for (let j = 0; j < 7; j++) {   // 足跡
+            const a = i / 3 * TAU + .5 + j * .12 * (i % 2 ? -1 : 1) - 1.0, R = 90 + j * 38, tt = t - 120 - j * 70 - i * 40; if (tt < 0) continue;
+            c.globalAlpha = kc(tt / 120) * kc(1 - (tt - 400) / 500) * vis; c.fillStyle = cols[i]; kPaw(c, x + Math.cos(a) * R, y + Math.sin(a) * R * .75, 1.05 + j * .04, a + Math.PI / 2);
+          }
+          kTxt(c, "GO!! 三獣突撃", x, Math.max(48, y - 120), 44 * (.5 + .5 * kE(t / 180)), -.06, "#fff", "#5a0a30", vis);
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* メープル：三枚の扇形シールドが大きな円陣を組み、紅葉が渦を巻いて舞い、癒やしの輪が広がる */
+      function kLeaf(c, s, rot, col) {
+        const P = [[0, -1], [.2, -.62], [.62, -.78], [.5, -.3], [.95, -.18], [.62, .1], [.78, .45], [.3, .38], [.1, .62], [.06, 1], [-.06, 1], [-.1, .62], [-.3, .38], [-.78, .45], [-.62, .1], [-.95, -.18], [-.5, -.3], [-.62, -.78], [-.2, -.62]];
+        c.save(); c.rotate(rot); c.fillStyle = col; c.beginPath(); P.forEach(([px, py], i) => i ? c.lineTo(px * s, py * s) : c.moveTo(px * s, py * s)); c.closePath(); c.fill(); c.restore();
+      }
+      function mapleKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 100, 1550, 250);
+        c.globalAlpha = .5 * vis; c.fillStyle = "#2a0c06"; c.fillRect(0, 0, W, H);
+        c.save(); c.translate(x, y); c.globalAlpha = .22 * vis; kLeaf(c, 170, age * .0006 - .2, "#ff8a1c"); c.restore();
+        const sr0 = 200 * kE(age / 380), rot = age * .0018;
+        for (let i = 0; i < 3; i++) {   // 扇形シールド×3
+          const a0 = rot + i * TAU / 3 + .06, a1 = a0 + TAU / 3 - .12;
+          c.globalAlpha = .28 * vis; c.fillStyle = "#ff9a2a"; c.beginPath(); c.moveTo(x, y); c.arc(x, y, sr0, a0, a1); c.closePath(); c.fill();
+          c.globalAlpha = vis; c.strokeStyle = "#ffd05a"; c.lineWidth = 6; c.beginPath(); c.arc(x, y, sr0, a0, a1); c.stroke();
+          c.strokeStyle = "#fff0b0"; c.lineWidth = 2; for (const f of [.45, .72]) { c.beginPath(); c.arc(x, y, sr0 * f, a0 + .05, a1 - .05); c.stroke(); }
+          c.beginPath(); c.moveTo(x + Math.cos((a0 + a1) / 2) * sr0 * .2, y + Math.sin((a0 + a1) / 2) * sr0 * .2); c.lineTo(x + Math.cos((a0 + a1) / 2) * sr0, y + Math.sin((a0 + a1) / 2) * sr0); c.stroke();
+        }
+        for (let i = 0; i < 3; i++) { const k = kc((age - 260 - i * 150) / 800); if (k <= 0 || k >= 1) continue; c.globalAlpha = (1 - k) * .9 * vis; c.strokeStyle = i % 2 ? "#e8ffd0" : "#7cf06a"; c.lineWidth = 6 - i; c.beginPath(); c.ellipse(x, y + 20, 30 + 340 * kE(k), (30 + 340 * kE(k)) * .34, 0, 0, TAU); c.stroke(); }
+        c.fillStyle = "#8cff7a"; c.strokeStyle = "#1a5a14"; c.lineWidth = 1.5;
+        for (let i = 0; i < 9; i++) { const t = age - 300 - i * 90; if (t < 0 || t > 900) continue; const px = x + (i - 4) * 38, py = y + 30 - t * .2; c.globalAlpha = kc(1 - t / 900) * vis; c.fillRect(px - 3.5, py - 11, 7, 22); c.fillRect(px - 11, py - 3.5, 22, 7); }
+        const dr = sr(41), pal = ["#e8431c", "#ff8a1c", "#ffc21c", "#b3261e", "#ff6a2a"];
+        for (let i = 0; i < 44; i++) {   // 渦を巻く紅葉
+          const t = age - 80 - dr() * 500, a0 = dr() * TAU, sp = (dr() - .5) * .0035 + .0025, s = 9 + dr() * 14, col = pal[i % 5]; if (t < 0) continue;
+          const R = 24 + t * (.2 + dr() * .18), a = a0 + t * sp * 1.8, al = kc(1 - (t - 700) / 600) * vis; if (al <= 0) continue;
+          c.globalAlpha = al; c.save(); c.translate(x + Math.cos(a) * R, y + Math.sin(a) * R * .7 + t * .05); kLeaf(c, s, a + t * .004, col); c.restore();
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* 上裸の鳥頭：空間が裂けて異世界が口を開け、曲がる白兎の弾が飛び込み、羽根とノイズが散る */
+      function birdKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 80, 1550, 250);
+        c.globalAlpha = .7 * vis; c.fillStyle = "#07031a"; c.fillRect(0, 0, W, H);
+        const dr = sr(17); c.fillStyle = "#fff";
+        for (let i = 0; i < 40; i++) { c.globalAlpha = (.3 + dr() * .6) * vis * (.6 + .4 * Math.sin(age * .01 + i)); c.fillRect(dr() * W, dr() * H, 2, 2); }
+        const op = kE((age - 60) / 520) * (age > 1450 ? kc(1 - (age - 1450) / 300) : 1), rw = 110 * op, rh = H * .62 * op;
+        if (op > .02) {
+          c.save(); c.beginPath(); c.moveTo(x, y - rh);
+          for (let i = 1; i <= 10; i++) { const f = i / 10, ox = Math.sin(f * Math.PI) * rw + ((i % 2) - .5) * 10 * op; c.lineTo(x + ox, y - rh + 2 * rh * f); }
+          for (let i = 9; i >= 1; i--) { const f = i / 10, ox = Math.sin(f * Math.PI) * rw + ((i % 2) - .5) * 10 * op; c.lineTo(x - ox, y - rh + 2 * rh * f); }
+          c.closePath(); c.globalAlpha = vis; c.fillStyle = "#1c0848"; c.fill(); c.clip();
+          for (let i = 0; i < 12; i++) { c.strokeStyle = i % 3 ? "#7a3cff" : i % 2 ? "#31e6c8" : "#ff4fd8"; c.lineWidth = 4; c.globalAlpha = (.9 - i * .05) * vis; c.beginPath(); c.ellipse(x, y, (rw * 1.4) * (1 - i / 13), (rh * 1.1) * (1 - i / 13), age * .0025 * (i % 2 ? 1 : -1), 0, TAU * .78); c.stroke(); }
+          c.restore();
+          c.globalAlpha = vis; c.strokeStyle = "#e8ffff"; c.lineWidth = 3; c.beginPath(); c.moveTo(x, y - rh);
+          for (let i = 1; i <= 10; i++) { const f = i / 10, ox = Math.sin(f * Math.PI) * rw + ((i % 2) - .5) * 10 * op; c.lineTo(x + ox, y - rh + 2 * rh * f); } c.stroke(); c.beginPath(); c.moveTo(x, y - rh);
+          for (let i = 1; i <= 10; i++) { const f = i / 10, ox = Math.sin(f * Math.PI) * rw + ((i % 2) - .5) * 10 * op; c.lineTo(x - ox, y - rh + 2 * rh * f); } c.stroke();
+        }
+        if (age > 120 && age < 760) {   // 曲がるうさぎ弾
+          const k = kE((age - 120) / 620), P0 = [50, H - 70], P1 = [x - 260, 20], P2 = [x - 30, y - 90], P3 = [x, y], mt = 1 - k;
+          const bz = k => { const m = 1 - k; return [m * m * m * P0[0] + 3 * m * m * k * P1[0] + 3 * m * k * k * P2[0] + k * k * k * P3[0], m * m * m * P0[1] + 3 * m * m * k * P1[1] + 3 * m * k * k * P2[1] + k * k * k * P3[1]]; };
+          for (let g = 0; g < 9; g++) { const [tx, ty] = bz(Math.max(0, k - g * .035)); c.globalAlpha = (1 - g / 9) * .6 * vis; c.fillStyle = k > .45 ? "#bffcff" : "#fff"; c.beginPath(); c.arc(tx, ty, 14 - g, 0, TAU); c.fill(); }
+          const [bx, by] = bz(k), [nx, ny] = bz(Math.min(1, k + .02)), ang = Math.atan2(ny - by, nx - bx), sz = 1 - .5 * kc((k - .8) / .2);
+          c.save(); c.translate(bx, by); c.rotate(ang); c.scale(sz * 1.6, sz * 1.6); c.globalAlpha = vis; c.fillStyle = "#fff"; c.strokeStyle = "#2a1a5a"; c.lineWidth = 3;
+          c.beginPath(); c.ellipse(0, 0, 26, 17, 0, 0, TAU); c.fill(); c.stroke(); c.beginPath(); c.arc(24, -4, 13, 0, TAU); c.fill(); c.stroke();
+          c.beginPath(); c.ellipse(20, -26, 5, 18, -.2, 0, TAU); c.fill(); c.stroke(); c.beginPath(); c.ellipse(30, -24, 5, 18, .15, 0, TAU); c.fill(); c.stroke();
+          c.beginPath(); c.arc(-26, 0, 7, 0, TAU); c.fill(); c.stroke(); c.fillStyle = "#e0245a"; c.beginPath(); c.arc(29, -6, 3, 0, TAU); c.fill(); c.restore();
+          if (Math.abs(k - .45) < .05) { c.globalAlpha = vis; c.fillStyle = "#bffcff"; kStar(c, bx, by, 40, 12, 6, age * .02); c.fill(); }
+        }
+        if (age > 740 && age < 1000) {   // ノイズ
+          const gd = sr(Math.floor(age / 40)); for (let i = 0; i < 7; i++) { const yy = gd() * H, hh = 8 + gd() * 24, off = (gd() - .5) * 70; c.globalAlpha = .55 * vis; c.fillStyle = i % 2 ? "#31e6c8" : "#ff4fd8"; c.fillRect(Math.max(0, x - 260 + off), yy, 520, hh); }
+        }
+        for (let i = 0; i < 22; i++) {   // 白黒の羽根
+          const t = age - 760 - dr() * 300; if (t < 0) continue; const a = -Math.PI / 2 + (dr() - .5) * 3.2, v = .1 + dr() * .3, al = kc(1 - t / 900) * vis; if (al <= 0) continue;
+          c.globalAlpha = al; c.fillStyle = i % 2 ? "#fff" : "#16102a"; c.strokeStyle = i % 2 ? "#16102a" : "#fff"; c.lineWidth = 1.5; c.save(); c.translate(x + Math.cos(a) * v * t, y + Math.sin(a) * v * t + t * t * .0004); c.rotate(a + t * .004); c.beginPath(); c.ellipse(0, 0, 5, 16, 0, 0, TAU); c.fill(); c.stroke(); c.restore();
+        }
+        c.globalAlpha = 1;
+      }
+
+      /* エース・キッカー：スポットの中で名探偵がキック。跳弾が二人目へ抜け、虫眼鏡が謎を解く */
+      function aceKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 80, 1550, 250);
+        c.globalAlpha = .7 * vis; c.fillStyle = "#05070f"; c.beginPath(); c.rect(0, 0, W, H); c.arc(x, y, 118 + 40 * kE(age / 300), 0, TAU, true); c.fill("evenodd");
+        c.globalAlpha = .2 * vis; c.fillStyle = "#cfe4ff"; c.beginPath(); c.arc(x, y, 118 + 40 * kE(age / 300), 0, TAU); c.fill();
+        const sx = 40, sy = y + 70, tx = Math.min(W - 70, x + 230), ty = Math.max(60, y - 100);
+        if (age < 440) {   // 蹴り出し
+          const f = kE(age / 420), bx = sx + (x - sx) * f, by = sy + (y - sy) * f;
+          c.globalAlpha = .5 * vis; c.strokeStyle = "#8fd0ff"; c.lineWidth = 6; c.beginPath(); c.moveTo(sx, sy); c.lineTo(bx, by); c.stroke(); c.strokeStyle = "#fff"; c.lineWidth = 2; c.stroke();
+          c.globalAlpha = vis; kBall(c, bx, by, 34, age * .03);
+        }
+        if (age >= 440) {
+          const t = age - 440, f = kc(t / 320), bx = x + (tx - x) * kE(f), by = y + (ty - y) * kE(f);
+          const imp = kc(1 - t / 400); if (imp > 0) { c.globalAlpha = imp * vis; c.fillStyle = "#fff"; kStar(c, x, y, 130 * kE(t / 100), 34, 10, .3); c.fill(); c.strokeStyle = "#5fb8ff"; c.lineWidth = 6; c.beginPath(); c.arc(x, y, 30 + 200 * kE(t / 400), 0, TAU); c.stroke(); }
+          c.globalAlpha = .75 * vis; c.strokeStyle = "#ffe14a"; c.lineWidth = 3; c.setLineDash([10, 8]); c.beginPath(); c.moveTo(x, y); c.lineTo(tx, ty); c.stroke(); c.setLineDash([]);
+          if (f < 1) { c.globalAlpha = vis; kBall(c, bx, by, 28, age * .04); }
+          else { const k2 = kc((t - 320) / 380); c.globalAlpha = (1 - k2) * vis; c.fillStyle = "#ffe14a"; kStar(c, tx, ty, 80 * kE(k2) + 10, 22, 8, t * .01); c.fill(); }
+        }
+        if (age > 560) {   // 虫眼鏡
+          const k = kE((age - 560) / 320), lx = x, ly = y, r = 82 * k;
+          c.globalAlpha = vis; c.strokeStyle = "#ffe14a"; c.lineWidth = 9; c.beginPath(); c.arc(lx, ly, r, 0, TAU); c.stroke(); c.strokeStyle = "#111"; c.lineWidth = 3; c.stroke();
+          c.strokeStyle = "#caa24a"; c.lineWidth = 14; c.lineCap = "round"; c.beginPath(); c.moveTo(lx + r * .72, ly + r * .72); c.lineTo(lx + r * 1.7, ly + r * 1.7); c.stroke(); c.lineCap = "butt";
+          c.globalAlpha = .18 * vis; c.fillStyle = "#bfe4ff"; c.beginPath(); c.arc(lx, ly, r, 0, TAU); c.fill();
+          c.globalAlpha = vis * .8; c.strokeStyle = "#ff3b3b"; c.lineWidth = 2; c.beginPath(); c.moveTo(lx - r, ly); c.lineTo(lx + r, ly); c.moveTo(lx, ly - r); c.lineTo(lx, ly + r); c.stroke();
+        }
+        if (age > 900) for (let i = 0; i < 3; i++) { const t = age - 900 - i * 160; if (t < 0) continue; kTxt(c, "Z", x + 40 + i * 22 + Math.sin(t * .006) * 8, y - 40 - t * .05 - i * 14, 26 + i * 8, .2, "#bfe4ff", "#0a1a3a", kc(1 - t / 600) * vis); }
+        if (age > 760) kTxt(c, "謎は解けた！", x, Math.max(46, y - 150), 46 * (.5 + .5 * kE((age - 760) / 160)), -.05, "#fff", "#0a2a6a", vis);
+        c.globalAlpha = 1;
+      }
+
+      const KILL_DRAW = { redlightning: { dur: 1000, draw: redKill }, monochrome: { dur: 1500, draw: monoKill },
+        slot777: { dur: 1500, draw: slotKill }, scope: { dur: 1300, draw: scopeKill }, reaper: { dur: 1500, draw: reaperKill }, phantom: { dur: 1500, draw: phantomKill },
+        gadget: { dur: 1400, draw: gadgetKill }, aqua: { dur: 1800, draw: aquaKill },
+        twin: { dur: 1800, draw: twinKill }, holy: { dur: 1800, draw: holyKill }, jump: { dur: 1800, draw: jumpKill }, bomb: { dur: 1800, draw: bombKill }, boomerang: { dur: 1800, draw: boomKill },
+        pie24: { dur: 1800, draw: pieKill }, tamer: { dur: 1800, draw: tamerKill }, maple: { dur: 1800, draw: mapleKill }, bird: { dur: 1800, draw: birdKill }, ace: { dur: 1800, draw: aceKill }, pop: { dur: 1300, draw: popKill }, kaiju: { dur: 1500, draw: kaijuKill },
+        phoenix: { dur: 1500, draw: phoenixKill }, elemental: { dur: 1500, draw: elementalKill }, dejavu: { dur: 1500, draw: dejavuKill } };
+      const BULLET_DRAW = { redlightning: redBullet };
+      const eqKill = () => { const V = window.__fxPv; if (V && V.type === "kill") return V.id; const id = cfg.fx.kill || "std"; return isFxOwned("kill:" + id) ? id : "std"; };
+      const eqBullet = ch => { const V = window.__fxPv; if (V && V.type === "bullet" && V.char === ch) return V.id; const id = (cfg.fx.bullet || {})[ch] || "std"; return isFxOwned("bullet:" + ch + ":" + id) ? id : "std"; };
+
+      /* --- ゲーム中：弾（自分のキャラ＆自分のチームの弾だけ差し替え） --- */
+      const _db = drawBullets;
+      drawBullets = function () {
+        let me = null; try { me = window.myFighter && myFighter(); } catch (e) {}
+        const id = me ? eqBullet(me.charName) : "std", fn = BULLET_DRAW[id];
+        if (id === "std" || !fn) return _db();
+        const ci = CHAR_NAMES.indexOf(me.charName), own = teamOf(me) + 1, mine = [], rest = [];
+        bullets.forEach(b => { const c0 = b.kind !== undefined ? Math.floor(b.kind / 10) : CHAR_NAMES.indexOf(b.from && b.from.charName); (c0 === ci && bulletOwner(b) === own ? mine : rest).push(b); });
+        if (!mine.length) return _db();
+        const all = bullets; bullets = rest; try { _db(); } finally { bullets = all; }
+        const t = performance.now() / 1000; mine.forEach(b => { ctx.save(); try { fn(ctx, b, t); } finally { ctx.restore(); } });
+      };
+      /* --- ゲーム中：キル。試合を決めた「最後の1人」を倒した瞬間に、倒した人のエフェクトを全員の画面で再生する。
+             CPUが倒したときは通常（追加演出なし）。演出が終わるまで試合終了（画面切り替え）を待つ --- */
+      const killList = []; let prevAct = false, prevB = [];
+      const KO = window.__KO = {
+        fired: false, until: 0, lockW: null, hp0: 100,
+        reset() { this.fired = false; this.until = 0; this.lockW = null; },
+        play(x, y, id) { if (KILL_DRAW[id]) { killList.push({ x, y, t0: performance.now(), id }); if (window.fx) fx.shake = Math.max(fx.shake || 0, 9); } },
+        hold() {   // 最後のキルの演出が終わるまで true（試合結果への切り替えを待たせる）
+          if (window.__fxPv || !gameActive) return false;
+          if (!(sideDead(0) || sideDead(1))) return false;
+          if (this.lockW == null) this.lockW = matchWinner();   // 待っている間に勝敗が変わらないよう固定
+          if (!this.until) this.until = Date.now() + 650;
+          return Date.now() < this.until;
+        }
+      };
+      const eqId = () => { const id = cfg.fx.kill || "std"; return isFxOwned("kill:" + id) ? id : "std"; };
+      window.__eqKillId = eqId;
+      const seatOf = p => [player1, player2, player3, player4].indexOf(p);
+      function killerOf(v) {   // とどめを刺した相手：直前フレームで一番近かった敵の弾の持ち主（なければ一番近い敵）
+        const vx = (v._lx != null ? v._lx : v.x) + 15, vy = (v._ly != null ? v._ly : v.y) + 15, all = fighterList();
+        let best = null, bd = 1e9;
+        prevB.forEach(b => { const f = b.f; if (!f || f === v || !all.includes(f) || teamOf(f) === teamOf(v)) return; const d = Math.hypot(b.x - vx, b.y - vy); if (d < bd) { bd = d; best = f; } });
+        if (best && bd < 90) return best;
+        best = null; bd = 1e9;
+        all.forEach(f => { if (teamOf(f) === teamOf(v)) return; const d = Math.hypot(f.x - vx, f.y - vy) + (f.hp > 0 ? 0 : 400); if (d < bd) { bd = d; best = f; } });
+        return best;
+      }
+      function effectOf(k) {   // とどめを刺した人のキルエフェクトID
+        if (window.__fxPv) return eqKill();
+        if (!k) return "std";
+        let id = "std";
+        if (typeof onl !== "undefined" && onl.running) {
+          const seat = seatOf(k);
+          if ((onl.cpuSlots || []).includes(seat)) return "std";   // CPUは通常
+          id = seat === 0 ? eqId() : (window.__kfxOfSeat ? window.__kfxOfSeat(seat) : onl.guestKfx);
+        } else {
+          if (cpu && cpu.on && k !== player1) return "std";
+          id = eqId();
+        }
+        return KILL_DRAW[id] ? id : "std";
+      }
+      const _dr = draw;
+      draw = function () {
+        _dr();
+        try {
+          if (gameActive && !prevAct) { window.__p1skill = false; KO.reset(); KO.hp0 = player1 ? (player1.maxHp || player1.hp || 100) : 100; }
+          prevAct = gameActive;
+          const guest = typeof onl !== "undefined" && onl.running && !onl.isHost;   // ゲストはホストからの通知で再生
+          if (!guest) {
+            const dying = [];
+            fighterList().forEach(p => {
+              if (!p) return;
+              if (p.hp > 0 && !p.out && p.x > -100) { p._lx = p.x; p._ly = p.y; return; }
+              if (!p._kd && p.hp <= 0) { p._kd = 1; dying.push(p); }
+            });
+            if (dying.length && !KO.fired && (sideDead(0) || sideDead(1))) {   // 試合を決めたキルだけ演出
+              KO.fired = true;
+              const v = dying[0], id = effectOf(killerOf(v)), x = (v._lx != null ? v._lx : v.x) + 15, y = (v._ly != null ? v._ly : v.y) + 15;
+              if (KO.lockW == null) KO.lockW = matchWinner();
+              KO.play(x, y, id);
+              KO.until = Date.now() + ((KILL_DRAW[id] && KILL_DRAW[id].dur) || 650);
+              if (typeof onl !== "undefined" && onl.running && onl.isHost) { try { sendMsg({ t: "kill", x, y, id }); } catch (e) {} }
+            }
+            prevB = bullets.map(b => ({ x: b.x, y: b.y, f: b.from })).concat(((window.X21 && window.X21.xb) || []).map(b => ({ x: b.x, y: b.y, f: b.from })));
+          }
+          const n = performance.now();
+          for (let i = killList.length - 1; i >= 0; i--) {
+            const k = killList[i], d = KILL_DRAW[k.id], age = n - k.t0;
+            if (age > d.dur) { killList.splice(i, 1); continue; }
+            ctx.save(); try { d.draw(ctx, k.x, k.y, age); } finally { ctx.restore(); }
+          }
+        } catch (e) { console.error("settings fx", e); }
+      };
+
+      /* --- クエスト条件：スキルを使わずCPUに1対1で勝つ（スナイパー太郎） --- */
+      const _us = useSkill;
+      useSkill = function (p) { const b = p && p.skillLastUsed, r = _us(p); if (p && p === player1 && p.skillLastUsed !== b) window.__p1skill = true; return r; };
+      const _sr = showResult;
+      showResult = function () {
+        try { if (cpu && cpu.on && !window.TWOVTWO && player1 && player1.charName === "スナイパー太郎" && !window.__p1skill && matchWinner() === 1) Quest.emit("sniperNoSkill"); } catch (e) { console.error(e); }
+        try { if (!window.__fxPv && cpu && cpu.on && !window.TWOVTWO && matchWinner() === 1) Quest.emit("matchWin"); } catch (e) { console.error(e); }   // 累計勝利（CPU戦）
+        try { if (!window.__fxPv && cpu && cpu.on && !window.TWOVTWO && player1) Quest.addMastery(player1.charName, matchWinner() === 1); } catch (e) { console.error(e); }   // 熟練度（CPU戦）
+        try {   // おまかせキャラでCPUに勝利（HP半分以上残しは別カウント）
+          if (!window.__fxPv && cpu && cpu.on && !window.TWOVTWO && window.__p1rand && matchWinner() === 1) {
+            Quest.emit("randWin"); if (player1 && player1.hp >= KO.hp0 * .5) Quest.emit("randWinHp");
+          }
+        } catch (e) { console.error(e); }
+        _sr();
+      };
+
+      /* ======== エフェクト設定画面＆プレビュー ======== */
+      let raf = 0;   // 現在のプレビュー {type:"kill"|"bullet", char, id}
+      function renderF() {
+        const kill = KILL_FX.map(e => fxCard("kill", null, e)).join("");
+        const bl = Object.keys(BULLET_FX).map(ch => `<div class="st-char">${imgOrPlaceholder(ch)}<span>${escapeHtml(ch)}</span></div><div class="st-fxgrid">${BULLET_FX[ch].map(e => fxCard("bullet", ch, e)).join("")}</div>`).join("");
+        $("stPaneF").innerHTML = `
+          <div class="st-sec"><h3>👁 プレビュー</h3><div class="st-note">各エフェクトの「▶ プレビュー」を押すと、実際の試合画面で実キャラが的に向かって実際の弾を撃ちます（キルは的が倒れる演出）。</div></div>
+          <div class="st-sec"><h3>💥 キルエフェクト（全キャラ共通）</h3><div class="st-note">敵を倒したときに、倒した位置で再生されます。</div><div class="st-fxgrid">${kill}</div></div>
+          <div class="st-sec"><h3>🔫 弾エフェクト（キャラごと）</h3><div class="st-note">別の弾エフェクトを持っているキャラだけ表示されます。クエストの報酬で増えていきます。</div>${bl}</div>`;
+        $("stPaneF").querySelectorAll(".st-fx").forEach(el => {
+          el.onclick = e => {
+            const ty = el.dataset.t, ch = el.dataset.c, id = el.dataset.i, key = ty === "kill" ? "kill:" + id : "bullet:" + ch + ":" + id;
+            if (e.target.closest("button")) { startPv({ type: ty, char: ch, id }); return; }
+            if (!isFxOwned(key)) { startPv({ type: ty, char: ch, id }); Quest.toast("🔒 " + fxHint(ty, ch, id)); return; }
+            if (ty === "kill") cfg.fx.kill = id; else cfg.fx.bullet[ch] = id; save(); renderF();
+          };
+        });
+      }
+      function fxList(ty, ch) { return ty === "kill" ? KILL_FX : BULLET_FX[ch]; }
+      function fxHint(ty, ch, id) { const e = fxList(ty, ch).find(x => x.id === id), q = e && QUESTS.find(x => x.id === e.quest); return "クエスト「" + (q ? q.title : "?") + "」で入手できます"; }
+      function fxCard(ty, ch, e) {
+        const key = ty === "kill" ? "kill:" + e.id : "bullet:" + ch + ":" + e.id, own = isFxOwned(key), sel = ty === "kill" ? eqKill() === e.id : eqBullet(ch) === e.id;
+        return `<div class="st-fx ${sel ? "sel" : ""} ${own ? "" : "lock"}" data-t="${ty}" data-c="${ch || ""}" data-i="${e.id}">${own ? "" : '<span class="lk">🔒</span>'}<b>${escapeHtml(e.name)}</b>${sel ? " ✓" : ""}<small>${escapeHtml(own ? (e.desc || "") : fxHint(ty, ch, e.id))}</small><button>▶ プレビュー</button></div>`;
+      }
+      /* --- プレビュー：実際の試合（startGame／shootBullet／drawBullets…）をそのまま使い、
+             実キャラが的に実弾を撃つ。ロック中のエフェクトも __fxPv で一時的に適用する --- */
+      let PV = null, pvTimer = 0, pvBar = null;
+      function startPv(o) {
+        if (gameActive) return;
+        const ch0 = o.type === "bullet" ? o.char : "スナイパー太郎", foe = CHAR_NAMES.find(n => n !== ch0) || ch0;
+        PV = o; window.__fxPv = o; window.TWOVTWO = false; cpuMode = false; window.RULE = "1v1";
+        $("player1Select").value = ch0; $("player2Select").value = foe; $("mapSelectDropdown").value = selectedMap || "草原";
+        startGame(); document.body.classList.add("pvOn"); gameStartTime = Date.now() - 5000;   // 開始演出（FIGHT!）は出さない
+        obstacles = []; turrets = []; bullets = []; explosions = [];
+        const e = fxList(o.type, o.char).find(x => x.id === o.id);
+        $("gameInfo").textContent = "プレビュー：" + (o.type === "kill" ? "キル " : o.char + " 弾 ") + (e ? e.name : "");
+        if (!pvBar) { pvBar = document.createElement("button"); pvBar.id = "pvBack"; pvBar.textContent = "← 設定に戻る"; pvBar.style.cssText = "position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9500;padding:9px 22px;border-radius:20px;border:2px solid #7cf;background:#0b1430;color:#fff;font-size:15px;font-weight:700;cursor:pointer"; pvBar.onclick = endPv; document.body.appendChild(pvBar); }
+        pvBar.style.display = "block";
+        const dm = player2; dm.x = Math.min(ARENA_W - dm.w - 20, player1.x + 340); dm.y = player1.y; const hx = dm.x, hy = dm.y; let dead = 0, last = 0;
+        const kl = o.type === "kill";
+        const rev = () => { KO.reset(); dm.hp = kl ? 1 : 100; dm.maxHp = 100; dm.out = false; dm._kd = 0; dm.x = hx; dm.y = hy; dm._lx = hx; dm._ly = hy; dead = 0; };
+        rev(); clearInterval(pvTimer);
+        pvTimer = setInterval(() => {
+          if (!PV || !gameActive || $("gameScreen").classList.contains("hidden")) { stopPv(); return; }
+          gameStartTime = Date.now() - 5000; player1.hp = player1.maxHp || player1.hp; keys = {};
+          const n = Date.now();
+          if (dm.hp <= 0) { if (!dead) dead = n; if (n - dead > 1900) rev(); return; }
+          if (!kl) dm.hp = 100;
+          if (player1.ammo > 0 && n - last > (kl ? 1200 : 650)) { last = n; shootBullet(player1, dm); }
+        }, 100);
+      }
+      function stopPv() { clearInterval(pvTimer); pvTimer = 0; PV = null; window.__fxPv = null; document.body.classList.remove("pvOn"); if (pvBar) pvBar.style.display = "none"; }
+      function endPv() { const was = PV; stopPv(); gameActive = false; returnToMenu(); showScreen("settingsScreen"); tab("f"); }
+      const _cgo = checkGameOver;
+      checkGameOver = function () { if (PV && gameActive) return; if (KO.hold()) return; _cgo(); };
+
+      function tab(t) {
+        $("stTabC").classList.toggle("on", t === "c"); $("stTabF").classList.toggle("on", t === "f");
+        $("stPaneC").classList.toggle("hidden", t !== "c"); $("stPaneF").classList.toggle("hidden", t !== "f");
+        waiting = null; if (t === "c") { cancelAnimationFrame(raf); renderC(); } else renderF();
+      }
+      applyTouch();
+      return { show() { showScreen("settingsScreen"); tab("c"); }, tab, refresh() { if (!$("settingsScreen").classList.contains("hidden") && !$("stPaneF").classList.contains("hidden")) renderF(); }, applyTouch };
+    })();
+  </script>
+
   <!-- ===== ver30：アカウント／フレンド／招待（Firebase） ===== -->
   <style>
     .accbar { display:flex; align-items:center; justify-content:center; gap:8px; margin:-8px 0 16px; font-size:14px; color:#dfe6ff; }
@@ -5777,6 +6968,7 @@ function think(i){
       }
       /* o: { c:[キャラ1,キャラ2], tags:[左の名前,右の名前], map, sub } */
       FX.intro = function (o) {
+        if (window.__fxPv) return;   // エフェクトのプレビュー中は開始演出なし
         const side = (cls, tg, n) => `<div class="fx-side ${cls}"><span class="fx-tag">${esc(tg)}</span><div class="fx-pic">${imgOrPlaceholder(n)}</div><div class="fx-name">${esc(n)}</div></div>`;
         const ov = mk(`<div id="fxOv" class="fxIntro"><canvas></canvas><div class="fx-row">${side("L", o.tags[0], o.c[0])}<div class="fx-mid"><small>STAGE</small><b>${esc(o.map)}</b>${o.sub ? `<div class="fx-sub">${esc(o.sub)}</div>` : ""}<div class="fx-vs">VS</div></div>${side("R", o.tags[1], o.c[1])}</div><div class="fx-go">FIGHT!</div></div>`);
         document.body.appendChild(ov); window.__introOn = true; keys = {};
@@ -5842,6 +7034,8 @@ function think(i){
         if (FX.busy) return;
         const me = window.TWOVTWO ? ((onl.mySlot | 0) % 2 ? "p2" : "p1") : (onl.isHost ? "p1" : "p2"), wi = w === "draw" ? 0 : w === "p1" ? 1 : 2, nm = onlNames();
         const h = FX.H.onl && FX.H.onl(w);
+        try { if (w === me) Quest.emit("matchWin"); } catch (e) { console.error(e); }   // 累計勝利（オンライン）
+        try { const mf = window.myFighter && window.myFighter(); if (mf && mf.charName) Quest.addMastery(mf.charName, w === me); } catch (e) { console.error(e); }   // 熟練度（オンライン）
         FX.outro({
           w: wi, c: [player1.charName, player2.charName],
           text: () => h ? h.text() : (wi === 0 ? "引き分け！" : w === me ? "あなたの勝利！" : `${nm[wi - 1]}の勝利…`),
@@ -5896,6 +7090,7 @@ function think(i){
       const _sg = startGame;
       startGame = function () {
         const lists = [ownedNames(), ownedNames(), MAP_NAMES], saved = ids.map(id => $(id).value);
+        window.__p1rand = saved[0] === R;   // クエスト用：1Pが「おまかせ」で始めたか
         ids.forEach((id, i) => { if (saved[i] === R) $(id).value = lists[i][Math.floor(Math.random() * lists[i].length)]; });
         try { _sg(); } finally { ids.forEach((id, i) => { $(id).value = saved[i]; }); }
       };
@@ -6668,6 +7863,8 @@ function think(i){
     .cs-card .lk, .cx-item .lk { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 14px; }
     .cx-item { position: relative; }
     .q-badge { display: none; font-style: normal; background: #ff4a6a; color: #fff; border-radius: 10px; padding: 0 7px; font-size: 12px; margin-left: 4px; vertical-align: middle; }
+    body.pvOn #touchUI { display: none !important; }   /* エフェクトのプレビュー中は操作ボタンを隠す */
+    body.pvOn #gameScreen button { pointer-events: none; }
     #questScreen { min-height: 100vh; padding: 70px 14px 30px; box-sizing: border-box; color: #eef; }
     .q-wrap { max-width: 560px; margin: 0 auto; }
     .q-wrap h2 { text-align: center; margin: 0 0 8px; }
@@ -6685,6 +7882,41 @@ function think(i){
     .q-card .pg { font-size: 11px; color: #9aa3c7; margin-top: 3px; }
     .q-card button { margin: 0; padding: 8px 12px; font-size: 13px; flex: none; }
     .q-card .ok { color: #7bff9b; font-weight: bold; font-size: 13px; flex: none; }
+    #mastPanel { position: fixed; left: 50%; top: 12px; transform: translate(-50%, -160%); z-index: 9400; width: min(92vw, 380px); background: rgba(14,20,48,.96); border: 2px solid #7f9bff; border-radius: 14px; padding: 10px 14px 12px; color: #eef; text-align: left; transition: transform .35s; pointer-events: none; box-shadow: 0 8px 30px #000a; box-sizing: border-box; }
+    #mastPanel.on { transform: translate(-50%, 0); }
+    .mp-h { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+    .mp-lv { color: #ffe27a; font-weight: bold; }
+    .mp-add { margin-left: auto; color: #7bff9b; font-size: 12px; }
+    .mp-bar { height: 14px; background: #0b1022; border-radius: 8px; overflow: hidden; margin: 7px 0 3px; border: 1px solid #34407a; }
+    .mp-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4aa8ff, #7dffa8); }
+    .mp-t { font-size: 11px; color: #aab4e0; text-align: right; }
+    .mp-up { position: absolute; left: 0; right: 0; top: 100%; margin-top: 8px; text-align: center; font-weight: 900; font-size: 28px; color: #ffe14a; letter-spacing: .08em; text-shadow: 0 0 12px #ffb400, 0 2px 0 #7a4b00; }
+    .mp-up small { display: block; font-size: 12px; color: #fff; letter-spacing: 0; font-weight: normal; text-shadow: 0 1px 3px #000; }
+    .mp-up.pop { animation: mpPop .8s ease-out; }
+    @keyframes mpPop { 0% { transform: scale(.4); opacity: 0; } 40% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); } }
+    .q-tabs { display: flex; gap: 6px; margin: 0 0 12px; }
+    .q-tabs button { flex: 1; margin: 0; padding: 10px; font-size: 14px; background: #1b2350; color: #cfd6ff; border: 1px solid #34407a; border-radius: 10px; }
+    .q-tabs button.on { background: #3a4d9a; color: #fff; font-weight: bold; border-color: #7f9bff; }
+    .rd { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ff4a6a; margin-left: 6px; vertical-align: middle; }
+    .q-note2 { font-size: 12px; color: #9aa3c7; margin: 0 0 8px; text-align: center; }
+    .q-grp { background: rgba(20,28,60,.6); border: 1px solid #34407a; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+    .q-grp.open { border-color: #7f9bff; }
+    .q-grp .gh { display: flex; align-items: center; gap: 10px; padding: 8px 10px; cursor: pointer; }
+    .q-grp .gh img, .q-grp .gh .cx-ph { width: 44px; height: 44px; object-fit: contain; flex: none; display: flex; align-items: center; justify-content: center; }
+    .q-grp .gi { flex: 1; min-width: 0; text-align: left; }
+    .q-grp .gn { font-weight: bold; font-size: 14px; }
+    .q-grp .gl { font-size: 12px; color: #9fb4ff; margin: 1px 0 3px; }
+    .q-grp .gl span { color: #aab4e0; }
+    .q-grp .gc { flex: none; text-align: center; font-size: 12px; color: #cfd6ff; }
+    .q-grp .gb { padding: 2px 8px 4px; }
+    .cd-mast .mlad { font-size: 12px; color: #9aa3c7; margin-bottom: 4px; }
+    .cd-mast .mlad b { color: #ffe27a; }
+    .cd-mast .mrow { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; margin-bottom: 4px; }
+    .cd-mast .mrow span { color: #aab4e0; font-size: 12px; }
+    .cd-mast .mlist { margin: 8px 0 6px; font-size: 12px; }
+    .cd-mast .mq { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .cd-mast .mq span { color: #9aa3c7; float: right; }
+    .cd-mast .mbtn { margin: 4px 0 0; padding: 7px 12px; font-size: 13px; }
     #qToast { position: fixed; left: 50%; top: 14px; transform: translateX(-50%) translateY(-120px); z-index: 9700; background: #243066; color: #fff; border: 2px solid #7f9bff; border-radius: 12px; padding: 10px 16px; max-width: 92vw; text-align: center; box-shadow: 0 6px 24px #000a; transition: transform .3s; pointer-events: none; font-size: 14px; }
     #qToast.on { transform: translateX(-50%) translateY(0); }
 
@@ -6753,6 +7985,7 @@ function think(i){
       const cReady = ci => ci === 1 ? onl.guestReady : !!(onl.ex[ci] && onl.ex[ci].ready);
       const humans = () => [0].concat([1, 2, 3].filter(cOn).map(ci => onl.seat[ci]));   // 人間がいる席
       const readyOf = seat => cReady(ciAt(seat));
+      window.__kfxOfSeat = seat => { if (!is2()) return onl.guestKfx; if (seat === 0) return window.__eqKillId ? window.__eqKillId() : "std"; const ci = ciAt(seat); return ci === 1 ? onl.guestKfx : (onl.ex[ci] && onl.ex[ci].kfx); };
 
       /* ---- 送信：ホストの送信は全ゲストへ ---- */
       const _sm = sendMsg;
@@ -6832,6 +8065,7 @@ function think(i){
           case "name": e.name = String(m.v || "ゲスト").slice(0, 16); break;
           case "ready": e.ready = !!m.v; break;
           case "uid": e.uid = String(m.v || "").slice(0, 64); break;
+          case "kfx": e.kfx = String(m.v || "std").slice(0, 24); return;
           default: return;
         }
         tell(); updateLobby();
@@ -7081,6 +8315,25 @@ function think(i){
           if (onl.isHost && onl.map !== R && !MAP_NAMES.includes(onl.map)) { onl.map = MAP_NAMES[0]; sendMsg({ t: "map", v: onl.map }); }
         }
         _ul();
+      };
+    })();
+  </script>
+
+  <script>
+    /* ver52：最後のキル演出を待つ間、勝敗が変わらないよう固定 */
+    (function () {
+      const _mw = window.matchWinner;
+      window.matchWinner = function () { const K = window.__KO; return (K && K.lockW != null) ? K.lockW : _mw(); };
+    })();
+  </script>
+
+  <script>
+    /* ver53：キャラ図鑑に「熟練度」と関連クエストを表示 */
+    (function () {
+      const _sc = selectCodex;
+      selectCodex = function (name) {
+        _sc(name);
+        try { const h = document.querySelector("#codexDetail .cd-head"); if (h && window.Quest) h.insertAdjacentHTML("afterend", window.Quest.codexHtml(name)); } catch (e) { console.warn(e); }
       };
     })();
   </script>
