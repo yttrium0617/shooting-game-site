@@ -6376,6 +6376,26 @@ function think(i){
       };
       const unit = (a, b) => { const dx = b.x - a.x, dy = b.y - a.y, m = Math.hypot(dx, dy) || 1; return [dx / m, dy / m]; };
       /* ---------- 通常攻撃 ---------- */
+      const lineClear = (a, b, r) => {   // 弾(半径r)が壁に当たらず通れるか
+        const dx = b.x - a.x, dy = b.y - a.y, n = Math.ceil(Math.hypot(dx, dy) / 6) || 1;
+        for (let i = 0; i <= n; i++) { const x = a.x + dx * i / n, y = a.y + dy * i / n; if (x < 0 || y < 0 || x > ARENA_W || y > ARENA_H || collidesWithObstacles({ x: x - r, y: y - r, w: 2 * r, h: 2 * r })) return false; }
+        return true;
+      };
+      const bendAim = (o, tc) => {   // 射線上に壁があるとき：曲げ地点Pを探す（o→Pが通れて、P→敵も通れる最短）
+        if (lineClear(o, tc, 8)) return null;
+        let best = null;
+        for (let a = 0; a < 360; a += 4) {
+          const ux = Math.cos(a * Math.PI / 180), uy = Math.sin(a * Math.PI / 180);
+          for (let d = 50; d <= 300; d += 25) {
+            const P = { x: o.x + ux * d, y: o.y + uy * d };
+            if (!lineClear(o, P, 8)) break;
+            if (!lineClear(P, tc, 5)) continue;
+            const c = d + Math.hypot(tc.x - P.x, tc.y - P.y);
+            if (!best || c < best.c) best = { c, d, P, ux, uy };
+          }
+        }
+        return best;
+      };
       const _sb = shootBullet;
       shootBullet = function (s, t) {
         if (isB(s)) {
@@ -6390,8 +6410,10 @@ function think(i){
             return;
           }
           s.bB = null; if (s.ammo <= 0) return;
-          const [ux, uy] = unit({ x: s.x + 15, y: s.y + 15 }, { x: t.x + 15, y: t.y + 15 });
+          const o = { x: s.x + 15, y: s.y + 15 }, bend = bendAim(o, { x: t.x + 15, y: t.y + 15 });
+          const [ux, uy] = bend ? [bend.ux, bend.uy] : unit(o, { x: t.x + 15, y: t.y + 15 });
           const b = { x: s.x + 15, y: s.y + 15, r: 8, vx: ux * 2.4, vy: uy * 2.4, from: s, damage: 20, lifeTime: 0, maxLifeTime: 260, bird: 1 };
+          if (bend) { b.bp = bend.P; b.bf = Math.round(bend.d / 2.4); }   // 曲げ地点／そこに着くフレーム
           bullets.push(b); s.bB = b; s.ammo--; s.lastReload = now();
           return;
         }
@@ -6418,7 +6440,7 @@ function think(i){
         if (isB(p)) {
           const t = now();
           if (!gameActive || p.hp <= 0 || p.out || p.vUntil || stunned(p) || t - p.skillLastUsed < p.skillCooldown) return;
-          p.skillLastUsed = t; p.gx = p.x; p.gy = p.y; p._gh = p.hp; p.vUntil = t + 2000 + Math.random() * 1000; p.x = p.y = -500;
+          p.skillLastUsed = t; p.gx = p.ghx = p.x; p.gy = p.ghy = p.y; p._gh = p.hp; p.vUntil = t + 2000 + Math.random() * 1000; p.x = p.y = -500;
           return;
         }
         if (isA(p)) {
@@ -6433,7 +6455,10 @@ function think(i){
         return _us(p);
       };
       const _mp = movePlayer;
-      movePlayer = function (p, u, d, l, r) { if (isB(p) && p.vUntil) return; _mp(p, u, d, l, r); };
+      movePlayer = function (p, u, d, l, r) {   // 異世界中：本人だけが影の位置(ghx,ghy)を歩き回れる
+        if (isB(p) && p.vUntil && p.ghx != null) { p.x = p.ghx; p.y = p.ghy; _mp(p, u, d, l, r); p.ghx = p.x; p.ghy = p.y; p.x = p.y = -500; return; }
+        _mp(p, u, d, l, r);
+      };
       /* ---------- 毎フレーム ---------- */
       let rec = [], hp0 = new Map();
       function before() {
@@ -6441,7 +6466,7 @@ function think(i){
         fl.forEach(p => {
           if (!isB(p) || !p.vUntil) return;
           if (!gameActive || p.hp <= 0 && p._gh <= 0) { p.vUntil = 0; return; }
-          if (t >= p.vUntil) { const s = spotFree(p); p.x = s.x; p.y = s.y; p.vUntil = 0; p.hp = p._gh; p.rx = s.x; p.ry = s.y; p.retT = t; }
+          if (t >= p.vUntil) { let s = { x: p.ghx, y: p.ghy }; if (p.ghx == null || fl.some(o => o && o !== p && o.hp > 0 && !o.out && Math.hypot(o.x - s.x, o.y - s.y) < 40)) s = spotFree(p); p.x = s.x; p.y = s.y; p.vUntil = 0; p.hp = p._gh; p.rx = s.x; p.ry = s.y; p.retT = t; }
           else { p.hp = 1e6; p.x = p.y = -500; }   // 異世界：完全無敵（被弾しても1フレームだけの仮HPで受け流す）
         });
         // 麻酔針
@@ -6490,7 +6515,7 @@ function think(i){
           const rdy = t - p.skillLastUsed >= p.skillCooldown, d = Math.hypot(f.x - p.x, f.y - p.y);
           if (isB(p)) {
             const b = p.bB;
-            if (b && bullets.includes(b) && !b.light) { if (!b.rdT) b.rdT = t + 400 + Math.random() * 500; if (t >= b.rdT) shootBullet(p, f); }
+            if (b && bullets.includes(b) && !b.light) { if (b.bf != null) { if (b.lifeTime >= b.bf) shootBullet(p, f); } else { if (!b.rdT) b.rdT = t + 400 + Math.random() * 500; if (t >= b.rdT) shootBullet(p, f); } }
             if (rdy && !p.vUntil && ((p.hp < 45 && d < 240) || (Math.random() < .002 && t - gameStartTime > 5000))) useSkill(p);
           }
           if (isA(p) && rdy && f.hp > 0 && d > 110 && d < 520 && !(f._slp > t) && (f.shOn || Math.random() < .01)) useSkill(p);
@@ -6524,12 +6549,23 @@ function think(i){
       }
       const _dr = draw;
       draw = function () {
-        _dr();
+        let me = null; try { me = myFighter(); } catch (e) { }
+        const inB = !!(me && isB(me) && me.vUntil && me.ghx != null), sv = [], sb = bullets, st = turrets;
+        if (inB) {   // 本人視点：敵・敵の弾・敵タレットを消し、自分だけを影の位置に描く
+          fighterList().forEach(q => { if (q && q !== me && teamOf(q) !== teamOf(me)) { sv.push([q, q.x, q.y]); q.x = q.y = -9999; } });
+          sv.push([me, me.x, me.y]); me.x = me.ghx; me.y = me.ghy;
+          bullets = sb.filter(b => !b.from || teamOf(b.from) === teamOf(me)); turrets = st.filter(u => !u.owner || teamOf(u.owner) === teamOf(me));
+        }
+        try { _dr(); } finally { if (inB) { sv.forEach(([q, x, y]) => { q.x = x; q.y = y; }); bullets = sb; turrets = st; } }
         try {
           if (!ctx) return; const t = now(), g = guest(), fl = fighterList();
-          const bd = g ? GV.bd : bullets.filter(b => b.bird).map(b => [b.x, b.y, b.light ? 1 : 0, b.vx, b.vy]);
+          if (inB) { const W = canvas.width, H = canvas.height; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); const gr = ctx.createRadialGradient(W / 2, H / 2, H * .25, W / 2, H / 2, H * .8); gr.addColorStop(0, "rgba(120,50,190,.28)"); gr.addColorStop(1, "rgba(60,10,110,.6)"); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+          const bd = g ? GV.bd : bullets.filter(b => b.bird).map(b => [b.x, b.y, b.light ? 1 : 0, b.vx, b.vy, b.bp && !b.light ? b.bp.x : -1, b.bp ? b.bp.y : 0]);
           const ab = g ? GV.ab : bullets.filter(b => b.ace).map(b => [b.x, b.y, b.bn ? 1 : 0]);
-          bd.forEach(a => drawBirdBullet(a[0], a[1], a[2], a[3], a[4], t));
+          bd.forEach(a => {
+            drawBirdBullet(a[0], a[1], a[2], a[3], a[4], t);
+            if (a[5] >= 0) { ctx.save(); ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.arc(a[5], a[6], 9 + Math.sin(t / 120) * 2, 0, TAU); ctx.stroke(); ctx.restore(); }   // 曲げどき
+          });
           ab.forEach(a => drawBall(a[0], a[1], a[2], t));
           lines.forEach(l => {
             const k = Math.max(0, (l.until - t) / (l.k ? 220 : 320)); ctx.save(); ctx.globalAlpha = k; ctx.strokeStyle = l.k ? "#bfe9ff" : "#ffe27a"; ctx.lineWidth = 3; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10; ctx.setLineDash([6, 5]);
@@ -6543,6 +6579,10 @@ function think(i){
           });
           fl.forEach(p => {
             if (!p) return;
+            if (isB(p) && p.vUntil && p.ghx != null && me && p !== me && teamOf(me) === teamOf(p)) {   // 味方には異世界中の位置が影で見える
+              ctx.save(); ctx.globalAlpha = .55 + Math.sin(t / 180) * .15; ctx.shadowColor = "#b57cff"; ctx.shadowBlur = 14; ctx.fillStyle = "rgba(45,15,80,.75)";
+              ctx.beginPath(); ctx.ellipse(p.ghx + 15, p.ghy + 15, 14, 18, 0, 0, TAU); ctx.fill(); ctx.restore();
+            }
             if (isB(p) && p.vUntil && p.gx != null) {   // 異世界へ消えた場所の渦
               const cx = p.gx + 15, cy = p.gy + 15, k = Math.max(0, Math.min(1, (p.vUntil - t) / 2500)); ctx.save();
               ctx.strokeStyle = `rgba(190,130,255,${.4 + .5 * k})`; ctx.lineWidth = 3; ctx.shadowColor = "#b57cff"; ctx.shadowBlur = 12;
@@ -6559,11 +6599,11 @@ function think(i){
       const _bs = buildSnap;
       buildSnap = function () {
         const s = _bs(), t = now(), fl = fighterList();
-        s.bd = bullets.filter(b => b.bird).map(b => [r1(b.x), r1(b.y), b.light ? 1 : 0, +b.vx.toFixed(1), +b.vy.toFixed(1)]);
+        s.bd = bullets.filter(b => b.bird).map(b => [r1(b.x), r1(b.y), b.light ? 1 : 0, +b.vx.toFixed(1), +b.vy.toFixed(1), b.bp && !b.light ? r1(b.bp.x) : -1, b.bp ? r1(b.bp.y) : 0]);
         s.ab = bullets.filter(b => b.ace).map(b => [r1(b.x), r1(b.y), b.bn ? 1 : 0]);
         s.nd = needles.map(n => [r1(n.x), r1(n.y), +n.vx.toFixed(1), +n.vy.toFixed(1)]);
         s.ak = lines.map(l => [r1(l.x1), r1(l.y1), r1(l.x2), r1(l.y2), l.k, Math.max(0, l.until - t)]);
-        s.bg = fl.map(p => isB(p) ? [p.vUntil ? Math.max(0, p.vUntil - t) : 0, r1(p.gx || 0), r1(p.gy || 0), p.retT ? t - p.retT : -1, r1(p.rx || 0), r1(p.ry || 0)] : 0);
+        s.bg = fl.map(p => isB(p) ? [p.vUntil ? Math.max(0, p.vUntil - t) : 0, r1(p.gx || 0), r1(p.gy || 0), p.retT ? t - p.retT : -1, r1(p.rx || 0), r1(p.ry || 0), r1(p.ghx || 0), r1(p.ghy || 0)] : 0);
         s.sl = fl.map(p => p && p._slp > t ? p._slp - t : 0);
         return s;
       };
@@ -6575,7 +6615,7 @@ function think(i){
         lines.length = 0; (s.ak || []).forEach(a => lines.push({ x1: a[0], y1: a[1], x2: a[2], y2: a[3], k: a[4], until: t + a[5] }));
         fighterList().forEach((p, i) => {
           if (!p) return;
-          const d = s.bg && s.bg[i]; if (d && isB(p)) { p.vUntil = d[0] ? t + d[0] : 0; p.gx = d[1]; p.gy = d[2]; p.retT = d[3] >= 0 ? t - d[3] : 0; p.rx = d[4]; p.ry = d[5]; }
+          const d = s.bg && s.bg[i]; if (d && isB(p)) { p.vUntil = d[0] ? t + d[0] : 0; p.gx = d[1]; p.gy = d[2]; p.retT = d[3] >= 0 ? t - d[3] : 0; p.rx = d[4]; p.ry = d[5]; p.ghx = d[6]; p.ghy = d[7]; }
           p._slp = s.sl && s.sl[i] ? t + s.sl[i] : 0;
         });
       };
