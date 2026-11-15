@@ -487,7 +487,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 55</div>
+      <div class="ver">VER 56</div>
     </div>
   </div>
 
@@ -6391,7 +6391,7 @@ function think(i){
       draw = function () {
         _dr();
         try {
-          if (gameActive && !prevAct) { window.__p1skill = false; KO.reset(); KO.hp0 = player1 ? (player1.maxHp || player1.hp || 100) : 100; }
+          if (gameActive && (!prevAct || (KO.gst !== gameStartTime && !window.__fxPv))) { KO.gst = gameStartTime; window.__p1skill = false; KO.reset(); KO.hp0 = player1 ? (player1.maxHp || player1.hp || 100) : 100; }
           prevAct = gameActive;
           const guest = typeof onl !== "undefined" && onl.running && !onl.isHost;   // ゲストはホストからの通知で再生
           if (!guest) {
