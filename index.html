@@ -744,6 +744,7 @@ Object.keys(NEW_CHARS).forEach(n => { characterImages[n] = NEW_CHARS[n].img; });
       const p1Name = document.getElementById("player1Select").value;
       const p2Name = document.getElementById("player2Select").value;
       selectedMap = document.getElementById("mapSelectDropdown").value;
+      applyArena(selectedMap);
 
       document.getElementById("gameInfo").innerText =
         `1P: ${p1Name} vs 2P: ${p2Name} | マップ: ${selectedMap}`;
@@ -947,7 +948,7 @@ lastPoisonTick = Date.now();
          mir   : 反射壁。弾が跳ね返る（最大 MIRROR_BOUNCES 回）
          warps : ワープ装置。踏むと反対側の対の装置へ移動。弾も通り抜ける
          pads  : 回復パッド。HPが減っているときに踏むと回復。一定時間で復活 */
-    const ARENA_W = 800, ARENA_H = 400;
+    let ARENA_W = 800, ARENA_H = 400;   // 2対2専用マップでは applyArena() で広げる
     const SPAWNS = { p1: { x: 70, y: 185 }, p2: { x: 700, y: 185 } }; // 30x30 の左上座標
     const WALL_HP = 4, MIRROR_BOUNCES = 3;
     const WARP_R = 20, WARP_COOLDOWN = 1200;
@@ -1062,6 +1063,7 @@ lastPoisonTick = Date.now();
       return out;
     }
 
+    function applyArena(mapName) { }   // 2対2専用マップ用（ver47で上書き）
     function getObstaclesForMap(mapName) {
       const def = MAP_DEFS[mapName] || MAP_DEFS["草原"];
       const out = [], seen = new Set();
@@ -2462,6 +2464,7 @@ fighterList().forEach(p => {
       canvas = document.getElementById("gameCanvas");
       ctx = canvas.getContext("2d");
       selectedMap = mapName;
+      applyArena(mapName);
 
       // オフライン用のキー入力は外す（オンラインは専用ハンドラで統一）
       document.removeEventListener("keydown", keyDownHandler);
@@ -3631,7 +3634,7 @@ function think(i){
  if(nm==='不死鳥'){if(me.rv){expoW=Math.max(expoW,7);range=en.ammo<=0?55:250}else{expoW=0;range=120;chase=.12}} // 蘇生前は被弾覚悟で攻め、蘇生後は避けつつ隙に突っ込む
  // ===== ver31_1：キャラ別の戦い方 =====
  if(nm==='怪獣王'){   // 中央ブロックを盾に弾を避けて時間を稼ぎ、接近されたら薙ぎ払って離れる
-  const blk=pickBlock(400,200,130);fire=101;
+  const blk=pickBlock(ARENA_W/2,ARENA_H/2,130);fire=101;
   if(blk){sh=shadowPt(blk,en,24);shW=.3;expoW=12;range=260;chase=.015}else{range=300;chase=.04;expoW=9}
   if(me.kc){expoW=0;shW=0}}
  if(nm==='ペット＆テイマー'){   // ペットを囮にエイムを逸らす／敵の弾切れで攻める／無理なら遮蔽で貯蓄
@@ -3640,7 +3643,7 @@ function think(i){
   const emptyEn=en.ammo<=0||(en.maxAmmo>1&&en.ammo<=1);
   if(mine.length){range=Math.max(150,Math.min(330,dp+70));chase=.09;petKeep=dp+38;expoW=Math.max(expoW,6);hold=false}
   else if(emptyEn&&store>=2){range=170;chase=.1;expoW=2}
-  else{const blk=pickBlock(400,200,130)||pickBlock(mx,my,160);
+  else{const blk=pickBlock(ARENA_W/2,ARENA_H/2,130)||pickBlock(mx,my,160);
    if(blk){sh=shadowPt(blk,en,24);shW=.12;expoW=13;range=330;chase=.01}else{range=330;chase=.04;expoW=10}
    hold=false}}
  if(nm==='元素の魔女'){   // 張り付き敵には雷、接近してくる敵には氷、それ以外は炎
@@ -3676,7 +3679,7 @@ function think(i){
   if(nm==='怪獣王'&&me.ammo<=0&&nd<125)s-=(125-nd)*.5;          // 薙ぎ払い後は離れる
   if(nm==='元素の魔女'&&hug)s+=thunderOK(cx,cy,en)?6:-2;        // 雷が壁を伝う位置取り
   if(eTh&&nd<eTh)s-=(eTh-nd)*.7;                       // 自爆・罠・散弾の間合いに入らない
-  if(el>16)s-=Math.max(0,HY(cx-400,cy-200)-(zr-70))*.35;
+  if(el>16)s-=Math.max(0,HY(cx-ARENA_W/2,cy-ARENA_H/2)-(zr-70))*.35;
   if(expoW&&en.ammo>0&&nd<eFire&&canHit(ex,ey,{x:cx-15,y:cy-15},5,EP.pass,8))s-=expoW; // 撃たれる位置を避ける
   if(!pass&&me.ammo>0&&nd<fire&&nm!=='ボマー'&&nm!=='アクアファイター')s+=canHit(cx,cy,en,5,0,8)?(enTrap?8:4):-3;   // 自分の射線を確保
   if(nm==='アクアファイター'&&enTrap)s+=canHit(cx,cy,en,5,0,8)?7:-4;
@@ -3685,7 +3688,7 @@ function think(i){
   if(dx===A.dir[0]&&dy===A.dir[1])s+=1.2;if(!dx&&!dy)s-=2.5;
   s+=RND()*1.5;
   if(s>best){best=s;bd=[dx,dy]}}
- if(myTrap)bd=[mx<400?1:-1,my<200?1:-1];
+ if(myTrap)bd=[mx<ARENA_W/2?1:-1,my<ARENA_H/2?1:-1];
  keys[K.left]=bd[0]<0;keys[K.right]=bd[0]>0;keys[K.up]=bd[1]<0;keys[K.down]=bd[1]>0;A.dir=bd;
  // ---- スキル運用 ----
  const hit=canHit(mx,my,en,5,pass,6);let use=false;
@@ -3697,7 +3700,7 @@ function think(i){
   case'ジョーカー':use=rdy&&me.hp>40;break;
   case'ブーメランボーイ':use=rdy&&(me.warpPoint?(myTrap||me.hp<35||(hpLow&&cur>5)):(me.hp>50&&cur<5&&HY(mx-400,my-200)<260));break;
   case'怪盗レッド':use=rdy&&d>130&&d<520&&hit&&turrets.filter(t=>t.owner===me).length<2;break;
-  case'ガジェットボット':use=rdy&&(myTrap||(hpLow&&cur>5)||(el>35&&HY(mx-400,my-200)>zr-30));break;
+  case'ガジェットボット':use=rdy&&(myTrap||(hpLow&&cur>5)||(el>35&&HY(mx-ARENA_W/2,my-ARENA_H/2)>zr-30));break;
   case'ツインブラザーズ':use=rdy&&((!twin&&d<125)||(twin&&d>210));break;
   case'ジャンパー':use=rdy&&d<560&&hit;break;
   case'聖なる使者':use=me.skillCharge>=30&&me.hp<=80;break;
@@ -5552,6 +5555,22 @@ function think(i){
       }
     }
 
+    /* ---------- 同じロビーの人（ログイン中の人にだけフレンド申請できる。ゲストは不可） ---------- */
+    const asked = new Set();
+    const lobbyMembers = () => { try { return window.__lobbyMembers ? window.__lobbyMembers() : []; } catch (e) { return []; } };
+    function lobbyHtml() {
+      const m = lobbyMembers(); if (m.length < 2) return "";
+      const row = x => {
+        const isF = x.uid && friends.some(f => f.uid === x.uid);
+        const sub = x.me ? "あなた" : !x.uid ? "ゲスト（申請できません）" : isF ? "フレンド" : "";
+        const btn = (x.me || !x.uid || isF) ? "" : asked.has(x.uid) ? '<button class="sm" disabled>申請済み</button>' : '<button class="sm" data-act="lobbyAdd" data-id="' + esc(x.uid) + '" data-nm="' + esc(x.name) + '">フレンド申請</button>';
+        return '<div class="fdRow on"><span class="dot"></span><span class="nm">' + esc(x.name) + (sub ? '<span class="sub">' + sub + "</span>" : "") + "</span>" + btn + "</div>";
+      };
+      return "<h4>同じロビー — " + m.length + "</h4>" + m.map(row).join("");
+    }
+    let lobbySig = "";
+    setInterval(() => { if (!drawerOpen || tab !== "list") return; const sg = JSON.stringify(lobbyMembers()) + friends.length + reqs.length + asked.size; if (sg !== lobbySig) { lobbySig = sg; renderBody(); } }, 1000);
+
     /* ---------- 右側のフレンドパネル ---------- */
     function openDrawer() { drawerOpen = true; $("fdDrawer").classList.add("on"); tab = "list"; renderDrawer(false); }
     function closeDrawer() { drawerOpen = false; $("fdDrawer").classList.remove("on"); }
@@ -5577,6 +5596,7 @@ function think(i){
           "<h4>オンライン — " + on.length + "</h4>" + (on.length ? on.map(row).join("") : '<div class="fdEmpty">オンラインのフレンドはいません。</div>') +
           "<h4>オフライン — " + off.length + "</h4>" + off.map(row).join("") +
           (!host ? '<div class="fdEmpty" style="margin-top:8px">招待するには、オンライン対戦で「ルームを作成」してロビーを開いてください。</div>' : "");
+        bd.insertAdjacentHTML("afterbegin", lobbyHtml());
       } else if (tab === "req") {
         bd.innerHTML = reqs.length ? reqs.map(r => '<div class="fdRow"><span class="nm">' + esc(r.fromName || "?") + '<span class="sub">フレンド申請</span></span><button class="sm" data-act="accept" data-id="' + esc(r.id) + '">承認</button><button class="sm" data-act="decline" data-id="' + esc(r.id) + '">拒否</button></div>').join("") : '<div class="fdEmpty">届いている申請はありません。</div>';
       } else if (tab === "add" && !bd.dataset.built) {
@@ -5639,6 +5659,13 @@ function think(i){
           await setDoc(doc(db, "friendRequests", user.uid + "_" + to), { from: user.uid, to, fromName: myName(), at: Date.now() });
           $("fdAddCode").value = ""; return setMsg("フレンド申請を送りました。");
         }
+        if (a === "lobbyAdd") {
+          const to = el.dataset.id; if (!to || to === user.uid) return;
+          if (friends.some(f => f.uid === to)) return setMsg("すでにフレンドです。");
+          if (reqs.some(r => r.from === to)) return setMsg("相手から申請が届いています。「申請」タブで承認できます。");
+          await setDoc(doc(db, "friendRequests", user.uid + "_" + to), { from: user.uid, to, fromName: myName(), at: Date.now() });
+          asked.add(to); renderDrawer(true); return setMsg((el.dataset.nm || "相手") + " さんにフレンド申請を送りました。");
+        }
         if (a === "accept") {
           const r = reqs.find(x => x.id === el.dataset.id); if (!r) return;
           const b = writeBatch(db);
@@ -5671,6 +5698,7 @@ function think(i){
     window.Account = {
       open(t) { if (t === "friends" && state === "user") { drawerOpen ? closeDrawer() : openDrawer(); } else openModal(); },
       name: myName,
+      uid: () => (state === "user" && user) ? user.uid : "",
       loggedIn: () => state === "user",
       dropInvites() { sent.forEach(id => deleteDoc(doc(db, "invites", id)).catch(() => {})); sent.clear(); }
     };
@@ -6440,7 +6468,7 @@ function think(i){
         if (isB(p)) {
           const t = now();
           if (!gameActive || p.hp <= 0 || p.out || p.vUntil || stunned(p) || t - p.skillLastUsed < p.skillCooldown) return;
-          p.skillLastUsed = t; p.gx = p.ghx = p.x; p.gy = p.ghy = p.y; p._gh = p.hp; p.vUntil = t + 2000 + Math.random() * 1000; p.x = p.y = -500;
+          p.skillLastUsed = t; p.gx = p.ghx = p.x; p.gy = p.ghy = p.y; p.vUntil = t + 2000 + Math.random() * 1000;   // 異世界：他キャラも vUntil と ghx/ghy を使えば同じ異世界に入れる
           return;
         }
         if (isA(p)) {
@@ -6456,18 +6484,24 @@ function think(i){
       };
       const _mp = movePlayer;
       movePlayer = function (p, u, d, l, r) {   // 異世界中：本人だけが影の位置(ghx,ghy)を歩き回れる
-        if (isB(p) && p.vUntil && p.ghx != null) { p.x = p.ghx; p.y = p.ghy; _mp(p, u, d, l, r); p.ghx = p.x; p.ghy = p.y; p.x = p.y = -500; return; }
+        if (p.vUntil && p.ghx != null) { p.x = p.ghx; p.y = p.ghy; _mp(p, u, d, l, r); p.ghx = p.x; p.ghy = p.y; if (p._pk) { p.x = p._pkx; p.y = -500; } return; }
         _mp(p, u, d, l, r);
       };
       /* ---------- 毎フレーム ---------- */
       let rec = [], hp0 = new Map();
       function before() {
         const t = now(), fl = fighterList();
+        // 異世界：同じ異世界にいる者どうしは普通に会える。別世界の者がいる間だけ、異世界側を画面外に退避させる
+        const alive = q => q && q.hp > 0 && !q.out;
         fl.forEach(p => {
-          if (!isB(p) || !p.vUntil) return;
-          if (!gameActive || p.hp <= 0 && p._gh <= 0) { p.vUntil = 0; return; }
-          if (t >= p.vUntil) { let s = { x: p.ghx, y: p.ghy }; if (p.ghx == null || fl.some(o => o && o !== p && o.hp > 0 && !o.out && Math.hypot(o.x - s.x, o.y - s.y) < 40)) s = spotFree(p); p.x = s.x; p.y = s.y; p.vUntil = 0; p.hp = p._gh; p.rx = s.x; p.ry = s.y; p.retT = t; }
-          else { p.hp = 1e6; p.x = p.y = -500; }   // 異世界：完全無敵（被弾しても1フレームだけの仮HPで受け流す）
+          if (!p || !p.vUntil) return;
+          if (!gameActive || p.hp <= 0) { p.vUntil = 0; p._pk = 0; if (p.ghx != null) { p.x = p.ghx; p.y = p.ghy; } }
+          else if (t >= p.vUntil) { p.vUntil = 0; p._pk = 0; p.x = p.ghx; p.y = p.ghy; p.rx = p.x; p.ry = p.y; p.retT = t; }   // 終了：その場（敵の目の前でも）に出現
+        });
+        const iw = fl.filter(q => alive(q) && q.vUntil), mixed = iw.length && fl.some(q => alive(q) && !q.vUntil);
+        iw.forEach((p, i) => {
+          if (mixed) { p._pk = 1; p._pkx = -500 - i * 80; p._hp0 = p.hp; p.hp += 1e6; p.x = p._pkx; p.y = -500; }
+          else { p._pk = 0; p.x = p.ghx; p.y = p.ghy; }
         });
         // 麻酔針
         for (let i = needles.length - 1; i >= 0; i--) {
@@ -6490,7 +6524,13 @@ function think(i){
       }
       function after() {
         const t = now(), fl = fighterList();
-        fl.forEach(p => { if (isB(p) && p.vUntil) { p.hp = p._gh; p.x = p.y = -500; } });
+        fl.forEach(p => {   // 退避中は外からの攻撃を受けない。安全地帯だけは異世界での位置で判定
+          if (!p || !p.vUntil) return;
+          if (p._pk) {
+            const oz = typeof safeZone !== "undefined" && safeZone.shrinking && Math.hypot(p.ghx + 15 - safeZone.x, p.ghy + 15 - safeZone.y) > safeZone.radius, tk = 1e6 + p._hp0 - p.hp;
+            p.hp = p._hp0 - ((tk > 0 && !oz) ? 0 : tk); p.x = p._pkx; p.y = -500;
+          } else { p.ghx = p.x; p.ghy = p.y; }
+        });
         fl.forEach(p => {   // 眠り：ダメージを受けたら即起床
           if (!p || !(p._slp > t)) { if (p && p._slp) p._slp = 0; return; }
           if (p.hp < p._sh - .01) { p.stunUntil = 0; p._slp = 0; } else if (p.hp > p._sh) p._sh = p.hp;
@@ -6550,11 +6590,10 @@ function think(i){
       const _dr = draw;
       draw = function () {
         let me = null; try { me = myFighter(); } catch (e) { }
-        const inB = !!(me && isB(me) && me.vUntil && me.ghx != null), sv = [], sb = bullets, st = turrets;
-        if (inB) {   // 本人視点：敵・敵の弾・敵タレットを消し、自分だけを影の位置に描く
-          fighterList().forEach(q => { if (q && q !== me && teamOf(q) !== teamOf(me)) { sv.push([q, q.x, q.y]); q.x = q.y = -9999; } });
-          sv.push([me, me.x, me.y]); me.x = me.ghx; me.y = me.ghy;
-          bullets = sb.filter(b => !b.from || teamOf(b.from) === teamOf(me)); turrets = st.filter(u => !u.owner || teamOf(u.owner) === teamOf(me));
+        const inB = !!(me && me.vUntil && me.ghx != null), pk = inB && me.x < -100, sv = [], sb = bullets, st = turrets;
+        if (inB) {   // 異世界の視点：同じ異世界にいる者だけが見える（別世界の者・弾・タレットは消える）
+          fighterList().forEach(q => { if (!q) return; if (q.vUntil && q.ghx != null) { if (q.x < -100) { sv.push([q, q.x, q.y]); q.x = q.ghx; q.y = q.ghy; } } else if (pk) { sv.push([q, q.x, q.y]); q.x = q.y = -9999; } });
+          if (pk) { bullets = sb.filter(b => b.from && b.from.vUntil); turrets = st.filter(u => u.owner && u.owner.vUntil); }
         }
         try { _dr(); } finally { if (inB) { sv.forEach(([q, x, y]) => { q.x = x; q.y = y; }); bullets = sb; turrets = st; } }
         try {
@@ -6579,11 +6618,11 @@ function think(i){
           });
           fl.forEach(p => {
             if (!p) return;
-            if (isB(p) && p.vUntil && p.ghx != null && me && p !== me && teamOf(me) === teamOf(p)) {   // 味方には異世界中の位置が影で見える
+            if (isB(p) && p.vUntil && p.ghx != null && me && !me.vUntil && p !== me && teamOf(me) === teamOf(p)) {   // 味方には異世界中の位置が影で見える
               ctx.save(); ctx.globalAlpha = .55 + Math.sin(t / 180) * .15; ctx.shadowColor = "#b57cff"; ctx.shadowBlur = 14; ctx.fillStyle = "rgba(45,15,80,.75)";
               ctx.beginPath(); ctx.ellipse(p.ghx + 15, p.ghy + 15, 14, 18, 0, 0, TAU); ctx.fill(); ctx.restore();
             }
-            if (isB(p) && p.vUntil && p.gx != null) {   // 異世界へ消えた場所の渦
+            if (isB(p) && p.vUntil && p.gx != null && !(me && me.vUntil)) {   // 異世界へ消えた場所の渦
               const cx = p.gx + 15, cy = p.gy + 15, k = Math.max(0, Math.min(1, (p.vUntil - t) / 2500)); ctx.save();
               ctx.strokeStyle = `rgba(190,130,255,${.4 + .5 * k})`; ctx.lineWidth = 3; ctx.shadowColor = "#b57cff"; ctx.shadowBlur = 12;
               for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(cx, cy, 8 + i * 7, t / 180 + i * 2, t / 180 + i * 2 + 3.6); ctx.stroke(); }
@@ -6699,6 +6738,7 @@ function think(i){
   <script>
     /* ver41：チーム変更（席の入れ替え）／ver40：オンライン「2対2」（ホストが全員分を計算／ゲスト最大3人／空きはCPU） */
     (function () {
+      const myUid = () => (window.Account && window.Account.uid && window.Account.uid()) || "";
       const pickChar = () => (a => a[Math.floor(Math.random() * a.length)])(ownedNames());
       onl.ex = [null, null, null, null]; onl.mySlot = 0; onl.roster = null; onl.cpuSlots = []; onl.ai = null; onl.rule = onl.rule || "1v1";
       onl.seat = [0, 1, 2, 3];   // 接続番号(1〜3) → 席(1〜3)。席の偶奇でチームが決まる（0・2＝青／1・3＝赤）
@@ -6727,22 +6767,31 @@ function think(i){
 
       /* ---- 名簿 ---- */
       function roster() {
-        const R = [{ n: myName(), c: onl.myChar, r: 1, k: 1 }];
+        const R = [{ n: myName(), c: onl.myChar, r: 1, k: 1, u: myUid() }];
         for (let seat = 1; seat <= 3; seat++) {
           const ci = ciAt(seat), on = cOn(ci);
-          if (ci === 1) R.push({ n: onl.oppName || "ゲスト", c: onl.oppChar, r: onl.guestReady ? 1 : 0, k: on ? 1 : 0 });
-          else { const e = onl.ex[ci]; R.push({ n: on ? e.name : "", c: on ? e.char : "", r: on && e.ready ? 1 : 0, k: on ? 1 : 0 }); }
+          if (ci === 1) R.push({ n: onl.oppName || "ゲスト", c: onl.oppChar, r: onl.guestReady ? 1 : 0, k: on ? 1 : 0, u: on ? (onl.guestUid || "") : "" });
+          else { const e = onl.ex[ci]; R.push({ n: on ? e.name : "", c: on ? e.char : "", r: on && e.ready ? 1 : 0, k: on ? 1 : 0, u: on ? (e.uid || "") : "" }); }
         }
         return R;
       }
       function tell() { if (onl.isHost) sendMsg({ t: "roster", r: roster() }); }
+      window.__lobbyMembers = () => {   // 同じロビーの人（フレンドパネル用）。uid は ログイン中の人だけ
+        if (!onl.code) return [];
+        const R = onl.isHost ? roster() : (onl.roster || []), slot = onl.isHost ? 0 : (onl.mySlot | 0);
+        return R.map((r, i) => ({ name: (r && r.n) || "ゲスト", uid: (r && r.u) || "", me: i === slot, on: i === 0 || !!(r && r.k) })).filter(x => x.on);
+      };
 
       /* ---- ホスト：2人目以降の接続 ---- */
       const _ohc = onHostConnection;
       onHostConnection = function (conn) {
-        if (onl.conn && onl.conn.open) {
-          const s = [2, 3].find(k => !exOn(k));
+        // 接続確立中（まだopenしていない）の人も席を占有扱いにする（同時参加で枠を上書きしないため）
+        const pend = c => { if (c.__pend) return; c.__pend = true; const f = () => { c.__pend = false; }; c.on("open", f); c.on("close", f); c.on("error", f); setTimeout(f, 20000); };
+        const busy = c => !!(c && (c.open || c.__pend));
+        if (busy(onl.conn)) {
+          const s = [2, 3].find(k => !(onl.ex[k] && busy(onl.ex[k].conn)));
           if (!s || onl.running) { conn.on("open", () => conn.close()); return; }
+          pend(conn);
           const e = onl.ex[s] = { conn, name: "ゲスト", char: CHAR_NAMES[0], ready: false };
           conn.on("open", () => {
             try { conn.send({ t: "slot", v: onl.seat[s] }); conn.send({ t: "map", v: onl.map }); conn.send({ t: "rule", v: onl.rule }); } catch (x) {}
@@ -6753,8 +6802,11 @@ function think(i){
           conn.on("close", gone); conn.on("error", gone);
           return;
         }
+        pend(conn);
+        const _oc0 = onl.conn; onl.conn = null;   // 元の処理は「onl.conn が開いていたら満員」と判定するので、確立中の旧接続は外して渡す
+        onl.guestUid = "";
         _ohc(conn);
-        conn.on("open", () => { try { conn.send({ t: "slot", v: onl.seat[1] }); } catch (x) {} setTimeout(() => { tell(); updateLobby(); }, 50); });
+        conn.on("open", () => { try { conn.send({ t: "slot", v: onl.seat[1] }); conn.send({ t: "rule", v: onl.rule }); } catch (x) {} setTimeout(() => { tell(); updateLobby(); }, 50); });
       };
       function gameMsg(seat, m) {   // 席ごとの入力（接続元に関係なく席で処理）
         switch (m.t) {
@@ -6779,6 +6831,7 @@ function think(i){
           case "char": e.char = m.v; break;
           case "name": e.name = String(m.v || "ゲスト").slice(0, 16); break;
           case "ready": e.ready = !!m.v; break;
+          case "uid": e.uid = String(m.v || "").slice(0, 64); break;
           default: return;
         }
         tell(); updateLobby();
@@ -6809,7 +6862,8 @@ function think(i){
       /* ---- 受信 ---- */
       const _om = onMessage;
       onMessage = function (m) {
-        if (m && m.t === "slot") { onl.mySlot = m.v; return; }
+        if (m && m.t === "slot") { onl.mySlot = m.v; if (!onl.isHost) { try { sendMsg({ t: "uid", v: myUid() }); } catch (x) {} } return; }
+        if (m && onl.isHost && m.t === "uid") { onl.guestUid = String(m.v || "").slice(0, 64); tell(); return; }
         if (m && m.t === "roster") { onl.roster = m.r; updateLobby(); return; }
         if (m && m.t === "start2") { if (!onl.isHost) begin2(m); return; }
         if (m && onl.isHost && m.t === "swap") { swapTeam(onl.seat[1]); return; }
@@ -6891,7 +6945,144 @@ function think(i){
       };
     })();
   </script>
+  <style>
+    .gm-chip.boost { color: #b6ff8a; border-color: #7bd83a; background: rgba(123,216,58,.16); }
+    .gm-chip.mud   { color: #e0b98a; border-color: #a9743f; background: rgba(169,116,63,.2); }
+  </style>
+  <script>
+    /* ver47：2対2専用マップ（広め・競技向け）＋新ギミック「加速床」「泥沼」 */
+    (function () {
+      const M1 = MAP_NAMES.slice(), M2 = ["闘技場", "要塞", "大平原", "十字路", "廃墟"], R = "__RANDOM__";
+      const sz = n => (MAP_DEFS[n] && MAP_DEFS[n].size) || [800, 400];
+      /* ---- マップ定義（base/warps/pads/floors は180度回転コピーが反対側に自動で作られる） ---- */
+      MAP_DEFS["闘技場"] = {
+        size: [1000, 500], t2: true, tag: "アリーナ",
+        desc: "2対2専用の広いマップ。中央ブロックの上下に回復パッドがあり、その手前は泥沼。外周の加速床で素早く回り込める。反射壁と壊せる柱で射線を作ろう。",
+        base: [
+          { x: 170, y: 200, w: 22, h: 100 }, { x: 260, y: 62, w: 90, h: 22 },
+          { x: 300, y: 165, w: 26, h: 26, brk: true }, { x: 300, y: 309, w: 26, h: 26, brk: true },
+          { x: 400, y: 110, w: 20, h: 80, mir: true }, { x: 440, y: 225, w: 120, h: 50 }
+        ],
+        pads: [{ x: 500, y: 120 }], warps: [{ x: 230, y: 445 }],
+        floors: [{ k: "boost", x: 380, y: 20, w: 140, h: 36 }, { k: "mud", x: 440, y: 285, w: 120, h: 50 }]
+      };
+      MAP_DEFS["要塞"] = {
+        size: [1000, 500], t2: true, tag: "フォートレス",
+        desc: "自陣のゲートから中央の回廊へ。回廊は加速床で一気に詰められるが、中央は反射壁が守る。上下中央のパッドは奪い合い。ワープで裏を取れ。",
+        base: [
+          { x: 140, y: 140, w: 22, h: 80 }, { x: 140, y: 280, w: 22, h: 80 }, { x: 230, y: 225, w: 40, h: 50 },
+          { x: 330, y: 40, w: 20, h: 110, brk: true }, { x: 400, y: 200, w: 24, h: 100, mir: true },
+          { x: 450, y: 90, w: 100, h: 20 }, { x: 470, y: 235, w: 60, h: 30 }
+        ],
+        pads: [{ x: 500, y: 50 }], warps: [{ x: 250, y: 85 }],
+        floors: [{ k: "boost", x: 300, y: 225, w: 70, h: 50 }, { k: "mud", x: 380, y: 150, w: 90, h: 30 }]
+      };
+      /* ---- ギミック少なめの2対2マップ ---- */
+      MAP_DEFS["大平原"] = {
+        size: [1000, 500], t2: true, tag: "オープンフィールド",
+        desc: "ギミックなし。柱が少しあるだけの広い平原。立ち回りと連携、弾の読み合いがすべて。",
+        base: [{ x: 220, y: 120, w: 36, h: 36 }, { x: 340, y: 230, w: 30, h: 40 }, { x: 460, y: 60, w: 30, h: 30 }, { x: 485, y: 235, w: 30, h: 30 }]
+      };
+      MAP_DEFS["十字路"] = {
+        size: [1000, 500], t2: true, tag: "クロスロード",
+        desc: "ギミックなし。中央の上下を壁がふさぎ、左右の通路が主戦場。自陣の遮蔽物から様子をうかがおう。",
+        base: [{ x: 450, y: 0, w: 100, h: 150 }, { x: 300, y: 215, w: 60, h: 70 }, { x: 160, y: 120, w: 24, h: 80 }]
+      };
+      MAP_DEFS["廃墟"] = {
+        size: [1000, 500], t2: true, tag: "ルーインズ",
+        desc: "小さな壁が点在する廃墟。一部の壁は壊せるので、射線を開くか遮るかは自分たち次第。",
+        base: [{ x: 180, y: 90, w: 40, h: 24 }, { x: 240, y: 300, w: 24, h: 60 }, { x: 330, y: 160, w: 50, h: 24, brk: true }, { x: 400, y: 380, w: 60, h: 24 }, { x: 470, y: 230, w: 60, h: 40, brk: true }]
+      };
+      MAP_THEME["大平原"] = { floor: ["#2b4f2a", "#142a14"], grid: "rgba(170,255,170,.05)", accent: "#a6ff8a", deco: "grass", obs: { style: "stone", top: "#a9b79a", side: "#5c6a52", edge: "#2a3326" } };
+      MAP_THEME["十字路"] = { floor: ["#2a4a68", "#132539"], grid: "rgba(200,235,255,.08)", accent: "#bfe6ff", deco: "snow", obs: { style: "ice", top: "#dff2ff", side: "#85bde3", edge: "#4a7ea6" } };
+      MAP_THEME["廃墟"] = { floor: ["#5a5348", "#2c2822"], grid: "rgba(255,240,210,.06)", accent: "#ffd9a0", deco: "beach", obs: { style: "stone", top: "#9a9384", side: "#575146", edge: "#26221b" } };
+      MAP_THEME["闘技場"] = { floor: ["#3a2f4f", "#1a1426"], grid: "rgba(255,220,150,.06)", accent: "#ffcf5a", deco: "space", obs: { style: "building", top: "#7a6a9a", side: "#40355a", edge: "#150f22" } };
+      MAP_THEME["要塞"] = { floor: ["#33402c", "#161d12"], grid: "rgba(200,255,160,.05)", accent: "#c8ff7a", deco: "grass", obs: { style: "stone", top: "#a3a58f", side: "#555a48", edge: "#23261c" } };
+      GM_INFO.boost = { label: "加速床", text: "踏んでいる間、移動速度が1.5倍になる" };
+      GM_INFO.mud = { label: "泥沼", text: "踏んでいる間、移動速度が大きく落ちる" };
+      M2.forEach(n => $("mapSelectDropdown").add(new Option(n, n)));
 
+      /* ---- アリーナの大きさ切り替え ---- */
+      function setSz(W, H) {
+        ARENA_W = W; ARENA_H = H;
+        SPAWNS.p1.x = 70; SPAWNS.p1.y = H / 2 - 15; SPAWNS.p2.x = W - 100; SPAWNS.p2.y = H / 2 - 15;
+        if (window.SLOT_SPAWNS) { SLOT_SPAWNS[2].x = 70; SLOT_SPAWNS[2].y = H / 4; SLOT_SPAWNS[3].x = W - 100; SLOT_SPAWNS[3].y = H * .675; }
+      }
+      function withArena(n, fn) { const o = [ARENA_W, ARENA_H], z = sz(n); setSz(z[0], z[1]); try { return fn(); } finally { setSz(o[0], o[1]); } }
+      applyArena = function (n) { const z = sz(n), c = $("gameCanvas"); setSz(z[0], z[1]); if (c && (c.width !== z[0] || c.height !== z[1])) { c.width = z[0]; c.height = z[1]; } };
+      const _gb = getBg; getBg = n => bgCache[n] || withArena(n, () => _gb(n));
+      const _go = getObstaclesForMap; getObstaclesForMap = n => withArena(n, () => _go(n));
+      const _gg = getGimmicksForMap; getGimmicksForMap = n => withArena(n, () => _gg(n));
 
+      /* ---- 床ギミック（加速床／泥沼） ---- */
+      const floorsFor = n => { const d = MAP_DEFS[n], z = sz(n), out = []; ((d && d.floors) || []).forEach(f => { out.push({ ...f }); out.push({ k: f.k, x: z[0] - f.x - f.w, y: z[1] - f.y - f.h, w: f.w, h: f.h }); }); return out; };
+      let FL = [], PV = null;
+      const _ig = initGimmicks; initGimmicks = function (n) { _ig(n); FL = floorsFor(n); };
+      const _mg = mapGimmicks; mapGimmicks = function (n) { const o = _mg(n), d = MAP_DEFS[n]; if (d && d.floors) ["boost", "mud"].forEach(k => { if (d.floors.some(f => f.k === k)) o.push(k); }); return o; };
+      const _dp = drawPads;
+      drawPads = function (g, list, now) {
+        (PV || FL).forEach(f => {
+          const t = now / 1000, W = ARENA_W;
+          g.save(); g.beginPath(); g.rect(f.x, f.y, f.w, f.h); g.clip();
+          if (f.k === "boost") {
+            g.fillStyle = "rgba(120,230,70,.22)"; g.fillRect(f.x, f.y, f.w, f.h);
+            const dir = f.x + f.w / 2 < W / 2 ? 1 : -1; g.strokeStyle = "rgba(190,255,140,.8)"; g.lineWidth = 3;
+            for (let k = -1; k < f.w / 18 + 1; k++) { const x = f.x + ((k * 18 + t * 40 * dir) % (f.w + 18) + f.w + 18) % (f.w + 18) - 9, cy = f.y + f.h / 2, h = Math.min(f.h / 2 - 4, 12); g.beginPath(); g.moveTo(x - 5 * dir, cy - h); g.lineTo(x + 3 * dir, cy); g.lineTo(x - 5 * dir, cy + h); g.stroke(); }
+          } else {
+            g.fillStyle = "rgba(110,70,30,.55)"; g.fillRect(f.x, f.y, f.w, f.h);
+            g.fillStyle = "rgba(160,110,60,.55)";
+            for (let k = 0; k < 6; k++) { const bx = f.x + ((k * 53) % f.w), by = f.y + ((k * 29 + Math.floor(t * 2 + k)) % f.h); g.beginPath(); g.arc(bx, by, 3 + (k % 3), 0, TAU); g.fill(); }
+          }
+          g.restore();
+          g.strokeStyle = f.k === "boost" ? "rgba(150,240,90,.8)" : "rgba(170,120,70,.8)"; g.lineWidth = 2; g.strokeRect(f.x + 1, f.y + 1, f.w - 2, f.h - 2);
+        });
+        _dp(g, list, now);
+      };
+      const _dmp = drawMapPreview;
+      drawMapPreview = function (cv, n) { PV = floorsFor(n); try { withArena(n, () => _dmp(cv, n)); } finally { PV = null; } };
+      const _mv = movePlayer;
+      movePlayer = function (p, u, d, l, r) {   // 床の上では、そのフレームの移動量を倍率でかける（加速1.5倍／泥沼0.5倍）
+        const inF = q => FL.find(f => q.x + 15 >= f.x && q.x + 15 <= f.x + f.w && q.y + 15 >= f.y && q.y + 15 <= f.y + f.h);
+        const f = (FL.length && p && p.hp > 0 && !p.out && p.x > -100) ? inF(p) : null;
+        if (!f) return _mv(p, u, d, l, r);
+        const x0 = p.x, y0 = p.y; _mv(p, u, d, l, r);
+        const m = f.k === "boost" ? 1.5 : .5, w = p.w || 30, h = p.h || 30;
+        const nx = Math.max(0, Math.min(ARENA_W - w, x0 + (p.x - x0) * m)), ny = Math.max(0, Math.min(ARENA_H - h, y0 + (p.y - y0) * m));
+        if (m < 1) { p.x = nx; p.y = ny; return; }
+        if (!collidesWithObstacles({ x: nx, y: p.y, w, h })) p.x = nx;
+        if (!collidesWithObstacles({ x: p.x, y: ny, w, h })) p.y = ny;
+      };
+
+      /* ---- ルールごとのマップ一覧（2対2＝広い専用マップ／それ以外＝従来の8マップ） ---- */
+      let cur = "";
+      function syncMaps(rule) {
+        const key = rule === "2v2" ? "2" : "1"; if (key === cur) return false; cur = key;
+        MAP_NAMES.splice(0, MAP_NAMES.length, ...(key === "2" ? M2 : M1));
+        msBuilt = false;
+        const dd = $("mapSelectDropdown"); if (!MAP_NAMES.includes(dd.value) && dd.value !== R) dd.value = MAP_NAMES[0];
+        return true;
+      }
+      function rebuildLobbyMaps() {
+        const m = $("lobbyMaps"); if (!m || !lobbyBuilt) return;
+        const rnd = m.querySelector('[data-name="' + R + '"]'); m.innerHTML = ""; if (rnd) m.appendChild(rnd);
+        MAP_NAMES.forEach(n => {
+          const b = document.createElement("button"); b.className = "lm-card"; b.dataset.name = n; b.innerHTML = `<canvas width="160" height="80"></canvas><span>${n}</span>`;
+          drawMapPreview(b.querySelector("canvas"), n); b.addEventListener("click", () => lobbyPickMap(n)); m.appendChild(b);
+        });
+      }
+      const _rc = renderCharSelect;
+      renderCharSelect = function () { if (cpuMode) syncMaps(window.RULE); _rc(); };
+      const _rm = renderMapSelect;
+      renderMapSelect = function () { if (cpuMode) syncMaps(window.RULE); _rm(); };
+      const _ul = updateLobby;
+      updateLobby = function () {
+        if (syncMaps(onl.rule)) {
+          rebuildLobbyMaps();
+          if (onl.isHost && onl.map !== R && !MAP_NAMES.includes(onl.map)) { onl.map = MAP_NAMES[0]; sendMsg({ t: "map", v: onl.map }); }
+        }
+        _ul();
+      };
+    })();
+  </script>
 </body>
 </html>
