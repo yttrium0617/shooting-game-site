@@ -8973,7 +8973,7 @@ function think(i){
         let r = $("evRes"); if (!r) { r = document.createElement("div"); r.id = "evRes"; $("resultScreen").appendChild(r); }
         r.innerHTML = ""; if (!show) return;
         const mk = (txt, fn) => { const b = document.createElement("button"); b.className = "ev-btn"; b.textContent = txt; b.onclick = fn; r.appendChild(b); };
-        mk("もう一度挑戦", () => start(B.lastLv)); if (win && B.lastLv < 2) mk("次のサンタへ", () => start(B.lastLv + 1)); mk("イベントへ", () => Events.show());
+        mk("もう一度挑戦", () => start(B.lastLv, B.ch)); if (win && B.lastLv < 2) mk("次のサンタへ", () => start(B.lastLv + 1, B.ch)); mk("イベントへ", () => Events.show());
       }
       const _sr = showResult;
       showResult = function () {
@@ -8987,16 +8987,46 @@ function think(i){
       const _rm = returnToMenu; returnToMenu = function () { B.on = false; resBtns(false); _rm(); };
 
       /* ---- 開始 ---- */
-      function start(lv) {
+      function start(lv, ch) {
         if (!active() || (lv > 0 && !cleared(lv - 1))) return;
-        const ch = ($("evChar") && $("evChar").value) || CHAR_NAMES.filter(isOwned)[0]; try { localStorage.setItem(KEY + "ch", ch); } catch (e) { }
+        ch = ch || $("player1Select").value; B.ch = ch;
         cpuMode = true; window.RULE = "1v1"; B.lv = lv;
-        const dd = $("mapSelectDropdown"), keep = dd.value; $("player1Select").value = ch; $("player2Select").value = "スナイパー太郎"; dd.value = MAPN;
-        startGame(); dd.value = keep;
-        const s = player2, L = LV[lv];
+        const L = LV[lv], dd = $("mapSelectDropdown"), keep = dd.value; $("player1Select").value = ch; $("player2Select").value = "スナイパー太郎"; dd.value = MAPN;
+        window.__boss = L.name; try { startGame(); } finally { window.__boss = null; } dd.value = keep;   // 開始演出の敵表示をサンタにする
+        const s = player2;
         s.isSanta = true; s.charName = L.name; s.maxHp = s.hp = L.hp; s.w = s.h = 40; s.x = SPAWNS.p2.x - 5; s.y = SPAWNS.p2.y - 5; s.speed = 3; s.ammo = s.maxAmmo = 1;
+        hudSetPlayer(2, s);   // HUDの名前・顔もサンタに
         cpu.ai = { run() { } }; B.on = true; reset(); resBtns(false);
         $("gameInfo").innerText = "🎄 イベント：" + L.name + " | マップ: " + MAPN;
+      }
+
+      /* ---- 敵（サンタ）の顔アイコン／開始演出の表示 ---- */
+      const face = e => "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="16" fill="#2a0a10"/><text x="50" y="72" font-size="64" text-anchor="middle">' + e + '</text></svg>');
+      LV.forEach((L, i) => { characterImages[L.name] = face(["🎅", "😡", "🔥"][i]); });
+      const _fi = FX.intro; FX.intro = function (o) { if (window.__boss) o = Object.assign({}, o, { c: [o.c[0], window.__boss], tags: [o.tags[0], "BOSS"] }); return _fi(o); };
+
+      /* ---- 難易度を選んだあと：通常のCPU戦と同じキャラ選択画面（2P側はサンタ固定） ---- */
+      const EVS = { on: false, lv: 0, entering: false };
+      const _rcs = renderCharSelect;
+      renderCharSelect = function () {
+        if (EVS.on) { csActive = 1; window.RULE = "1v1"; }
+        _rcs();
+        const scr = $("characterSelect"), hd = scr.querySelector(".sel-head small");
+        if (hd) { if (!hd.dataset.o) hd.dataset.o = hd.textContent; hd.textContent = EVS.on ? "EVENT ・ " + LV[EVS.lv].name + " に挑戦" : hd.dataset.o; }
+        if (!EVS.on) return;
+        const L = LV[EVS.lv], row = $("ruleRow"), bn = $("serBanner"); if (row) row.style.display = "none"; if (bn) bn.style.display = "none";
+        $("csTab2").style.display = "none";
+        $("csGrid").querySelectorAll(".cs-card").forEach(c => { c.classList.remove("sel2"); const b2 = c.querySelector(".b2"); if (b2) b2.remove(); });
+        const pct = (v, m) => Math.max(4, Math.round(v / m * 100)), rows = [["HP", pct(L.hp, 150), L.hp], ["攻撃", pct(L.atk, 40), L.atk + (L.tri ? "×3" : "")], ["雪だるま", pct(L.snowN, 4), L.snowN + "体"], ["トナカイ", pct(L.deer, 100), L.deer]];
+        $("csP2").innerHTML = `<div class="who">BOSS ・ RED</div><div class="cs-portrait">${imgOrPlaceholder(L.name)}</div><div class="cs-name">${escapeHtml(L.name)}</div><div class="cs-tag">日付を間違えた覚醒サンタ（イベントボス）</div>` + rows.map(r => `<div class="stat"><span>${r[0]}</span><div class="bar"><i style="width:${r[1]}%"></i></div><span class="val">${r[2]}</span></div>`).join("");
+        const cta = scr.querySelector(".sel-foot .cta"); cta.textContent = "挑戦開始 ▶"; cta.onclick = () => { const lv = EVS.lv; EVS.on = false; start(lv, $("player1Select").value); };
+      };
+      const _gcs = goToCharacterSelect; goToCharacterSelect = function () { if (!EVS.entering) EVS.on = false; _gcs(); };
+      const _rtm2 = returnToMenu; returnToMenu = function () { EVS.on = false; _rtm2(); };
+      function pick(lv) {
+        if (!active() || (lv > 0 && !cleared(lv - 1))) return;
+        EVS.on = true; EVS.lv = lv; cpuMode = true; window.RULE = "1v1"; EVS.entering = true;
+        try { goToCharacterSelect(); } finally { EVS.entering = false; }
       }
 
       /* ================= イベント画面 ================= */
@@ -9013,12 +9043,10 @@ function think(i){
         const on = active(), owned = OWNED_FX.has("kill:santa"), logged = !!Quest.uid();
         if (logged && get().c[2] && !Quest.done("xmas_3") && Quest.pg("xmas_3") < 1) Quest.emit("santa3");
         const canClaim = logged && !Quest.done("xmas_3") && Quest.pg("xmas_3") >= 1;
-        const chars = CHAR_NAMES.filter(isOwned); let last = ""; try { last = localStorage.getItem(KEY + "ch") || ""; } catch (e) { }
         let h = `<button class="ev-back" data-act="back">← イベント一覧</button>
           <div class="ev-box"><h3>🎄 ${EV.title}</h3><div style="font-size:13px;color:#cfd6ff;line-height:1.7">${EV.sub}<br>期間：${fmt(EV.start)} 〜 ${fmt(EV.end)}<br>舞台：壊せる壁だらけの「${MAPN}」<br>
           ${owned ? "🎁 報酬「聖夜の差出人」入手済み（設定→エフェクト設定で装備）" : canClaim ? `<button class="ev-btn" data-act="claim">🎁 報酬「聖夜の差出人」を受け取る</button>` : "🎁 逆ギレ覚醒サンタを倒すとキルエフェクト「聖夜の差出人」を入手"}
-          ${logged ? "" : "<br><span style='color:#ffb86b'>※ログインすると報酬を受け取れます（解放状況はこの端末に保存）</span>"}</div></div>
-          <div class="ev-box"><h3>使うキャラ</h3><select id="evChar" style="width:100%;padding:8px;border-radius:8px">${chars.map(n => `<option ${n === last ? "selected" : ""}>${n}</option>`).join("")}</select></div>`;
+          ${logged ? "" : "<br><span style='color:#ffb86b'>※ログインすると報酬を受け取れます（解放状況はこの端末に保存）</span>"}</div></div>`;
         LV.forEach((L, i) => {
           const lock = i > 0 && !cleared(i - 1), done = cleared(i);
           h += `<div class="ev-box ev-lv ${lock ? "lock" : ""}"><div class="info"><b style="font-size:15px;color:#fff">${["🎅", "😡", "🔥"][i]} ${L.name}</b> ${done ? "✅クリア" : ""}<br>HP ${L.hp}／攻撃 ${L.atk}${L.tri ? "（3方向）" : ""}／雪だるま ${L.snowN}体（HP${L.snowHp}）／トナカイ ${L.deer}ダメージ${lock ? "<br>🔒 前のサンタを倒すと解放" : ""}</div>
@@ -9031,10 +9059,10 @@ function think(i){
         const b = e.target.closest && e.target.closest("#eventScreen [data-act]"); if (!b) return; const a = b.dataset.act;
         if (a === "open") { if (!active()) return; view = "detail"; render(); }
         else if (a === "back") { view = "list"; render(); }
-        else if (a === "go") start(+b.dataset.lv);
+        else if (a === "go") pick(+b.dataset.lv);
         else if (a === "claim") { Quest.claim("xmas_3"); render(); }
       });
-      window.Events = { show() { view = "list"; render(); showScreen("eventScreen"); }, start };
+      window.Events = { show() { view = "list"; render(); showScreen("eventScreen"); }, start, pick };
     })();
   </script>
 </body>
