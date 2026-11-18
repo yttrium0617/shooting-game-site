@@ -487,7 +487,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 72</div>
+      <div class="ver">VER 73</div>
     </div>
   </div>
 
@@ -682,15 +682,15 @@
       "メープル": { hp: 130, speed: 1.5, damage: 5, maxAmmo: 10, reload: 1000, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 25000 },
       "上裸の鳥頭": { hp: 90, speed: 3.5, damage: 20, maxAmmo: 1, reload: 1000, shots: 1, bulletSpeed: 2.4, bulletLife: 1000, bulletRadius: 8, pass: false, skillCd: 16000 },
       "エース・キッカー": { hp: 95, speed: 3.2, damage: 14, maxAmmo: 3, reload: 1600, shots: 1, bulletSpeed: 8, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 18000 },
-      "サンタ": { hp: 100, speed: 3, damage: 15, maxAmmo: 3, reload: 1000, shots: 3, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 1500 },   // shots＝プレゼント3個／skillCd＝スキルのクールタイム
+      "サンタ": { hp: 100, speed: 3, damage: 15, maxAmmo: 2, reload: 1500, shots: 3, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 1500 },   // shots＝プレゼント3個／skillCd＝スキルのクールタイム
     };
     /* キャラ固有の数値 */
     const BALANCE_X = {
       gay: { dmgNear: 30, dmgFar: 15, radiusStart: 25, radiusEnd: 10, range: 267, near: 40, cdPerHp: 100 },
       santa: {   // サンタ（プレイヤー用）
-        giftDelay: 800, giftDmg: 15, giftStun: 500, giftRadius: 38, giftWall: 6,   // プレゼント：落下までの時間(ms)／ダメージ／スタン(ms)／当たり範囲／壁へのダメージ
+        giftDelay: 800, giftDmg: 15, giftStun: 200, giftRadius: 38, giftWall: 6, giftRange: 380,   // プレゼント：落下までの時間(ms)／ダメージ／スタン(ms)／当たり範囲／壁へのダメージ／届く距離（届かない時は範囲内のどこかにランダムで落ちる）
         sockDmg: 15, sockSpeed: 5.6,                                                // 靴下
-        deerDmg: 40,                                                                // トナカイ
+        deerDmg: 20, deerWeight: 0.7,                                                // トナカイ：ダメージ／出やすさ（スキル抽選の重み。他は靴下3・雪だるま1.5・ダッシュ1.5）
         snowHp: 30, snowDmg: 5, snowMax: 2, snowSummon: 2,                          // 雪だるま：HP／雪玉ダメージ／同時最大数／1回の召喚数
         kbRange: 125, kbPower: 15,                                                  // ノックバック：範囲／強さ
         dashDist: 70,                                                               // サンタダッシュの距離
@@ -752,7 +752,7 @@ let lastPoisonTick = 0;
       "上裸の鳥頭": { img: "images/birdhead.png", quest: "online2v2", tag: "うさぎ弾を途中で曲げる変則アタッカー。異世界へ逃げて奇襲", info: { title: "トリックスター", intro: "鳥の面を被った謎多き変人。緩急自在の不思議な弾道と、どこへ飛ぶか分からない異世界逃避行で戦場をかき乱す。", attack: "ふわりと遅い白いうさぎ弾（20ダメージ）を撃つ。飛んでいる間にもう一度押すと、敵の方向へ向き直って光の弾（8ダメージ）に変化し、一気に加速。弾が消えるまで次は撃てない（弾数1・リロード1秒）。", skill: "異世界へ飛び込み、2〜3秒間、姿も当たり判定も消える（完全無敵）。戻る位置は完全にランダムで、運が良ければ敵の背後に出られる。クールタイム16秒。", tips: "最初から曲げて奇襲するか、重い一撃を当ててから曲げるか。外すと隙が大きいので、ピンチの一発逆転にスキルを使おう。" } },
       "エース・キッカー": { img: "images/acekicker.png", quest: null, tag: "敵2人を跳弾で同時に狙う名探偵。シールド貫通の麻酔針で眠らせる", info: { title: "名探偵アタッカー", intro: "天才的な頭脳と特製ガジェットで戦場を推理する若き探偵。死角からの一撃と精密な麻酔弾で、どんな強敵も鮮やかに無力化する。", attack: "スニーカーからエネルギーボール（14ダメージ）を蹴り出す。1人目に当たると、近く（中距離）にいる別の敵へ自動で跳弾し、8ダメージ。跳弾は1発につき1回だけで、同じ敵には戻らない。弾数3・リロード1.6秒。", skill: "腕時計型ガジェットから麻酔針を高速で1発。シールド貫通で、命中した敵を1.5秒眠らせる（ダメージを受けると即起床）。クールタイム18秒。", tips: "眠らせた敵の近くにいるもう1人へ通常攻撃を当てると、跳弾が眠った敵に当たって起こしてしまう。撃つ順番に注意。" } }
     };
-    NEW_CHARS["サンタ"] = { img: "images/santa.png", quest: "xmas_allchar", tag: "降るプレゼントとランダム技で攻める完結型。ただし被ダメージ+5", info: { title: "完結型のオールラウンダー", intro: "日付を間違えてしまったようだ！夜が明ける前に決着をつけたいらしい。", attack: "敵の頭上にプレゼントボックスを3つ落とす。着地すると15ダメージ＋0.5秒スタン。弾数3・リロード1秒。", skill: "「プレゼントをあげよう！」クールタイム1.5秒の連打OKなスキルで、次のうちどれかがランダムに起こる。「靴下」…15ダメージの弾を撃ち、スローの軌跡を残す／「トナカイ」…左右にトナカイを呼び、壁を貫いて突進（40ダメージ）／「雪だるま」…雪玉を撃つ雪だるまを召喚（HP30・ダメージ5・最大2体）／「ノックバック」…周りの敵を吹き飛ばす／「サンタダッシュ」…進行方向へダッシュ。敵との距離や壁の有無で出やすい技が変わり、近いとノックバック、壁越しだとトナカイが出やすい。弱点「限られた時間」：ダメージを受けるたびに追加で+5ダメージ。", tips: "スキルのクールタイムが短いので、2種類目の通常攻撃だと思ってバシバシ使うべし！とにかく使え。" } };   // ★画像は images/santa.png
+    NEW_CHARS["サンタ"] = { img: "images/santa.png", quest: "xmas_allchar", tag: "降るプレゼントとランダム技で攻める完結型。ただし被ダメージ+5", info: { title: "完結型のオールラウンダー", intro: "日付を間違えてしまったようだ！夜が明ける前に決着をつけたいらしい。", attack: "敵の頭上にプレゼントボックスを3つ落とす（そこそこ広い範囲に届き、遠すぎる時は範囲内のどこかにランダムで落ちる）。着地すると15ダメージ＋0.2秒スタン。弾数2・リロード1.5秒。", skill: "「プレゼントをあげよう！」クールタイム1.5秒の連打OKなスキルで、次のうちどれかがランダムに起こる。「靴下」…15ダメージの弾を撃ち、スローの軌跡を残す／「トナカイ」…左右にトナカイを呼び、壁を貫いて突進（20ダメージ・出にくい）／「雪だるま」…雪玉を撃つ雪だるまを召喚（HP30・ダメージ5・最大2体）／「ノックバック」…周りの敵を吹き飛ばす／「サンタダッシュ」…進行方向へダッシュ。敵との距離や壁の有無で出やすい技が変わり、近いとノックバック、壁越しだとトナカイが出やすい。弱点「限られた時間」：ダメージを受けるたびに追加で+5ダメージ。", tips: "スキルのクールタイムが短いので、2種類目の通常攻撃だと思ってバシバシ使うべし！とにかく使え。" } };   // ★画像は images/santa.png
     const QUESTS = [
       { id: "login",    title: "ログインする", desc: "Googleアカウントでのログインがおすすめです（メールアドレスでもOK）。", goal: 1, event: "login", mode: "set", auto: true, reward: { char: "メープル" } },
       { id: "sniper_nocskill", char: "スナイパー太郎", title: "スナイパー太郎でスキルなしCPU撃破", desc: "スナイパー太郎を使い、スキルを一度も使わずにCPUと1対1で勝つ。", goal: 1, event: "sniperNoSkill", reward: { fx: ["bullet:スナイパー太郎:redlightning"] } },
@@ -9270,7 +9270,7 @@ function think(i){
   <script>
     /* ============================================================
        新キャラ「サンタ」（プレイヤー用）
-       通常攻撃：敵の頭上にプレゼント3つ（着地で15ダメージ＋0.5秒スタン）
+       通常攻撃：敵の頭上にプレゼント3つ（着地で15ダメージ＋0.2秒スタン）
        スキル「プレゼントをあげよう！」：靴下／トナカイ／雪だるま／ノックバック／サンタダッシュ のどれかがランダムで発動
        弱点「限られた時間」：ダメージを受けるたびに追加で+5ダメージ
        ※ 数値は先頭の BALANCE["サンタ"] と BALANCE_X.santa で調整できます
@@ -9304,9 +9304,11 @@ function think(i){
         const tm = now();
         if (!gameActive || s.ammo <= 0 || !t || (s.xstun || 0) > tm || (s.stunUntil || 0) > tm) return;
         const tc = { x: t.x + (t.w || 30) / 2, y: t.y + (t.h || 30) / 2 }, v = vmap.get(t) || { vx: 0, vy: 0 }, k = X.giftDelay / 16.7;
+        const sc0 = { x: s.x + s.w / 2, y: s.y + s.h / 2 }, inRange = Math.hypot(tc.x - sc0.x, tc.y - sc0.y) <= X.giftRange;
         for (let i = 0; i < 3; i++) {
           let x = tc.x, y = tc.y;
-          if (i === 1) { x += v.vx * k; y += v.vy * k; } else if (i === 2) { x += (Math.random() - .5) * 190; y += (Math.random() - .5) * 190; }   // 1個目＝その場／2個目＝動く先／3個目＝ばらけ
+          if (!inRange) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * X.giftRange; x = sc0.x + Math.cos(a) * r; y = sc0.y + Math.sin(a) * r; }   // 届かない時：範囲内のどこかへ
+          else if (i === 1) { x += v.vx * k; y += v.vy * k; } else if (i === 2) { x += (Math.random() - .5) * 190; y += (Math.random() - .5) * 190; }   // 1個目＝その場／2個目＝動く先／3個目＝ばらけ
           SG.push({ o: s, x: clamp(x, 30, ARENA_W - 30), y: clamp(y, 30, ARENA_H - 30), t0: tm, land: tm + X.giftDelay, done: false });
         }
         s.ammo -= 1; s.lastReload = tm;
@@ -9358,7 +9360,7 @@ function think(i){
         const tg = opponentOf(p); if (!tg) return false;
         const pc = cen(p), tc = cen(tg), d = Math.hypot(tc.x - pc.x, tc.y - pc.y) || 1, los = clear(pc, tc, 7);
         const have = SW.filter(m => m.o === p).length;
-        const opts = [["sock", 3], ["deer", 2 * (los ? 1 : 4)], ["snow", have >= X.snowMax ? 0 : 1.5], ["kb", d < 150 ? .4 + 6 * (1 - d / 150) : .1], ["dash", 1.5]];   // 壁があるとトナカイ／近いとノックバック
+        const opts = [["sock", 3], ["deer", X.deerWeight * (los ? 1 : 4)], ["snow", have >= X.snowMax ? 0 : 1.5], ["kb", d < 150 ? .4 + 6 * (1 - d / 150) : .1], ["dash", 1.5]];   // 壁があるとトナカイ／近いとノックバック
         while (opts.some(o => o[1] > 0)) {
           let sum = 0; opts.forEach(o => { sum += o[1]; }); let r = Math.random() * sum, i = 0;
           for (; i < opts.length; i++) { r -= opts[i][1]; if (r <= 0) break; } i = Math.min(i, opts.length - 1);
