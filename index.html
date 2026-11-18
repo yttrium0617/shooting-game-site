@@ -7056,7 +7056,7 @@ function think(i){
     function showToast(id, d) {
       curInv = { id, ...d };
       const t = $("inviteToast");
-      t.innerHTML = "<div>🎮 <b>" + esc(d.fromName || "フレンド") + "</b> さんから対戦の招待が届きました</div><button id=\"invOk\">参加する</button><button id=\"invNo\">無視</button>";
+      t.innerHTML = "<div>🎮 <b>" + esc(d.fromName || "フレンド") + "</b> さんから" + (d.mode === "coop" && window.Events ? "「サンタ協力戦：" + Events.lvName(d.lv) + "」" : "対戦") + "の招待が届きました</div><button id=\"invOk\">参加する</button><button id=\"invNo\">無視</button>";
       t.style.display = "block";
       $("invOk").onclick = () => joinInvite();
       $("invNo").onclick = () => { deleteDoc(doc(db, "invites", id)).catch(() => {}); hideToast(); };
@@ -7064,6 +7064,7 @@ function think(i){
     function hideToast() { curInv = null; $("inviteToast").style.display = "none"; }
     function joinInvite() {
       const inv = curInv; if (!inv) return;
+      if (inv.mode === "coop" && window.Events && !Events.canLv(inv.lv)) { deleteDoc(doc(db, "invites", inv.id)).catch(() => {}); hideToast(); try { Quest.toast("まだ挑戦できません（前のサンタを倒すと解放されます）"); } catch (e) { } return; }
       deleteDoc(doc(db, "invites", inv.id)).catch(() => {});
       hideToast(); closeModal();
       try { cpuMode = false; } catch (e) {}
@@ -7232,7 +7233,7 @@ function think(i){
         if (a === "inv") {
           if (!inRoomAsHost()) return setMsg("先にルームを作成してください。");
           const id = user.uid + "_" + el.dataset.id;
-          await setDoc(doc(db, "invites", id), { from: user.uid, to: el.dataset.id, fromName: myName(), code: onl.code, mode: "1v1", slots: 2, at: Date.now() });
+          await setDoc(doc(db, "invites", id), { from: user.uid, to: el.dataset.id, fromName: myName(), code: onl.code, mode: onl.coop != null ? "coop" : "1v1", slots: onl.coop != null ? 4 : 2, lv: onl.coop != null ? onl.coop : -1, at: Date.now() });
           sent.add(id); return setMsg("招待を送りました。");
         }
       } catch (e) { console.warn(e); setMsg(errText(e)); }
@@ -8737,45 +8738,52 @@ function think(i){
       ALL_SCREENS.push("eventScreen");
 
       /* ================= サンタ戦 本体 ================= */
-      const B = { on: false, lv: 0, lastLv: 0 };
-      let trails = [], gifts = [], deers = [], snows = [], rings = [], push = null, kbWind = 0;
-      const T = { shot: 0, gift: 0, deer: 0, snow: 0, kb: 0, busy: 0, strafe: 1, strafeT: 0, dash: 0, last: [0, 0] }, pv = { vx: 0, vy: 0, lx: 0, ly: 0 };
+      const B = { on: false, lv: 0, lastLv: 0, coop: false, n: 1, sf: null, guest: false };   // coop：オンライン協力戦
+      const MUL = [1, 1, 2.5, 4, 5];   // 人数 → サンタ・雪だるまのHP倍率（1人=1／2人=2.5／3人=4／4人=5）
+      let trails = [], gifts = [], deers = [], snows = [], rings = [], pushes = [], kbWind = 0, GB = [];
+      const T = { shot: 0, gift: 0, deer: 0, snow: 0, kb: 0, busy: 0, strafe: 1, strafeT: 0, dash: 0, last: [0, 0] };
       const DASH_DIST = 70;   // サンタダッシュの距離（サンダーマウスの60より少し長め）
+      const boss = () => (B.coop ? B.sf : player2);
+      const isHum = p => !!p && !p.isSanta && teamOf(p) === 0;
+      const hum = () => (B.coop ? [player1, player2, player3, player4] : [player1]).filter(p => p && !p.isSanta && p.hp > 0 && !p.out);
+      const pvs = new Map(), vel = p => { let v = pvs.get(p); if (!v) { v = { vx: 0, vy: 0, lx: p.x + p.w / 2, ly: p.y + p.h / 2 }; pvs.set(p, v); } return v; };
       Object.defineProperty(window, "SANTA_SNOWS", { get: () => (B.on ? snows : []) });   // 雪だるま（プレイヤーのエイム用）
-      Object.defineProperty(window, "SANTA_BOSS", { get: () => (B.on ? player2 : null) });
+      Object.defineProperty(window, "SANTA_BOSS", { get: () => (B.on ? boss() : null) });
       const cen = p => ({ x: p.x + p.w / 2, y: p.y + p.h / 2 });
       const clear = (a, b, r) => { const dx = b.x - a.x, dy = b.y - a.y, n = Math.ceil(Math.hypot(dx, dy) / 8) || 1; for (let i = 1; i < n; i++) if (collidesWithObstacles({ x: a.x + dx * i / n - r, y: a.y + dy * i / n - r, w: 2 * r, h: 2 * r })) return false; return true; };
       const hurt = (p, d) => { p.hp -= d; try { fx.flash[fighterList().indexOf(p)] = 1; } catch (e) { } };
       const inArena = (x, y, m) => x > m && y > m && x < ARENA_W - m && y < ARENA_H - m;
       function reset() {
-        trails = []; gifts = []; deers = []; snows = []; rings = []; push = null; kbWind = 0;
+        trails = []; gifts = []; deers = []; snows = []; rings = []; pushes = []; kbWind = 0; pvs.clear();
         const t = now(); T.shot = t + 1500; T.gift = t + 3500; T.deer = t + 5500; T.snow = t + 1200; T.kb = t; T.busy = t; T.strafeT = 0; T.dash = t + 1500; T.last = [0, 0];
-        const c = cen(player1); pv.vx = pv.vy = 0; pv.lx = c.x; pv.ly = c.y;
       }
-      function shoot(sc, pc) {
+      function shoot(sc, pc, pv) {
         const L = LV[B.lv], d = Math.hypot(pc.x - sc.x, pc.y - sc.y), tt = d / 5.6, ax = pc.x + pv.vx * tt * .7, ay = pc.y + pv.vy * tt * .7, a = Math.atan2(ay - sc.y, ax - sc.x);
-        (L.tri ? [-.3, 0, .3] : [0]).forEach(o => bullets.push({ x: sc.x, y: sc.y, r: 7, vx: Math.cos(a + o) * 5.6, vy: Math.sin(a + o) * 5.6, from: player2, damage: L.atk, lifeTime: 0, maxLifeTime: 170, sock: 1 }));
+        (L.tri ? [-.3, 0, .3] : [0]).forEach(o => bullets.push({ x: sc.x, y: sc.y, r: 7, vx: Math.cos(a + o) * 5.6, vy: Math.sin(a + o) * 5.6, from: boss(), damage: L.atk, lifeTime: 0, maxLifeTime: 170, sock: 1 }));
       }
-      function callDeer(sc, pc, t) {
-        const L = LV[B.lv], d = Math.hypot(pc.x - sc.x, pc.y - sc.y) || 1, ux = (pc.x - sc.x) / d, uy = (pc.y - sc.y) / d;
-        for (let i = 0; i < L.deers; i++) {
-          const sx = sc.x + (i ? -uy * 95 : ux * 75), sy = sc.y + (i ? ux * 95 : uy * 75);
-          deers.push({ x: Math.max(30, Math.min(ARENA_W - 30, sx)), y: Math.max(30, Math.min(ARENA_H - 30, sy)), t0: t + i * 450, lead: i ? 1 : 0, ang: 0, go: false, hit: false });
-        }
-      }
-      function dropGifts(pc, t) {
+      function callDeer(sc, H, t) {   // トナカイ：生きている全員に1頭（以上）ずつ
         const L = LV[B.lv];
+        H.forEach((h, hi) => {
+          const pc = cen(h), d = Math.hypot(pc.x - sc.x, pc.y - sc.y) || 1, rot = (hi - (H.length - 1) / 2) * .3, c = Math.cos(rot), s2 = Math.sin(rot), ux0 = (pc.x - sc.x) / d, uy0 = (pc.y - sc.y) / d, ux = ux0 * c - uy0 * s2, uy = ux0 * s2 + uy0 * c;
+          for (let i = 0; i < L.deers; i++) {
+            const sx = sc.x + (i ? -uy * 95 : ux * 75), sy = sc.y + (i ? ux * 95 : uy * 75);
+            deers.push({ x: Math.max(30, Math.min(ARENA_W - 30, sx)), y: Math.max(30, Math.min(ARENA_H - 30, sy)), t0: t + i * 450 + hi * 60, lead: i ? 1 : 0, ang: 0, go: false, hits: new Set(), tg: h });
+          }
+        });
+      }
+      function dropGifts(H, t) {
+        const L = LV[B.lv], off = Math.floor(Math.random() * H.length);
         for (let i = 0; i < L.gifts; i++) {
-          let x = pc.x, y = pc.y;
+          const h = H[(i + off) % H.length], pc = cen(h), pv = vel(h); let x = pc.x, y = pc.y;
           if (i === 1) { x += pv.vx * 55; y += pv.vy * 55; } else if (i === 2) { x += (Math.random() - .5) * 190; y += (Math.random() - .5) * 190; }
           gifts.push({ x: Math.max(30, Math.min(ARENA_W - 30, x)), y: Math.max(30, Math.min(ARENA_H - 30, y)), t0: t, land: t + 900, done: false });
         }
       }
-      function summonSnow(sc, t) {
-        const L = LV[B.lv];
-        for (let i = 0; i < L.snowN; i++) for (let k = 0; k < 20; k++) {
-          const a = Math.random() * TAU, r = 80 + Math.random() * 90, x = sc.x + Math.cos(a) * r - 13, y = sc.y + Math.sin(a) * r - 13;
-          if (inArena(x, y, 20) && !collidesWithObstacles({ x, y, w: 26, h: 26 })) { snows.push({ x, y, hp: L.snowHp, mx: L.snowHp, nx: t + 1500 + Math.random() * 1500, st: Math.random() < .5 ? 1 : -1 }); break; }
+      function summonSnow(sc, t) {   // 雪だるま：基本数×人数、HPは人数倍率
+        const L = LV[B.lv], N = L.snowN * B.n, hp = Math.round(L.snowHp * MUL[B.n]);
+        for (let i = 0; i < N; i++) for (let k = 0; k < 24; k++) {
+          const a = Math.random() * TAU, r = 80 + Math.random() * (90 + B.n * 25), x = sc.x + Math.cos(a) * r - 13, y = sc.y + Math.sin(a) * r - 13;
+          if (inArena(x, y, 20) && !collidesWithObstacles({ x, y, w: 26, h: 26 })) { snows.push({ x, y, hp, mx: hp, nx: t + 1500 + Math.random() * 1500, st: Math.random() < .5 ? 1 : -1 }); break; }
         }
         rings.push({ x: sc.x, y: sc.y, t0: t, kind: "snow" });
       }
@@ -8794,17 +8802,19 @@ function think(i){
         return true;
       }
       function ai(t) {
-        const s = player2, p = player1, L = LV[B.lv], K = k => { keys[k] = false; };
-        if (!s || !p || s.hp <= 0 || p.hp <= 0) { ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].forEach(K); return; }
+        const s = boss(), H = hum(), L = LV[B.lv], KS = B.coop ? ["sU", "sD", "sL", "sR"] : ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+        const setK = (u, d, l, r) => { keys[KS[0]] = u; keys[KS[1]] = d; keys[KS[2]] = l; keys[KS[3]] = r; };
+        if (!s || s.hp <= 0 || !H.length) { setK(false, false, false, false); return; }
         s.speed = 3;
-        const rage = s.hp <= s.maxHp * .4 ? 1.3 : 1, sc = cen(s), pc = cen(p), dx = pc.x - sc.x, dy = pc.y - sc.y, d = Math.hypot(dx, dy) || 1;
-        pv.vx = pv.vx * .8 + (pc.x - pv.lx) * .2; pv.vy = pv.vy * .8 + (pc.y - pv.ly) * .2; pv.lx = pc.x; pv.ly = pc.y;
+        const sc = cen(s), rage = s.hp <= s.maxHp * .4 ? 1.3 : 1;
+        H.forEach(h => { const c = cen(h), v = vel(h); v.vx = v.vx * .8 + (c.x - v.lx) * .2; v.vy = v.vy * .8 + (c.y - v.ly) * .2; v.lx = c.x; v.ly = c.y; });
+        const p = H.slice().sort((a, b) => Math.hypot(cen(a).x - sc.x, cen(a).y - sc.y) - Math.hypot(cen(b).x - sc.x, cen(b).y - sc.y))[0], pc = cen(p), pv = vel(p), dx = pc.x - sc.x, dy = pc.y - sc.y, d = Math.hypot(dx, dy) || 1;
         const busy = t < T.busy;
         if (t > T.strafeT) { T.strafe = Math.random() < .5 ? 1 : -1; T.strafeT = t + 1200 + Math.random() * 1800; }
         /* ---- 迫る弾の検出（最接近点で当たりそうな弾）→ ダッシュで回避 ---- */
         let threat = 0, tvx = 0, tvy = 0;
         bullets.forEach(b => {
-          if (b.from !== p || b.explosive) return;
+          if (!isHum(b.from) || b.explosive) return;
           const rx = sc.x - b.x, ry = sc.y - b.y, vv = b.vx * b.vx + b.vy * b.vy || 1, tt = (rx * b.vx + ry * b.vy) / vv;
           if (tt <= 0 || tt > 22) return;
           if (Math.hypot(rx - b.vx * tt, ry - b.vy * tt) < 30 + (b.r || 5)) { threat++; tvx += b.vx; tvy += b.vy; }
@@ -8817,7 +8827,7 @@ function think(i){
           if (!ok && threat) ok = santaDash(s, -dx / d, -dy / d, t);
           if (ok) { T.dash = t + L.dashCd / rage; sc.x = s.x + s.w / 2; sc.y = s.y + s.h / 2; }
         }
-        /* ---- 16方向を採点：距離維持・回り込み・壁際回避・弾避け・射線管理 ---- */
+        /* ---- 16方向を採点：距離維持・回り込み・壁際回避・弾避け・射線管理（全員を考慮） ---- */
         const shotSoon = t >= T.shot - 350 && !busy, hideBias = shotSoon ? 1 : -1;   // 撃つ直前は射線を通し、それ以外は射線を切る
         let best = null, bs = -1e9;
         if (!busy) for (let k = 0; k < 16; k++) {
@@ -8827,61 +8837,69 @@ function think(i){
           v -= (Math.max(0, 70 - nx) + Math.max(0, nx - (ARENA_W - 70)) + Math.max(0, 70 - ny) + Math.max(0, ny - (ARENA_H - 70))) * .04;
           let free = 0; for (let i = 1; i <= 8; i++) { if (collidesWithObstacles({ x: sc.x + ux * i * 12 - s.w / 2, y: sc.y + uy * i * 12 - s.h / 2, w: s.w, h: s.h }) || !inArena(sc.x + ux * i * 12, sc.y + uy * i * 12, 12)) break; free = i; }
           v -= (8 - free) * .13;   // 行き止まり・角に追い込まれない
-          const fx2 = sc.x + ux * 56, fy2 = sc.y + uy * 56, exposed = clear(pc, { x: fx2, y: fy2 }, 8);   // 少し先の位置がプレイヤーから丸見えか
+          const fx2 = sc.x + ux * 56, fy2 = sc.y + uy * 56, exposed = H.some(h => clear(cen(h), { x: fx2, y: fy2 }, 8));   // 少し先の位置がプレイヤーから丸見えか
           v += exposed ? .9 * hideBias : -.9 * hideBias;
           v += (ux * T.last[0] + uy * T.last[1]) * .25;   // 向きをころころ変えない
-          bullets.forEach(b => { if (b.from !== p) return; const bx = b.x - sc.x, by = b.y - sc.y, bd = Math.hypot(bx, by); if (bd > 190 || bd < 1) return; const bv = Math.hypot(b.vx, b.vy) || 1; if (-(bx * b.vx + by * b.vy) / (bd * bv) < .5) return; v += Math.abs(ux * b.vy - uy * b.vx) / bv * 3 * (1 - bd / 190); });
+          H.forEach(h => { const c = cen(h), hd = Math.hypot(c.x - nx, c.y - ny); if (hd < 120) v -= (120 - hd) * .02; });   // 誰にも詰め寄られない
+          bullets.forEach(b => { if (!isHum(b.from)) return; const bx = b.x - sc.x, by = b.y - sc.y, bd = Math.hypot(bx, by); if (bd > 190 || bd < 1) return; const bv = Math.hypot(b.vx, b.vy) || 1; if (-(bx * b.vx + by * b.vy) / (bd * bv) < .5) return; v += Math.abs(ux * b.vy - uy * b.vx) / bv * 3 * (1 - bd / 190); });
           if (v > bs) { bs = v; best = [ux, uy]; }
         }
         if (best) T.last = best;
-        keys.ArrowRight = !!best && best[0] > .38; keys.ArrowLeft = !!best && best[0] < -.38; keys.ArrowDown = !!best && best[1] > .38; keys.ArrowUp = !!best && best[1] < -.38;
+        setK(!!best && best[1] < -.38, !!best && best[1] > .38, !!best && best[0] < -.38, !!best && best[0] > .38);
         if (busy) return;
         const los = clear(sc, pc, 7);
         if (d < 95 && t >= T.kb) { T.kb = t + 3600 / rage; kbWind = t + 380; T.busy = t + 380; rings.push({ x: sc.x, y: sc.y, t0: t, kind: "wind" }); }
         else if (!snows.length && t >= T.snow) { summonSnow(sc, t); T.snow = t + L.snowCd; T.busy = t + 650; }
-        else if (t >= T.deer && (!los || d > 230 || Math.random() < .015)) { callDeer(sc, pc, t); T.deer = t + L.deerCd / rage; T.busy = t + 500; }
-        else if (t >= T.gift) { dropGifts(pc, t); T.gift = t + L.gift / rage; T.busy = t + 350; }
-        else if (t >= T.shot && d < 560 && (los || Math.random() < .35)) { shoot(sc, pc); T.shot = t + L.shot / rage * (los ? 1 : 1.8); }
+        else if (t >= T.deer && (!los || d > 230 || Math.random() < .015)) { callDeer(sc, H, t); T.deer = t + L.deerCd / rage; T.busy = t + 500; }
+        else if (t >= T.gift) { dropGifts(H, t); T.gift = t + L.gift / rage; T.busy = t + 350; }
+        else if (t >= T.shot && d < 560 && (los || Math.random() < .35)) { shoot(sc, pc, pv); T.shot = t + L.shot / rage * (los ? 1 : 1.8); }
       }
       function post(t) {
-        const L = LV[B.lv], p = player1, s = player2, pc = cen(p), sc = cen(s);
+        const L = LV[B.lv], H = hum(), s = boss(), sc = cen(s);
         trails = trails.filter(r => r.until > t);
-        if (trails.some(r => Math.hypot(r.x - pc.x, r.y - pc.y) < 20)) p.slowUntil = t + 300;   // 靴下の軌跡：スロー
-        if (kbWind && t >= kbWind) {   // ノックバック
+        H.forEach(p => { const pc = cen(p); if (trails.some(r => Math.hypot(r.x - pc.x, r.y - pc.y) < 20)) p.slowUntil = t + 300; });   // 靴下の軌跡：スロー
+        if (kbWind && t >= kbWind) {   // ノックバック（範囲内の全員）
           kbWind = 0; rings.push({ x: sc.x, y: sc.y, t0: t, kind: "burst" });
-          const d = Math.hypot(pc.x - sc.x, pc.y - sc.y) || 1;
-          if (d < 125) { push = { vx: (pc.x - sc.x) / d * 15, vy: (pc.y - sc.y) / d * 15, until: t + 380 }; p.xstun = Math.max(p.xstun || 0, t + 250); }
+          H.forEach(p => { const pc = cen(p), d = Math.hypot(pc.x - sc.x, pc.y - sc.y) || 1; if (d < 125) { pushes.push({ p, vx: (pc.x - sc.x) / d * 15, vy: (pc.y - sc.y) / d * 15, until: t + 380 }); p.xstun = Math.max(p.xstun || 0, t + 250); } });
         }
-        if (push) { if (t < push.until) { const nx = Math.max(0, Math.min(ARENA_W - p.w, p.x + push.vx)); if (!collidesWithObstacles({ x: nx, y: p.y, w: p.w, h: p.h })) p.x = nx; const ny = Math.max(0, Math.min(ARENA_H - p.h, p.y + push.vy)); if (!collidesWithObstacles({ x: p.x, y: ny, w: p.w, h: p.h })) p.y = ny; push.vx *= .86; push.vy *= .86; } else push = null; }
+        pushes = pushes.filter(q => {
+          const p = q.p; if (t >= q.until || p.hp <= 0) return false;
+          const nx = Math.max(0, Math.min(ARENA_W - p.w, p.x + q.vx)); if (!collidesWithObstacles({ x: nx, y: p.y, w: p.w, h: p.h })) p.x = nx;
+          const ny = Math.max(0, Math.min(ARENA_H - p.h, p.y + q.vy)); if (!collidesWithObstacles({ x: p.x, y: ny, w: p.w, h: p.h })) p.y = ny;
+          q.vx *= .86; q.vy *= .86; return true;
+        });
         gifts.forEach(o => {   // プレゼント：着地でスタン1秒＋周りの壁を壊す
           if (!o.done && t >= o.land) { o.done = true; explosions.push({ x: o.x, y: o.y, r: 40, life: 10 }); rings.push({ x: o.x, y: o.y, t0: t, kind: "burst" });
-            if (Math.hypot(pc.x - o.x, pc.y - o.y) < 38) { p.xstun = t + 1000; }
+            H.forEach(p => { const pc = cen(p); if (Math.hypot(pc.x - o.x, pc.y - o.y) < 38) p.xstun = t + 1000; });
             obstacles.filter(w => w.brk && circleHitRect({ x: o.x, y: o.y, r: 50 }, w)).forEach(w => damageWall(w, 6)); }
         });
         gifts = gifts.filter(o => t < o.land + 450);
-        deers.forEach(o => {   // トナカイ：1秒後に突進（壁貫通・壁を粉砕）
+        deers.forEach(o => {   // トナカイ：1秒後に突進（壁貫通・壁を粉砕）。狙った相手へ、通り道の全員に当たる
           if (t < o.t0) return;
+          const tg = (o.tg && o.tg.hp > 0 && !o.tg.out) ? o.tg : H.slice().sort((a, b) => Math.hypot(cen(a).x - o.x, cen(a).y - o.y) - Math.hypot(cen(b).x - o.x, cen(b).y - o.y))[0];
           if (!o.go) {
-            if (t < o.t0 + 800) { const a = Math.atan2(pc.y + (o.lead ? pv.vy * 14 : 0) - o.y, pc.x + (o.lead ? pv.vx * 14 : 0) - o.x); o.ang = a; }
+            if (t < o.t0 + 800 && tg) { const c = cen(tg), v = vel(tg); o.ang = Math.atan2(c.y + (o.lead ? v.vy * 14 : 0) - o.y, c.x + (o.lead ? v.vx * 14 : 0) - o.x); }
             if (t >= o.t0 + 1000) o.go = true; else return;
           }
           o.x += Math.cos(o.ang) * 13; o.y += Math.sin(o.ang) * 13;
           obstacles.filter(w => w.brk && circleHitRect({ x: o.x, y: o.y, r: 24 }, w)).forEach(w => damageWall(w, 99));
-          if (!o.hit) { const ex = Math.cos(o.ang) * 45, ey = Math.sin(o.ang) * 45, ax = o.x - ex, ay = o.y - ey, bx = o.x + ex, by = o.y + ey, vx = bx - ax, vy = by - ay, u = Math.max(0, Math.min(1, ((pc.x - ax) * vx + (pc.y - ay) * vy) / (vx * vx + vy * vy)));
-            if (Math.hypot(pc.x - (ax + vx * u), pc.y - (ay + vy * u)) < 28) { o.hit = true; hurt(p, L.deer); } }
+          const ex = Math.cos(o.ang) * 45, ey = Math.sin(o.ang) * 45, ax = o.x - ex, ay = o.y - ey, bx = o.x + ex, by = o.y + ey, vx = bx - ax, vy = by - ay;
+          H.forEach(p => { if (o.hits.has(p)) return; const pc = cen(p), u = Math.max(0, Math.min(1, ((pc.x - ax) * vx + (pc.y - ay) * vy) / (vx * vx + vy * vy)));
+            if (Math.hypot(pc.x - (ax + vx * u), pc.y - (ay + vy * u)) < 28) { o.hits.add(p); hurt(p, L.deer); } });
         });
         deers = deers.filter(o => o.x > -160 && o.x < ARENA_W + 160 && o.y > -160 && o.y < ARENA_H + 160);
         for (let j = bullets.length - 1; j >= 0; j--) {   // 雪だるまへの被弾
-          const b = bullets[j]; if (b.from !== p || b.explosive) continue;
+          const b = bullets[j]; if (!isHum(b.from) || b.explosive) continue;
           const m = snows.find(q => circleHitRect(b, { x: q.x, y: q.y, w: 26, h: 26 })); if (m) { m.hp -= b.damage; bullets.splice(j, 1); }
         }
         snows = snows.filter(m => { if (m.hp > 0) return true; explosions.push({ x: m.x + 13, y: m.y + 13, r: 26, life: 10 }); return false; });
-        snows.forEach(m => {   // 雪だるま：距離を保って低頻度で雪玉
-          const cx = m.x + 13, cy = m.y + 13, dx = pc.x - cx, dy = pc.y - cy, d = Math.hypot(dx, dy) || 1, f = d > 240 ? 1 : d < 150 ? -1 : 0, sx = -dy / d * m.st * .6, sy = dx / d * m.st * .6;
+        snows.forEach(m => {   // 雪だるま：距離を保って低頻度で雪玉（一番近い相手へ）
+          const cx = m.x + 13, cy = m.y + 13, tg = H.slice().sort((a, b) => Math.hypot(cen(a).x - cx, cen(a).y - cy) - Math.hypot(cen(b).x - cx, cen(b).y - cy))[0]; if (!tg) return;
+          const pc = cen(tg), dx = pc.x - cx, dy = pc.y - cy, d = Math.hypot(dx, dy) || 1, f = d > 240 ? 1 : d < 150 ? -1 : 0, sx = -dy / d * m.st * .6, sy = dx / d * m.st * .6;
           const vx = (dx / d * f + sx) * 1.4, vy = (dy / d * f + sy) * 1.4;
           if (!collidesWithObstacles({ x: m.x + vx, y: m.y, w: 26, h: 26 }) && inArena(m.x + vx, m.y, 4)) m.x += vx; else m.st = -m.st;
           if (!collidesWithObstacles({ x: m.x, y: m.y + vy, w: 26, h: 26 }) && inArena(m.x, m.y + vy, 4)) m.y += vy; else m.st = -m.st;
-          if (t >= m.nx && clear({ x: cx, y: cy }, pc, 4)) { m.nx = t + 3000 + Math.random() * 1500; bullets.push({ x: cx, y: cy, r: 4, vx: dx / d * 5, vy: dy / d * 5, from: player2, damage: 5, lifeTime: 0, maxLifeTime: 170, snowball: 1 }); }
+          if (t >= m.nx && clear({ x: cx, y: cy }, pc, 4)) { m.nx = t + 3000 + Math.random() * 1500; bullets.push({ x: cx, y: cy, r: 4, vx: dx / d * 5, vy: dy / d * 5, from: s, damage: 5, lifeTime: 0, maxLifeTime: 170, snowball: 1 }); }
         });
         rings = rings.filter(r => t - r.t0 < 600);
       }
@@ -8892,10 +8910,12 @@ function think(i){
       const _usz = updateSafeZone; updateSafeZone = function () { if (B.on) { safeZone.shrinking = false; safeZone.radius = 9999; return; } return _usz(); };
       const _up = update;
       update = function () {
-        if (!B.on || !gameActive || !player1 || !player2) return _up();
+        if (!B.on || !gameActive || !player1 || (B.coop ? !B.sf : !player2)) return _up();
         const t = now(); ai(t);
         bullets.forEach(b => { if (b.sock && b.lifeTime % 5 === 0) trails.push({ x: b.x, y: b.y, until: t + 2600 }); });
-        _up(); post(t);
+        _up();
+        if (B.coop && B.sf.hp > 0) movePlayer(B.sf, "sU", "sD", "sL", "sR");   // 協力戦：サンタは専用キーで動かす
+        post(t);
       };
       /* ---- 描画 ---- */
       const drawBox = (g, x, y) => { g.fillStyle = "#d9232d"; g.fillRect(x - 13, y - 13, 26, 26); g.fillStyle = "#ffd75a"; g.fillRect(x - 3, y - 13, 6, 26); g.fillRect(x - 13, y - 3, 26, 6); g.beginPath(); g.arc(x - 5, y - 16, 5, 0, TAU); g.arc(x + 5, y - 16, 5, 0, TAU); g.fill(); g.strokeStyle = "#7a0f16"; g.lineWidth = 2; g.strokeRect(x - 13, y - 13, 26, 26); };
@@ -8922,7 +8942,7 @@ function think(i){
         const im = santaIm[lv]; return (im.complete && im.naturalWidth > 0 && !im._bad) ? im : null;
       }
       function drawSantaFig(p) {
-        const g = ctx, t = now(), cx = p.x + p.w / 2, cy = p.y + p.h / 2, R = 24, lv = B.lv, e = cen(player1), a = Math.atan2(e.y - cy, e.x - cx), pul = .5 + .5 * Math.sin(t / 140);
+        const g = ctx, t = now(), cx = p.x + p.w / 2, cy = p.y + p.h / 2, R = 24, lv = B.lv, hh = hum().sort((m, n) => Math.hypot(cen(m).x - cx, cen(m).y - cy) - Math.hypot(cen(n).x - cx, cen(n).y - cy))[0], e = hh ? cen(hh) : { x: cx + 1, y: cy }, a = Math.atan2(e.y - cy, e.x - cx), pul = .5 + .5 * Math.sin(t / 140);
         g.fillStyle = "rgba(0,0,0,.35)"; g.beginPath(); g.ellipse(cx, cy + 22, 24, 8, 0, 0, TAU); g.fill();
         if (lv >= 1) { g.save(); const ar = R + 12 + pul * 5, q = g.createRadialGradient(cx, cy, R * .5, cx, cy, ar + 14); q.addColorStop(0, lv === 2 ? "rgba(255,200,60,.55)" : "rgba(255,60,60,.5)"); q.addColorStop(1, "rgba(255,60,60,0)"); g.fillStyle = q; g.beginPath(); g.arc(cx, cy, ar + 14, 0, TAU); g.fill(); g.restore(); }
         if (lv === 2) { g.strokeStyle = "#ffe27a"; g.lineWidth = 2; for (let i = 0; i < 6; i++) { const aa = t / 300 + i / 6 * TAU, r1 = R + 6, r2 = R + 18 + (i % 2) * 6; g.beginPath(); g.moveTo(cx + Math.cos(aa) * r1, cy + Math.sin(aa) * r1); g.lineTo(cx + Math.cos(aa + .12) * (r1 + r2) / 2, cy + Math.sin(aa + .12) * (r1 + r2) / 2); g.lineTo(cx + Math.cos(aa - .05) * r2, cy + Math.sin(aa - .05) * r2); g.stroke(); } }
@@ -8955,11 +8975,11 @@ function think(i){
         snows.forEach(m => drawSnowman(g, m));
         deers.forEach(o => { if (t >= o.t0) drawDeer(g, o, t); });
         rings.forEach(r => { const k = (t - r.t0) / 600; g.globalAlpha = 1 - k; g.lineWidth = 4; g.strokeStyle = r.kind === "snow" ? "#bfe6ff" : r.kind === "wind" ? "#ff8a8a" : r.kind === "dash" ? "#ffe27a" : "#fff"; g.beginPath(); g.arc(r.x, r.y, r.kind === "wind" ? 125 * (1 - k) + 20 : 20 + 110 * k, 0, TAU); g.stroke(); });
-        bullets.forEach(b => {
+        (B.guest ? GB : bullets).forEach(b => {
           if (b.sock) { g.save(); g.translate(b.x, b.y); g.rotate(Math.atan2(b.vy, b.vx)); g.fillStyle = "#d9232d"; g.beginPath(); g.ellipse(0, 0, 10, 6, 0, 0, TAU); g.fill(); g.fillStyle = "#fff"; g.fillRect(-12, -6, 5, 12); g.restore(); }
           else if (b.snowball) { g.fillStyle = "#fff"; g.strokeStyle = "#9db6d0"; g.lineWidth = 1.5; g.beginPath(); g.arc(b.x, b.y, 5, 0, TAU); g.fill(); g.stroke(); }
         });
-        [player1, player2].forEach(p => { if (p && (p.xstun || 0) > t) { for (let i = 0; i < 3; i++) { const a = t / 150 + i * 2.09, x = p.x + p.w / 2 + Math.cos(a) * 14, y = p.y - 6 + Math.sin(a) * 4; g.fillStyle = "#ffe27a"; g.font = "14px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", x, y); } } });
+        fighterList().forEach(p => { if (p && !p.isSanta && (p.xstun || 0) > t) { for (let i = 0; i < 3; i++) { const a = t / 150 + i * 2.09, x = p.x + p.w / 2 + Math.cos(a) * 14, y = p.y - 6 + Math.sin(a) * 4; g.fillStyle = "#ffe27a"; g.font = "14px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", x, y); } } });
         g.globalAlpha = 1;
       }
       const _dr = draw; draw = function () { _dr(); if (B.on && ctx) { try { drawEnt(); } catch (e) { } } };
@@ -8990,7 +9010,7 @@ function think(i){
       function start(lv, ch) {
         if (!active() || (lv > 0 && !cleared(lv - 1))) return;
         ch = ch || $("player1Select").value; B.ch = ch;
-        cpuMode = true; window.RULE = "1v1"; B.lv = lv;
+        cpuMode = true; window.RULE = "1v1"; B.lv = lv; B.coop = false; B.sf = null; B.guest = false; window.__coop = null;
         const L = LV[lv], dd = $("mapSelectDropdown"), keep = dd.value; $("player1Select").value = ch; $("player2Select").value = "スナイパー太郎"; dd.value = MAPN;
         window.__boss = L.name; try { startGame(); } finally { window.__boss = null; } dd.value = keep;   // 開始演出の敵表示をサンタにする
         const s = player2;
@@ -9003,7 +9023,118 @@ function think(i){
       /* ---- 敵（サンタ）の顔アイコン／開始演出の表示 ---- */
       const face = e => "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="16" fill="#2a0a10"/><text x="50" y="72" font-size="64" text-anchor="middle">' + e + '</text></svg>');
       LV.forEach((L, i) => { characterImages[L.name] = face(["🎅", "😡", "🔥"][i]); });
-      const _fi = FX.intro; FX.intro = function (o) { if (window.__boss) o = Object.assign({}, o, { c: [o.c[0], window.__boss], tags: [o.tags[0], "BOSS"] }); return _fi(o); };
+      const _fi = FX.intro; FX.intro = function (o) { const nm = window.__boss || (window.__coop ? LV[window.__coop.lv].name : null); if (nm) o = Object.assign({}, o, { c: [o.c[0], nm], tags: [o.tags[0], "BOSS"] }); return _fi(o); };
+
+
+      /* ================= オンライン協力（最大4人）：イベント →「みんなで」→ ルーム作成 → 招待 ================= */
+      const _fl = window.fighterList; window.fighterList = function () { const a = _fl(); return (B.coop && B.sf) ? a.concat([B.sf]) : a; };   // サンタを5人目の敵として扱う
+      const canLv = lv => !!active() && (lv === 0 || cleared(lv - 1));
+      function coopOff() { B.on = false; B.coop = false; B.sf = null; B.guest = false; window.__coop = null; }
+      function coopSetup() {   // ホストもゲストも、試合開始直後に呼ぶ
+        const c = window.__coop; if (!c || !player1) return;
+        const L = LV[c.lv], P = [player1, player2, player3, player4], placed = [];
+        B.coop = true; B.guest = !onl.isHost; B.lv = c.lv; B.lastLv = c.lv; B.n = c.n; B.on = true;
+        P.forEach((p, i) => {   // 全員が味方。参加していない席は不在扱い（CPUは入らない）
+          if (!p) return; p.team = 0;
+          if (!c.seats.includes(i)) { p.out = true; p.hp = 0; p.x = p.y = -500; return; }
+          const q = freeSpot(SPAWNS.p1.x, SPAWNS.p1.y, placed); p.x = q.x; p.y = q.y; placed.push(p);
+        });
+        const sf = createPlayer(SPAWNS.p2.x - 5, SPAWNS.p2.y - 5, "red", "スナイパー太郎");
+        sf.team = 1; sf.isSanta = true; sf.charName = L.name; sf.maxHp = sf.hp = Math.round(L.hp * MUL[c.n]); sf.w = sf.h = 40; sf.speed = 3; sf.ammo = sf.maxAmmo = 1; B.sf = sf;
+        if (onl.isHost) { onl.cpuSlots = []; reset(); }
+        $("gameInfo").innerText = "🎄 イベント協力戦：" + L.name + "（" + c.n + "人）| マップ: " + MAPN;
+      }
+      function coopHost(lv) {
+        if (!canLv(lv)) return;
+        cpuMode = false; window.__keepCoop = true;
+        try { showOnlineMenu(); } finally { window.__keepCoop = false; }
+        onl.coop = lv; onl.rule = "2v2";
+        onlineCreateRoom();
+      }
+      const _som = showOnlineMenu;
+      showOnlineMenu = function (msg, err) { if (!window.__keepCoop) { onl.coop = null; coopOff(); } return _som(msg, err); };
+      const _bm3 = beginMatch; beginMatch = function (a, b, m) { if (!window.__coop) coopOff(); return _bm3(a, b, m); };
+      const _sg = startGame; startGame = function () { if (!window.__boss) coopOff(); return _sg(); };
+      const _om = onMessage;
+      onMessage = function (m) {
+        if (m && m.t === "coop") {   // ホストから：このルームは協力戦。挑戦できない人は退出する
+          if (!onl.isHost) {
+            const was = onl.coop; onl.coop = m.v;
+            if (!canLv(m.v)) { showOnlineMenu("このサンタ（" + (LV[m.v] ? LV[m.v].name : "") + "）にはまだ挑戦できません。前のサンタを倒すと解放されます。", true); return; }
+            if (was !== m.v) updateLobby();
+          }
+          return;
+        }
+        if (m && !onl.isHost && m.t === "start2" && m.map === MAPN) {
+          const seats = (m.n || []).map((n, i) => n !== "CPU" ? i : -1).filter(i => i >= 0);
+          window.__coop = { lv: onl.coop | 0, n: seats.length, seats };
+          _om(m); if (onl.running) coopSetup(); return;
+        }
+        return _om(m);
+      };
+      const _hs3 = hostStartGame;
+      hostStartGame = function () {
+        if (onl.coop == null) return _hs3();
+        const seats = [0]; [1, 2, 3].forEach(ci => { const cn = ci === 1 ? onl.conn : (onl.ex[ci] && onl.ex[ci].conn); if (cn && cn.open) seats.push(onl.seat[ci]); });
+        window.__coop = { lv: onl.coop | 0, n: seats.length, seats };
+        onl.rule = "2v2"; onl.map = MAPN;
+        const had = MAP_NAMES.includes(MAPN); if (!had) MAP_NAMES.push(MAPN);
+        try { _hs3(); } finally { if (!had) MAP_NAMES.splice(MAP_NAMES.indexOf(MAPN), 1); }
+        if (onl.running) coopSetup(); else window.__coop = null;
+      };
+      let coopWin = false;
+      const _fm3 = finishMatch;
+      finishMatch = function (w) {
+        if (!window.__coop || !B.coop || FX.busy) return _fm3(w);
+        const win = w === "p1", me = (onl.mySlot | 0) % 2 ? "p2" : "p1"; coopWin = win;   // 全員が同じチーム：勝てば全員「あなたの勝ち」
+        if (win) { const o = get(); o.c[B.lv] = 1; save(o); try { Quest.emit("santa" + (B.lv + 1)); if (B.lv < 2) Quest.claim("xmas_" + (B.lv + 1)); } catch (e) { } }
+        return _fm3(w === "draw" ? w : (win ? me : (me === "p1" ? "p2" : "p1")));
+      };
+      const _ho = FX.H.onl; FX.H.onl = function (w) { return window.__coop ? { text: () => LV[B.lv].name + (coopWin ? "を撃破！" : "に敗北…"), sub: "イベント協力戦（" + B.n + "人）" } : (_ho ? _ho(w) : null); };
+      const _hsub = FX.H.sub; FX.H.sub = () => window.__coop ? "イベント協力戦（" + window.__coop.n + "人）" : (_hsub ? _hsub() : "");
+      /* ---- ロビー表示（協力戦：ルール・マップ・チーム欄を隠し、参加メンバーを表示） ---- */
+      const _ul2 = updateLobby;
+      updateLobby = function () {
+        if (!onl.running && (B.coop || window.__coop)) coopOff();
+        const co = onl.coop != null;
+        if (co && onl.isHost && onl.rule !== "2v2") { onl.rule = "2v2"; try { sendMsg({ t: "rule", v: "2v2" }); } catch (e) { } }
+        _ul2();
+        let box = $("lobbyCoop"); if (!box) { box = document.createElement("div"); box.id = "lobbyCoop"; box.className = "ev-box"; const g = $("lobbyGrid"); g.parentNode.insertBefore(box, g); }
+        box.style.display = co ? "" : "none";
+        ["lobbyRule", "lobby2", "lobbyMaps"].forEach(id => { const e = $(id); if (e) e.style.display = co ? "none" : ""; });
+        if (!co) return;
+        const L = LV[onl.coop | 0] || LV[0], mem = window.__lobbyMembers ? window.__lobbyMembers() : [], n = Math.max(1, Math.min(4, mem.length));
+        box.innerHTML = `<h3>🎄 イベント協力戦：${L.name}</h3><div style="font-size:12px;color:#cfd6ff;line-height:1.7">参加 ${mem.length}／4人：${mem.map(x => escapeHtml(x.name) + (x.me ? "（あなた）" : "")).join("、")}<br>サンタと雪だるまのHP：2人=2.5倍／3人=4倍／4人=5倍（現在 ${MUL[n]}倍）。トナカイは全員を狙い、雪だるまの数も人数倍。<br>舞台：「${MAPN}」／空き席にCPUは入りません。2人から開始できます。挑戦できるフレンドを「👥 フレンドを招待」から呼ぼう。</div>`;
+        $("lobbyMapInfo").innerHTML = `<b>${MAPN}</b>｜イベント専用マップ`;
+        $("lobbyWho").textContent = "協力メンバーで挑戦！　キャラを選んでください";
+        if (onl.isHost) { try { sendMsg({ t: "coop", v: onl.coop }); } catch (e) { } }
+      };
+      /* ---- オンライン同期：サンタの技・雪だるま・靴下・スタンをゲストへ送る ---- */
+      const _bs3 = buildSnap;
+      buildSnap = function () {
+        const s = _bs3();
+        if (B.coop && B.on) {
+          const t = now(), R = Math.round;
+          s.sn = { tr: trails.map(r => [R(r.x), R(r.y), r.until - t]), gf: gifts.map(o => [R(o.x), R(o.y), o.t0 - t, o.land - t]), dr: deers.map(o => [R(o.x), R(o.y), +o.ang.toFixed(3), o.go ? 1 : 0, o.t0 - t]),
+            sw: snows.map(m => [R(m.x), R(m.y), R(m.hp), m.mx]), rg: rings.map(r => [R(r.x), R(r.y), r.kind, r.t0 - t]),
+            bl: bullets.filter(b => b.sock || b.snowball).map(b => [R(b.x), R(b.y), +b.vx.toFixed(1), +b.vy.toFixed(1), b.sock ? 1 : 2]), st: [player1, player2, player3, player4].map(p => p ? Math.max(0, (p.xstun || 0) - t) : 0) };
+        }
+        return s;
+      };
+      const _as3 = applySnap;
+      applySnap = function (s) {
+        _as3(s);
+        if (B.coop && B.on && s.sn) {
+          const q = s.sn, t = now(); B.guest = true;
+          trails = q.tr.map(a => ({ x: a[0], y: a[1], until: t + a[2] }));
+          gifts = q.gf.map(a => ({ x: a[0], y: a[1], t0: t + a[2], land: t + a[3], done: a[3] <= 0 }));
+          deers = q.dr.map(a => ({ x: a[0], y: a[1], ang: a[2], go: !!a[3], t0: t + a[4] }));
+          snows = q.sw.map(a => ({ x: a[0], y: a[1], hp: a[2], mx: a[3], st: 1 }));
+          rings = q.rg.map(a => ({ x: a[0], y: a[1], kind: a[2], t0: t + a[3] }));
+          GB = q.bl.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], sock: a[4] === 1, snowball: a[4] === 2 }));
+          [player1, player2, player3, player4].forEach((p, i) => { if (p) p.xstun = t + (q.st[i] || 0); });
+        }
+      };
 
       /* ---- 難易度を選んだあと：通常のCPU戦と同じキャラ選択画面（2P側はサンタ固定） ---- */
       const EVS = { on: false, lv: 0, entering: false };
@@ -9054,15 +9185,26 @@ function think(i){
         });
         return h + `<div class="ev-box" style="font-size:12px;color:#cfd6ff;line-height:1.7"><b>サンタの技</b>　🦌トナカイ：1秒後に壁を貫通して突進／🎁プレゼント：頭上から降りスタン1秒／🧦靴下：当たると軌跡でスロー／⛄雪だるま：自立して雪玉（5ダメージ）／💨ノックバック：近づくと吹き飛ばす</div>`;
       }
-      function render() { const el = $("evBody"); if (el) el.innerHTML = view === "list" ? listHtml() : detailHtml(); }
+      let modeLv = 0;
+      function modeHtml() {   // 難易度のあと：一人で／みんなで
+        const L = LV[modeLv];
+        return `<button class="ev-back" data-act="detail">← 難易度選択</button>
+          <div class="ev-box"><h3>${["🎅", "😡", "🔥"][modeLv]} ${L.name} に挑戦</h3><div style="font-size:12px;color:#cfd6ff;line-height:1.7">遊び方を選んでください。</div></div>
+          <button class="ev-card" data-act="solo"><b>🧍 一人で挑戦</b><small>CPU戦と同じキャラ選択から、1対1で挑みます。</small></button>
+          <button class="ev-card" data-act="coop"><b>👥 みんなで挑戦（オンライン・最大4人）</b><small>ルームを作り、この難易度に挑戦できるフレンドを招待します（前のサンタを倒した人だけが参加できます）。人数が増えるほど、サンタと雪だるまのHPが上がります：2人=2.5倍／3人=4倍／4人=5倍。トナカイは全員を狙い、雪だるまの数も人数倍になります。</small></button>`;
+      }
+      function render() { const el = $("evBody"); if (el) el.innerHTML = view === "list" ? listHtml() : view === "mode" ? modeHtml() : detailHtml(); }
       document.addEventListener("click", e => {
         const b = e.target.closest && e.target.closest("#eventScreen [data-act]"); if (!b) return; const a = b.dataset.act;
         if (a === "open") { if (!active()) return; view = "detail"; render(); }
         else if (a === "back") { view = "list"; render(); }
-        else if (a === "go") pick(+b.dataset.lv);
+        else if (a === "go") { modeLv = +b.dataset.lv; view = "mode"; render(); }
+        else if (a === "detail") { view = "detail"; render(); }
+        else if (a === "solo") pick(modeLv);
+        else if (a === "coop") coopHost(modeLv);
         else if (a === "claim") { Quest.claim("xmas_3"); render(); }
       });
-      window.Events = { show() { view = "list"; render(); showScreen("eventScreen"); }, start, pick };
+      window.Events = { show() { view = "list"; render(); showScreen("eventScreen"); }, start, pick, canLv: lv => canLv(lv), lvName: lv => (LV[lv] ? LV[lv].name : "") };
     })();
   </script>
 </body>
