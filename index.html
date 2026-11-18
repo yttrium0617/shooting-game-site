@@ -487,7 +487,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 67</div>
+      <div class="ver">VER 71</div>
     </div>
   </div>
 
@@ -682,6 +682,7 @@
       "メープル": { hp: 130, speed: 1.5, damage: 5, maxAmmo: 10, reload: 1000, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 25000 },
       "上裸の鳥頭": { hp: 90, speed: 3.5, damage: 20, maxAmmo: 1, reload: 1000, shots: 1, bulletSpeed: 2.4, bulletLife: 1000, bulletRadius: 8, pass: false, skillCd: 16000 },
       "エース・キッカー": { hp: 95, speed: 3.2, damage: 14, maxAmmo: 3, reload: 1600, shots: 1, bulletSpeed: 8, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 18000 },
+      "サンタ": { hp: 100, speed: 3, damage: 10, maxAmmo: 3, reload: 1500, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 15000 },   // ★仮（後で調整）
     };
     /* キャラ固有の数値 */
     const BALANCE_X = {
@@ -742,6 +743,7 @@ let lastPoisonTick = 0;
       "上裸の鳥頭": { img: "images/birdhead.png", quest: "online2v2", tag: "うさぎ弾を途中で曲げる変則アタッカー。異世界へ逃げて奇襲", info: { title: "トリックスター", intro: "鳥の面を被った謎多き変人。緩急自在の不思議な弾道と、どこへ飛ぶか分からない異世界逃避行で戦場をかき乱す。", attack: "ふわりと遅い白いうさぎ弾（20ダメージ）を撃つ。飛んでいる間にもう一度押すと、敵の方向へ向き直って光の弾（8ダメージ）に変化し、一気に加速。弾が消えるまで次は撃てない（弾数1・リロード1秒）。", skill: "異世界へ飛び込み、2〜3秒間、姿も当たり判定も消える（完全無敵）。戻る位置は完全にランダムで、運が良ければ敵の背後に出られる。クールタイム16秒。", tips: "最初から曲げて奇襲するか、重い一撃を当ててから曲げるか。外すと隙が大きいので、ピンチの一発逆転にスキルを使おう。" } },
       "エース・キッカー": { img: "images/acekicker.png", quest: null, tag: "敵2人を跳弾で同時に狙う名探偵。シールド貫通の麻酔針で眠らせる", info: { title: "名探偵アタッカー", intro: "天才的な頭脳と特製ガジェットで戦場を推理する若き探偵。死角からの一撃と精密な麻酔弾で、どんな強敵も鮮やかに無力化する。", attack: "スニーカーからエネルギーボール（14ダメージ）を蹴り出す。1人目に当たると、近く（中距離）にいる別の敵へ自動で跳弾し、8ダメージ。跳弾は1発につき1回だけで、同じ敵には戻らない。弾数3・リロード1.6秒。", skill: "腕時計型ガジェットから麻酔針を高速で1発。シールド貫通で、命中した敵を1.5秒眠らせる（ダメージを受けると即起床）。クールタイム18秒。", tips: "眠らせた敵の近くにいるもう1人へ通常攻撃を当てると、跳弾が眠った敵に当たって起こしてしまう。撃つ順番に注意。" } }
     };
+    NEW_CHARS["サンタ"] = { img: "images/santa.png", quest: "xmas_allchar", tag: "？？？（準備中）", info: { title: "聖夜の差出人", intro: "準備中です。", attack: "準備中", skill: "準備中", tips: "" } };   // ★仮の枠（性能・画像は後で追加）
     const QUESTS = [
       { id: "login",    title: "ログインする", desc: "Googleアカウントでのログインがおすすめです（メールアドレスでもOK）。", goal: 1, event: "login", mode: "set", auto: true, reward: { char: "メープル" } },
       { id: "sniper_nocskill", char: "スナイパー太郎", title: "スナイパー太郎でスキルなしCPU撃破", desc: "スナイパー太郎を使い、スキルを一度も使わずにCPUと1対1で勝つ。", goal: 1, event: "sniperNoSkill", reward: { fx: ["bullet:スナイパー太郎:redlightning"] } },
@@ -2169,7 +2171,8 @@ fighterList().forEach(p => {
     const MASTERY = [{ n: "ビギナー", t: 0 }, { n: "中級者", t: 30 }, { n: "上級者", t: 120 }, { n: "達人", t: 300 }];
     CHAR_NAMES.forEach(n => QUESTS.push({ id: "master_" + n, char: n, icon: "🎓", title: n + " 達人", desc: n + "で対戦して熟練度を上げ、「達人」になる。（遊ぶと+1、勝つと+2ポイント。達人は" + MASTERY[3].t + "ポイント）", goal: MASTERY[3].t, src: "mp:" + n, reward: MASTER_FX[n] ? { fx: ["kill:" + MASTER_FX[n]] } : undefined }));
 
-    QUESTS.push({ id: "master_all", icon: "🐉", title: "【最難関】全キャラ達人", desc: "すべてのキャラクターで熟練度「達人」になる。（新キャラが増えると、その分も必要です）", goal: CHAR_NAMES.length, src: "allmaster", reward: { fx: ["kill:dragon"] } });
+    QUESTS.push({ id: "xmas_allchar", icon: "🎅", title: "【イベント】10種類のキャラで逆ギレ覚醒サンタを撃破", desc: "期間限定イベント「聖夜の差出人」で、10種類の違うキャラクターそれぞれで逆ギレ覚醒サンタを倒す。オンライン協力戦で倒した場合は、参加者全員が使ったキャラ全員分が達成扱いになります。", goal: 10, src: "santaChars", reward: { char: "サンタ" } });
+    QUESTS.push({ id: "master_all", icon: "🐉", title: "【最難関】全キャラ達人", desc: "すべてのキャラクターで熟練度「達人」になる。（新キャラが増えると、その分も必要です）", goal: CHAR_NAMES.filter(n => n !== "サンタ").length, src: "allmaster", reward: { fx: ["kill:dragon"] } });
 
     function imgOrPlaceholder(name, cls) {
       const src = characterImages[name];
@@ -5282,7 +5285,7 @@ function think(i){
         try { refreshLocks(); } catch (e) {}
         try { window.Settings && Settings.refresh(); } catch (e) {}
       }
-      const pv = q => q.src === "allmaster" ? CHAR_NAMES.filter(n => (S.p["mp:" + n] || 0) >= MASTERY[3].t).length : q.src ? (S.p[q.src] || 0) : (S.p[q.id] || 0);   // 「全キャラ達人」は達人のキャラ数
+      const pv = q => q.src === "santaChars" ? CHAR_NAMES.filter(n => n !== "サンタ" && S.p["sc:" + n]).length : q.src === "allmaster" ? CHAR_NAMES.filter(n => n !== "サンタ" && (S.p["mp:" + n] || 0) >= MASTERY[3].t).length : q.src ? (S.p[q.src] || 0) : (S.p[q.id] || 0);   // 「全キャラ達人」は達人のキャラ数
       const claimable = q => S.uid && !S.c[q.id] && pv(q) >= q.goal;
       function badge() { const n = QUESTS.filter(claimable).length, b = $("questBadge"); if (b) { b.textContent = n; b.style.display = n ? "inline-block" : "none"; } }
       async function flush() {
@@ -5311,6 +5314,13 @@ function think(i){
           toast(nx >= q.goal ? "🎯 クエスト達成！「" + q.title + "」→ クエスト画面で受け取れます" : "🎯 " + q.title + "　" + nx + " / " + q.goal);
         });
         if (ch) { S.dirty = true; cache(); badge(); render(); flush(); }   // 通信は1回
+      }
+      function santaClear(names) {   // サンタ最高難易度クリア：使ったキャラ全員分を記録（クエスト「全キャラでサンタ撃破」）
+        if (!S.uid) return; let n = 0;
+        (names || []).forEach(c => { if (!CHAR_NAMES.includes(c) || c === "サンタ" || S.p["sc:" + c]) return; S.p["sc:" + c] = 1; n++; });
+        if (!n) return;
+        const q = QUESTS.find(x => x.id === "xmas_allchar"); S.dirty = true; cache(); badge(); render(); flush();
+        if (q && !S.c[q.id]) { const g = pv(q); toast(g >= q.goal ? "🎯 クエスト達成！「" + q.title + "」→ クエスト画面で受け取れます" : "🎯 " + q.title + "　" + g + " / " + q.goal); }
       }
       function streak(ev, ok) {   // 連続系クエスト：ok=true で +1、false でリセット（達成済みは触らない）
         if (!S.uid) return; let ch = false;
@@ -5437,7 +5447,7 @@ function think(i){
         if (b.dataset.q === "login") Account_open(); else if (b.dataset.q === "claim") claim(b.dataset.id);
       });
             if (window.__devOn) setTimeout(applyOwned, 0);
-      return { show() { showScreen("questScreen"); render(); }, emit, streak, brk, redeem, reown: applyOwned, uid: () => S.uid, done: id => !!S.c[id], pg: id => S.p[id] || 0, claim, onUser, toast, render, addMastery, showChar, codexHtml, lvOf };
+      return { show() { showScreen("questScreen"); render(); }, emit, santaClear, streak, brk, redeem, reown: applyOwned, uid: () => S.uid, done: id => !!S.c[id], pg: id => S.p[id] || 0, claim, onUser, toast, render, addMastery, showChar, codexHtml, lvOf };
     })();
   </script>
   <style>
@@ -8779,8 +8789,8 @@ function think(i){
           gifts.push({ x: Math.max(30, Math.min(ARENA_W - 30, x)), y: Math.max(30, Math.min(ARENA_H - 30, y)), t0: t, land: t + 900, done: false });
         }
       }
-      function summonSnow(sc, t) {   // 雪だるま：基本数×人数、HPは人数倍率
-        const L = LV[B.lv], N = L.snowN * B.n, hp = Math.round(L.snowHp * MUL[B.n]);
+      function summonSnow(sc, t) {   // 雪だるま：基本数＋（参加人数−1）体、HPは人数倍率
+        const L = LV[B.lv], N = L.snowN + (B.n - 1), hp = Math.round(L.snowHp * MUL[B.n]);
         for (let i = 0; i < N; i++) for (let k = 0; k < 24; k++) {
           const a = Math.random() * TAU, r = 80 + Math.random() * (90 + B.n * 25), x = sc.x + Math.cos(a) * r - 13, y = sc.y + Math.sin(a) * r - 13;
           if (inArena(x, y, 20) && !collidesWithObstacles({ x, y, w: 26, h: 26 })) { snows.push({ x, y, hp, mx: hp, nx: t + 1500 + Math.random() * 1500, st: Math.random() < .5 ? 1 : -1 }); break; }
@@ -9001,7 +9011,7 @@ function think(i){
         if (!wasB) return resBtns(false);
         B.on = false; B.lastLv = B.lv; const win = w === 1;
         $("resultText").innerText = win ? LV[B.lv].name + "を撃破！" : LV[B.lv].name + "に敗北…";
-        if (win) { const o = get(); o.c[B.lv] = 1; save(o); try { Quest.emit("santa" + (B.lv + 1)); if (B.lv < 2) Quest.claim("xmas_" + (B.lv + 1)); } catch (e) { } }
+        if (win) { const o = get(); o.c[B.lv] = 1; save(o); try { Quest.emit("santa" + (B.lv + 1)); if (B.lv < 2) Quest.claim("xmas_" + (B.lv + 1)); } catch (e) { } if (B.lv === 2) try { Quest.santaClear([player1.charName]); } catch (e) { } }
         resBtns(true, win);
       };
       const _rm = returnToMenu; returnToMenu = function () { B.on = false; resBtns(false); _rm(); };
@@ -9087,7 +9097,7 @@ function think(i){
       finishMatch = function (w) {
         if (!window.__coop || !B.coop || FX.busy) return _fm3(w);
         const win = w === "p1", me = (onl.mySlot | 0) % 2 ? "p2" : "p1"; coopWin = win;   // 全員が同じチーム：勝てば全員「あなたの勝ち」
-        if (win) { const o = get(); o.c[B.lv] = 1; save(o); try { Quest.emit("santa" + (B.lv + 1)); if (B.lv < 2) Quest.claim("xmas_" + (B.lv + 1)); } catch (e) { } }
+        if (win) { const o = get(); o.c[B.lv] = 1; save(o); try { Quest.emit("santa" + (B.lv + 1)); if (B.lv < 2) Quest.claim("xmas_" + (B.lv + 1)); } catch (e) { } if (B.lv === 2) try { Quest.santaClear([player1, player2, player3, player4].filter(q => q && !q.isSanta && !q.out).map(q => q.charName)); } catch (e) { } }
         return _fm3(w === "draw" ? w : (win ? me : (me === "p1" ? "p2" : "p1")));
       };
       const _ho = FX.H.onl; FX.H.onl = function (w) { return window.__coop ? { text: () => LV[B.lv].name + (coopWin ? "を撃破！" : "に敗北…"), sub: "イベント協力戦（" + B.n + "人）" } : (_ho ? _ho(w) : null); };
