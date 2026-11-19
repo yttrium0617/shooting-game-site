@@ -487,7 +487,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 73</div>
+      <div class="ver">VER 74</div>
     </div>
   </div>
 
@@ -9488,6 +9488,25 @@ function think(i){
           set(GBL, q.bl.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], kind: a[4] })));
           fl.forEach((p, i) => { if (p) p.xstun = t + (q.st[i] || 0); });
         } else if (ALL.some(a => a.length)) ALL.forEach(a => { a.length = 0; });
+      };
+    })();
+  </script>
+  <script>
+    /* ============================================================
+       試合を決めたキルの演出中：全体が超低速になり、ダメージも受けない（演出中に倒されて勝敗が変わるのを防ぐ）
+       ============================================================ */
+    (function () {
+      const K = window.__KO; if (!K) return;
+      const SLOW = 5;   // 数字を大きくするほど遅い（5＝通常の1/5の速さ）
+      let n = 0, lock = null;
+      const act = () => K.fired && !window.__fxPv && gameActive && Date.now() < K.until;
+      const _up = update;
+      update = function () {
+        if (!act()) { lock = null; n = 0; return _up(); }
+        if (!lock) { lock = new Map(); fighterList().forEach(p => { if (p) lock.set(p, p.hp); }); }   // 演出が始まった瞬間のHPを記録
+        if (++n % SLOW) return;   // SLOWフレームに1回だけ進める＝スローモーション
+        _up();
+        lock.forEach((h, p) => { if (h > 0 && p.hp < h) p.hp = h; });   // 生きていた人はダメージ無効
       };
     })();
   </script>
