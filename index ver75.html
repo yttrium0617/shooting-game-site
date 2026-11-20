@@ -487,7 +487,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 75</div>
+      <div class="ver">VER 77</div>
     </div>
   </div>
 
@@ -8849,7 +8849,7 @@ function think(i){
         const L = LV[B.lv], d = Math.hypot(pc.x - sc.x, pc.y - sc.y), tt = d / 5.6, ax = pc.x + pv.vx * tt * .7, ay = pc.y + pv.vy * tt * .7, a = Math.atan2(ay - sc.y, ax - sc.x);
         (L.tri ? [-.3, 0, .3] : [0]).forEach(o => bullets.push({ x: sc.x, y: sc.y, r: 7, vx: Math.cos(a + o) * 5.6, vy: Math.sin(a + o) * 5.6, from: boss(), damage: L.atk, lifeTime: 0, maxLifeTime: 170, sock: 1 }));
       }
-      function callDeer(sc, H, t) {   // トナカイ：生きている全員に1頭（以上）ずつ
+      function callDeer(sc, H, t) {   // トナカイ：一番近い敵だけに（人数が増えても数は増えない）
         const L = LV[B.lv];
         H.forEach((h, hi) => {
           const pc = cen(h), d = Math.hypot(pc.x - sc.x, pc.y - sc.y) || 1, rot = (hi - (H.length - 1) / 2) * .3, c = Math.cos(rot), s2 = Math.sin(rot), ux0 = (pc.x - sc.x) / d, uy0 = (pc.y - sc.y) / d, ux = ux0 * c - uy0 * s2, uy = ux0 * s2 + uy0 * c;
@@ -8859,11 +8859,11 @@ function think(i){
           }
         });
       }
-      function dropGifts(H, t) {
-        const L = LV[B.lv], off = Math.floor(Math.random() * H.length);
+      function dropGifts(H, t) {   // H＝近い順の敵。近い順に1個ずつ頭上へ。敵が足りない分は、一番近い敵の予想地点／付近のどこかへ
+        const L = LV[B.lv];
         for (let i = 0; i < L.gifts; i++) {
-          const h = H[(i + off) % H.length], pc = cen(h), pv = vel(h); let x = pc.x, y = pc.y;
-          if (i === 1) { x += pv.vx * 55; y += pv.vy * 55; } else if (i === 2) { x += (Math.random() - .5) * 190; y += (Math.random() - .5) * 190; }
+          const own = i < H.length, h = own ? H[i] : H[0], pc = cen(h), pv = vel(h); let x = pc.x, y = pc.y;
+          if (!own) { if (i % 3 === 1) { x += pv.vx * 55; y += pv.vy * 55; } else { x += (Math.random() - .5) * 190; y += (Math.random() - .5) * 190; } }
           gifts.push({ x: Math.max(30, Math.min(ARENA_W - 30, x)), y: Math.max(30, Math.min(ARENA_H - 30, y)), t0: t, land: t + 900, done: false });
         }
       }
@@ -8896,7 +8896,7 @@ function think(i){
         s.speed = 3;
         const sc = cen(s), rage = s.hp <= s.maxHp * .4 ? 1.3 : 1;
         H.forEach(h => { const c = cen(h), v = vel(h); v.vx = v.vx * .8 + (c.x - v.lx) * .2; v.vy = v.vy * .8 + (c.y - v.ly) * .2; v.lx = c.x; v.ly = c.y; });
-        const p = H.slice().sort((a, b) => Math.hypot(cen(a).x - sc.x, cen(a).y - sc.y) - Math.hypot(cen(b).x - sc.x, cen(b).y - sc.y))[0], pc = cen(p), pv = vel(p), dx = pc.x - sc.x, dy = pc.y - sc.y, d = Math.hypot(dx, dy) || 1;
+        const Hs = H.slice().sort((a, b) => Math.hypot(cen(a).x - sc.x, cen(a).y - sc.y) - Math.hypot(cen(b).x - sc.x, cen(b).y - sc.y)), p = Hs[0], pc = cen(p), pv = vel(p), dx = pc.x - sc.x, dy = pc.y - sc.y, d = Math.hypot(dx, dy) || 1;
         const busy = t < T.busy;
         if (t > T.strafeT) { T.strafe = Math.random() < .5 ? 1 : -1; T.strafeT = t + 1200 + Math.random() * 1800; }
         /* ---- 迫る弾の検出（最接近点で当たりそうな弾）→ ダッシュで回避 ---- */
@@ -8938,8 +8938,8 @@ function think(i){
         const los = clear(sc, pc, 7);
         if (d < 95 && t >= T.kb) { T.kb = t + 3600 / rage; kbWind = t + 380; T.busy = t + 380; rings.push({ x: sc.x, y: sc.y, t0: t, kind: "wind" }); }
         else if (!snows.length && t >= T.snow) { summonSnow(sc, t); T.snow = t + L.snowCd; T.busy = t + 650; }
-        else if (t >= T.deer && (!los || d > 230 || Math.random() < .015)) { callDeer(sc, H, t); T.deer = t + L.deerCd / rage; T.busy = t + 500; }
-        else if (t >= T.gift) { dropGifts(H, t); T.gift = t + L.gift / rage; T.busy = t + 350; }
+        else if (t >= T.deer && (!los || d > 230 || Math.random() < .015)) { callDeer(sc, [p], t); T.deer = t + L.deerCd / rage; T.busy = t + 500; }
+        else if (t >= T.gift) { dropGifts(Hs, t); T.gift = t + L.gift / rage; T.busy = t + 350; }
         else if (t >= T.shot && d < 560 && (los || Math.random() < .35)) { shoot(sc, pc, pv); T.shot = t + L.shot / rage * (los ? 1 : 1.8); }
       }
       function post(t) {
