@@ -683,6 +683,7 @@
       "上裸の鳥頭": { hp: 90, speed: 3.5, damage: 20, maxAmmo: 1, reload: 1000, shots: 1, bulletSpeed: 2.4, bulletLife: 1000, bulletRadius: 8, pass: false, skillCd: 16000 },
       "エース・キッカー": { hp: 95, speed: 3.2, damage: 14, maxAmmo: 3, reload: 1600, shots: 1, bulletSpeed: 8, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 18000 },
       "サンタ": { hp: 100, speed: 3, damage: 15, maxAmmo: 2, reload: 1500, shots: 3, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 1500 },   // shots＝プレゼント3個／skillCd＝スキルのクールタイム
+      "アーク・フォージ": { hp: 100, speed: 3, damage: 10, maxAmmo: 5, reload: 1200, shots: 1, bulletSpeed: 7, bulletLife: 1000, bulletRadius: 6, pass: false, skillCd: 20000 },   // skillCd＝ドローン・リンクのクールタイム(ms)
     };
     /* キャラ固有の数値 */
     const BALANCE_X = {
@@ -691,10 +692,15 @@
         giftDelay: 800, giftDmg: 15, giftStun: 200, giftRadius: 38, giftWall: 6, giftRange: 380,   // プレゼント：落下までの時間(ms)／ダメージ／スタン(ms)／当たり範囲／壁へのダメージ／届く距離（届かない時は範囲内のどこかにランダムで落ちる）
         sockDmg: 15, sockSpeed: 5.6,                                                // 靴下
         deerDmg: 20, deerWeight: 0.7,                                                // トナカイ：ダメージ／出やすさ（スキル抽選の重み。他は靴下3・雪だるま1.5・ダッシュ1.5）
-        snowHp: 30, snowDmg: 5, snowMax: 2, snowSummon: 2,                          // 雪だるま：HP／雪玉ダメージ／同時最大数／1回の召喚数
+        snowHp: 10, snowDmg: 5, snowMax: 2, snowSummon: 2,                          // 雪だるま：HP／雪玉ダメージ／同時最大数／1回の召喚数
         kbRange: 125, kbPower: 15,                                                  // ノックバック：範囲／強さ
         dashDist: 70,                                                               // サンタダッシュの距離
         extraDmg: 5                                                                 // 弱点「限られた時間」：被ダメージごとの追加ダメージ
+      },
+      ark: {   // アーク・フォージ（ドローン・リンク）
+        droneN: 2, droneHp: 16, decay: 2, farDist: 130, farMul: 2,       // 召喚数／ドローン1機の初期HP／毎秒のHP減少／この距離(px)以上離れると／減少が何倍になるか
+        orbitMin: 65, orbitMax: 85, orbitSpeed: 2.4, follow: .1, maxSpeed: 6,   // 旋回半径の最小・最大(px)／旋回の速さ(ラジアン/秒)／追従のなめらかさ(小さいほど遅れる)／最高速度
+        droneDmg: 4, droneBulletSpeed: 7, droneBulletR: 4                // ドローンの弾：ダメージ／速さ／大きさ
       },
       mage: { manaMax: 300, manaStart: 150, manaRegen: 10, cost: [10, 25, 25], dmg: [20, 20, 15], speed: [11, 7.5, 10], delay: [700, 1100, 1300] }
     };
@@ -753,6 +759,7 @@ let lastPoisonTick = 0;
       "エース・キッカー": { img: "images/acekicker.png", quest: null, tag: "敵2人を跳弾で同時に狙う名探偵。シールド貫通の麻酔針で眠らせる", info: { title: "名探偵アタッカー", intro: "天才的な頭脳と特製ガジェットで戦場を推理する若き探偵。死角からの一撃と精密な麻酔弾で、どんな強敵も鮮やかに無力化する。", attack: "スニーカーからエネルギーボール（14ダメージ）を蹴り出す。1人目に当たると、近く（中距離）にいる別の敵へ自動で跳弾し、8ダメージ。跳弾は1発につき1回だけで、同じ敵には戻らない。弾数3・リロード1.6秒。", skill: "腕時計型ガジェットから麻酔針を高速で1発。シールド貫通で、命中した敵を1.5秒眠らせる（ダメージを受けると即起床）。クールタイム18秒。", tips: "眠らせた敵の近くにいるもう1人へ通常攻撃を当てると、跳弾が眠った敵に当たって起こしてしまう。撃つ順番に注意。" } }
     };
     NEW_CHARS["サンタ"] = { img: "images/santa.png", quest: "xmas_allchar", tag: "降るプレゼントとランダム技で攻める完結型。ただし被ダメージ+5", info: { title: "完結型のオールラウンダー", intro: "日付を間違えてしまったようだ！夜が明ける前に決着をつけたいらしい。", attack: "敵の頭上にプレゼントボックスを3つ落とす（そこそこ広い範囲に届き、遠すぎる時は範囲内のどこかにランダムで落ちる）。着地すると15ダメージ＋0.2秒スタン。弾数2・リロード1.5秒。", skill: "「プレゼントをあげよう！」クールタイム1.5秒の連打OKなスキルで、次のうちどれかがランダムに起こる。「靴下」…15ダメージの弾を撃ち、スローの軌跡を残す／「トナカイ」…左右にトナカイを呼び、壁を貫いて突進（20ダメージ・出にくい）／「雪だるま」…雪玉を撃つ雪だるまを召喚（HP30・ダメージ5・最大2体）／「ノックバック」…周りの敵を吹き飛ばす／「サンタダッシュ」…進行方向へダッシュ。敵との距離や壁の有無で出やすい技が変わり、近いとノックバック、壁越しだとトナカイが出やすい。弱点「限られた時間」：ダメージを受けるたびに追加で+5ダメージ。", tips: "スキルのクールタイムが短いので、2種類目の通常攻撃だと思ってバシバシ使うべし！とにかく使え。" } };   // ★画像は images/santa.png
+    NEW_CHARS["アーク・フォージ"] = { img: "images/arkforge.png", quest: null, tag: "高性能アーマーと自律型ドローンを操り、圧倒的な火力で敵を制圧する！", info: { title: "最新鋭パワードスーツの開発者", intro: "最先端技術を結集した高性能アーマーを身にまとい、手のひらから放つエネルギー兵器で戦う天才技術者。自律型の戦闘ドローンを従え、複数方向から敵を攻撃する。", attack: "手のひらの発射口から、リパルサーのような青白いエネルギー弾（10ダメージ）を撃つ。まっすぐ飛ぶだけで追加効果はない。弾数5・リロード1.2秒。", skill: "「ドローン・リンク」：小型戦闘ドローンを2機召喚し、自分の周囲を旋回させる。ドローンはそれぞれ独立したHP（16）を持ち、毎秒2ずつ減る（自分から離れすぎると毎秒4）。HPが0になると消滅。通常攻撃に連動して、ドローンも敵へ1発4ダメージの弾を撃つ。ドローンも弾も壁は貫通せず、敵の弾で壊される。クールタイム20秒。", tips: "ドローンが活動している間に積極的に攻撃しよう。ドローンが自分から離れすぎると活動時間が短くなるので、適切な距離を保って戦うのが大事。" } };
     const QUESTS = [
       { id: "login",    title: "ログインする", desc: "Googleアカウントでのログインがおすすめです（メールアドレスでもOK）。", goal: 1, event: "login", mode: "set", auto: true, reward: { char: "メープル" } },
       { id: "sniper_nocskill", char: "スナイパー太郎", title: "スナイパー太郎でスキルなしCPU撃破", desc: "スナイパー太郎を使い、スキルを一度も使わずにCPUと1対1で勝つ。", goal: 1, event: "sniperNoSkill", reward: { fx: ["bullet:スナイパー太郎:redlightning"] } },
@@ -2193,7 +2200,7 @@ fighterList().forEach(p => {
        ★熟練度クエストは、キャラ一覧（characterImages）から全キャラ分を自動で作ります＝新キャラを追加すれば自動で増えます。
        ★キャラ固有のクエストは QUESTS に char:"キャラ名" を付けて追加（クエスト画面の「キャラ別」と図鑑に出ます） */
     /* キャラ別キルエフェクト（そのキャラの「達人」クエストの報酬）。新しく作ったら KILL_FX と KILL_DRAW に登録して、ここに追加 */
-    const MASTER_FX = { "ジョーカー": "slot777", "スナイパー太郎": "scope", "白い死神": "reaper", "怪盗レッド": "phantom", "ガジェットボット": "gadget", "アクアファイター": "aqua", "サンダーマウス": "pop", "怪獣王": "kaiju", "不死鳥": "phoenix", "元素の魔女": "elemental", "既視感のあるGAY": "dejavu", "ツインブラザーズ": "twin", "聖なる使者": "holy", "ジャンパー": "jump", "ボマー": "bomb", "ブーメランボーイ": "boomerang", "パイハークン": "pie24", "ペット＆テイマー": "tamer", "メープル": "maple", "上裸の鳥頭": "bird", "エース・キッカー": "ace", "サンタ": "grave" };
+    const MASTER_FX = { "ジョーカー": "slot777", "スナイパー太郎": "scope", "白い死神": "reaper", "怪盗レッド": "phantom", "ガジェットボット": "gadget", "アクアファイター": "aqua", "サンダーマウス": "pop", "怪獣王": "kaiju", "不死鳥": "phoenix", "元素の魔女": "elemental", "既視感のあるGAY": "dejavu", "ツインブラザーズ": "twin", "聖なる使者": "holy", "ジャンパー": "jump", "ボマー": "bomb", "ブーメランボーイ": "boomerang", "パイハークン": "pie24", "ペット＆テイマー": "tamer", "メープル": "maple", "上裸の鳥頭": "bird", "エース・キッカー": "ace", "サンタ": "grave", "アーク・フォージ": "ark" };
     const MASTERY = [{ n: "ビギナー", t: 0 }, { n: "中級者", t: 30 }, { n: "上級者", t: 120 }, { n: "達人", t: 300 }];
     CHAR_NAMES.forEach(n => QUESTS.push({ id: "master_" + n, char: n, icon: "🎓", title: n + " 達人", desc: n + "で対戦して熟練度を上げ、「達人」になる。（遊ぶと+1、勝つと+2ポイント。達人は" + MASTERY[3].t + "ポイント）", goal: MASTERY[3].t, src: "mp:" + n, reward: MASTER_FX[n] ? { fx: ["kill:" + MASTER_FX[n]] } : undefined }));
 
@@ -3634,7 +3641,8 @@ const PROF={
 '怪獣王':{range:300,fire:100},
 '不死鳥':{range:200,fire:350},
 'ペット＆テイマー':{range:230,fire:300},
-'サンタ':{range:300,fire:420}};
+'サンタ':{range:300,fire:420},
+'アーク・フォージ':{range:300,fire:380}};
 const ai=[{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]}];
 const rect=p=>({x:p.x,y:p.y,w:30,h:30});
 const trapped=p=>collidesWithObstacles(rect(p));
@@ -3769,7 +3777,8 @@ function think(i){
   case'怪獣王':if(me.kc){use=NOW()-me.kc>=2000}else{const hid=!canHit(ex,ey,me,5,EP.pass,8);use=rdy&&d>=130&&cur<1&&(hid||en.ammo<=0)}break;   // 隠れて溜め、最小チャージ(2秒)で即発射
   case'ペット＆テイマー':use=rdy&&me.pets.length>=3&&(me.pets.length>=8||(me.pets.length>=5&&d<340)||(hpLow&&d<260));break;
   case'元素の魔女':use=rdy&&(me.element|0)!==mageWant;break;
-  case'サンタ':use=rdy&&d<520;break;}
+  case'サンタ':use=rdy&&d<520;break;
+  case'アーク・フォージ':use=rdy&&d<480&&!(window.ARK_DRONES||[]).some(x=>x.o===me);break;}
  if(use)useSkill(me);
  if(nm==='パイハークン'&&me.pieB&&bullets.indexOf(me.pieB)>=0){if(HY(me.pieB.x-ex,me.pieB.y-ey)<75)shootBullet(me,en);return}
  if(nm==='怪獣王'){if(!me.kc&&me.ammo>0&&d<=100&&fr>=A.nf){shootBullet(me,en);A.nf=fr+6}return}
@@ -6754,13 +6763,40 @@ function think(i){
         for (let i = 0; i < 18; i++) { const bx = gx + (i - 8.5) * 15 * S, lean = (5 + wk * 15 + Math.sin(age * .01 + i) * 3 * wk) * S; c.beginPath(); c.moveTo(bx, gy - 1 * S); c.quadraticCurveTo(bx + lean * .3, gy - 10 * S, bx + lean, gy - 19 * S); c.stroke(); }
         c.lineCap = "butt"; c.globalAlpha = 1;
       }
+      /* アーク・フォージ（達人）：2機のドローンが倒した敵を取り囲み、中央へ一斉射撃。最後に青白い光の爆発 */
+      function arkKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 80, 1550, 250), a0 = kE(age / 650);
+        c.globalAlpha = .6 * vis; c.fillStyle = "#031022"; c.beginPath(); c.rect(0, 0, W, H); c.arc(x, y, 150, 0, TAU, true); c.fill("evenodd");
+        c.globalAlpha = .16 * vis; c.fillStyle = "#6cc8ff"; c.beginPath(); c.arc(x, y, 150, 0, TAU); c.fill();
+        const R = 250 - 140 * a0, rot = -1.2 + age * .0042, boom = age > 1150 ? age - 1150 : 0, fire = age > 650 && boom <= 0;
+        if (boom <= 0) {
+          c.globalAlpha = .7 * vis; c.strokeStyle = "#7fd6ff"; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 26 + 10 * Math.sin(age * .02), 0, TAU); c.stroke();   // 照準
+          for (let i = 0; i < 2; i++) {
+            const a = rot + i * Math.PI, dx = x + Math.cos(a) * R, dy = y + Math.sin(a) * R * .75;
+            for (let k = 1; k <= 8; k++) { const ta = a - k * .07, tx = x + Math.cos(ta) * (R + k * 2), ty = y + Math.sin(ta) * (R + k * 2) * .75; c.globalAlpha = vis * (1 - k / 9) * .6; c.fillStyle = "#6cc8ff"; c.beginPath(); c.arc(tx, ty, 3.4 - k * .27, 0, TAU); c.fill(); }
+            if (fire) {   // 一斉射撃
+              const ang = Math.atan2(y - dy, x - dx), len = Math.hypot(x - dx, y - dy);
+              c.globalAlpha = .35 * vis; c.strokeStyle = "#8fd8ff"; c.lineWidth = 5; c.beginPath(); c.moveTo(dx, dy); c.lineTo(x, y); c.stroke();
+              for (let k = 0; k < 4; k++) { const f = ((age * .006) + k / 4 + i * .12) % 1, bx = dx + (x - dx) * f, by = dy + (y - dy) * f; c.globalAlpha = vis; c.fillStyle = "#fff"; c.beginPath(); c.arc(bx, by, 4.5, 0, TAU); c.fill(); c.globalAlpha = .5 * vis; c.fillStyle = "#6cc8ff"; c.beginPath(); c.arc(bx, by, 9, 0, TAU); c.fill(); }
+            }
+            c.globalAlpha = vis; if (window.__arkDroneBody) window.__arkDroneBody(c, dx, dy, Math.atan2(y - dy, x - dx), 2.2);
+          }
+        } else {   // 青白い光の爆発
+          const e = kE(boom / 380), fl = kc(1 - boom / 650);
+          const gr = c.createRadialGradient(x, y, 0, x, y, 40 + 190 * e); gr.addColorStop(0, `rgba(255,255,255,${.95 * fl})`); gr.addColorStop(.35, `rgba(150,220,255,${.7 * fl})`); gr.addColorStop(1, "rgba(60,150,255,0)");
+          c.globalAlpha = vis; c.fillStyle = gr; c.beginPath(); c.arc(x, y, 40 + 190 * e, 0, TAU); c.fill();
+          c.globalAlpha = fl * vis; c.strokeStyle = "#bfeaff"; c.lineWidth = 6 * (1 - e) + 1; c.beginPath(); c.arc(x, y, 20 + 240 * e, 0, TAU); c.stroke();
+          kGlint(c, x, y, 150 * e * fl + 10, "#bfeaff", boom * .002, vis * fl);
+        }
+        c.globalAlpha = 1;
+      }
       const KILL_DRAW = { redlightning: { dur: 1000, draw: redKill }, monochrome: { dur: 1500, draw: monoKill },
         slot777: { dur: 1500, draw: slotKill }, scope: { dur: 1300, draw: scopeKill }, reaper: { dur: 1500, draw: reaperKill }, phantom: { dur: 1500, draw: phantomKill },
         gadget: { dur: 1400, draw: gadgetKill }, aqua: { dur: 1800, draw: aquaKill },
         orochi: { dur: 2100, draw: orochiKill }, tiger: { dur: 2100, draw: tigerKill }, dragon: { dur: 2100, draw: dragonKill }, santa: { dur: 2200, draw: santaKill }, xmas: { dur: 2300, draw: xmasKill }, gate: { dur: 2300, draw: gateKill }, grave: { dur: 2300, draw: graveKill }, abyss: { dur: 2400, draw: abyssKill }, vortex: { dur: 2000, draw: vortexKill }, thunder: { dur: 1500, draw: thunderKill }, timewarp: { dur: 1900, draw: warpKill }, ambulance: { dur: 2300, draw: ambKill },
         twin: { dur: 1800, draw: twinKill }, holy: { dur: 1800, draw: holyKill }, jump: { dur: 1800, draw: jumpKill }, bomb: { dur: 1800, draw: bombKill }, boomerang: { dur: 1800, draw: boomKill },
         pie24: { dur: 1800, draw: pieKill }, tamer: { dur: 1800, draw: tamerKill }, maple: { dur: 1800, draw: mapleKill }, bird: { dur: 1800, draw: birdKill }, ace: { dur: 1800, draw: aceKill }, pop: { dur: 1300, draw: popKill }, kaiju: { dur: 1500, draw: kaijuKill },
-        phoenix: { dur: 1500, draw: phoenixKill }, elemental: { dur: 1500, draw: elementalKill }, dejavu: { dur: 1500, draw: dejavuKill } };
+        ark: { dur: 1800, draw: arkKill }, phoenix: { dur: 1500, draw: phoenixKill }, elemental: { dur: 1500, draw: elementalKill }, dejavu: { dur: 1500, draw: dejavuKill } };
       const BULLET_DRAW = { redlightning: redBullet };
       const eqKill = () => { const V = window.__fxPv; if (V && V.type === "kill") return V.id; const id = cfg.fx.kill || "std"; return isFxOwned("kill:" + id) ? id : "std"; };
       const eqBullet = ch => { const V = window.__fxPv; if (V && V.type === "bullet" && V.char === ch) return V.id; const id = (cfg.fx.bullet || {})[ch] || "std"; return isFxOwned("bullet:" + ch + ":" + id) ? id : "std"; };
@@ -8154,6 +8190,7 @@ function think(i){
         (typeof turrets !== "undefined" ? turrets : []).forEach(u => E.push({ key: u, team: teamOf(u.owner), cx: u.x, cy: u.y, hp: u.hp === undefined ? 80 : u.hp }));
         (window.SANTA_SNOWS || []).forEach(m => E.push({ key: m, team: -1, cx: m.x + 13, cy: m.y + 13, hp: m.hp }));
         (window.PSN || []).forEach(m => E.push({ key: m, team: teamOf(m.o), cx: m.x + 13, cy: m.y + 13, hp: m.hp }));
+        (window.ARK_DRONES || []).forEach(m => E.push({ key: m, team: teamOf(m.o), cx: m.x, cy: m.y, hp: m.hp }));   // アーク・フォージのドローン
         return E;
       };
       function before() {
@@ -8859,9 +8896,9 @@ function think(i){
       ];
       const EV = EVENT_DEFS[0], KEY = EV.key;   // サンタ戦で使う定義と、その進行度の保存キー
       const LV = [
-        { name: "ノーマルサンタ", hp: 100, atk: 20, snowHp: 20, snowN: 2, deer: 80, tri: false, shot: 1100, gift: 4200, deerCd: 8500, snowCd: 15000, gifts: 1, deers: 1, dashCd: 4200 },
-        { name: "ブチ切れサンタ", hp: 120, atk: 30, snowHp: 30, snowN: 3, deer: 90, tri: false, shot: 850, gift: 3300, deerCd: 6800, snowCd: 13000, gifts: 2, deers: 1, dashCd: 3400 },
-        { name: "逆ギレ覚醒サンタ", hp: 150, atk: 40, snowHp: 50, snowN: 4, deer: 100, tri: true, shot: 900, gift: 2600, deerCd: 5200, snowCd: 11000, gifts: 3, deers: 2, dashCd: 2600 }
+        { name: "ノーマルサンタ", hp: 100, atk: 20, snowHp: 10, snowN: 2, deer: 80, tri: false, shot: 1100, gift: 4200, deerCd: 8500, snowCd: 15000, gifts: 1, deers: 1, dashCd: 4200 },
+        { name: "ブチ切れサンタ", hp: 120, atk: 30, snowHp: 10, snowN: 3, deer: 90, tri: false, shot: 850, gift: 3300, deerCd: 6800, snowCd: 13000, gifts: 2, deers: 1, dashCd: 3400 },
+        { name: "逆ギレ覚醒サンタ", hp: 150, atk: 40, snowHp: 10, snowN: 4, deer: 100, tri: true, shot: 900, gift: 2600, deerCd: 5200, snowCd: 11000, gifts: 3, deers: 2, dashCd: 2600 }
       ];
 
       /* ---- 限定マップ：壊せる壁だらけ（ギミックなし） ---- */
@@ -9589,6 +9626,220 @@ function think(i){
           set(GBL, q.bl.map(a => ({ x: a[0], y: a[1], vx: a[2], vy: a[3], kind: a[4] })));
           fl.forEach((p, i) => { if (p) p.xstun = t + (q.st[i] || 0); });
         } else if (ALL.some(a => a.length)) ALL.forEach(a => { a.length = 0; });
+      };
+    })();
+  </script>
+  <script>
+    /* ============================================================
+       新キャラ「アーク・フォージ」（プレイヤー用）
+       通常攻撃：手のひらのリパルサーから青白いエネルギー弾（10ダメージ）
+       スキル「ドローン・リンク」：小型戦闘ドローンを2機召喚。それぞれ独立したHPを持ち、自分の周囲を旋回。
+         ・HPは毎秒2ずつ減る（プレイヤーから離れすぎると毎秒4）／HP0で消滅
+         ・通常攻撃を撃つと、ドローンも連動して敵へ1発4ダメージの弾を撃つ
+         ・壁は貫通せず、ぶつかりそうなら回り込む
+       ※ 数値は先頭の BALANCE["アーク・フォージ"] と BALANCE_X.ark で調整できます（召喚数・HP・減少速度・旋回距離・攻撃力など）
+       ============================================================ */
+    (function () {
+      const NM = "アーク・フォージ", now = () => Date.now(), X = BALANCE_X.ark;
+      const isA = p => !!p && p.charName === NM;
+      const anyA = () => fighterList().some(isA);
+      const DR = [], RG = [], ABL = [];   // ドローン／召喚の輪／ゲスト用の弾の光
+      window.ARK_DRONES = DR;             // 他のスクリプト（跳弾など）がドローンを「召喚物」として扱えるよう公開
+      const cen = p => ({ x: p.x + (p.w || 30) / 2, y: p.y + (p.h || 30) / 2 });
+      const inArena = (x, y, m) => x > m && y > m && x < ARENA_W - m && y < ARENA_H - m;
+      const free = (x, y) => inArena(x, y, 8) && !collidesWithObstacles({ x: x - 10, y: y - 10, w: 20, h: 20 });
+      const foes = o => foesOf(o).filter(q => q && q.hp > 0 && !q.out);
+      const guest = () => typeof onl !== "undefined" && onl.running && !onl.isHost;
+
+      /* ---- スキル：ドローン・リンク ---- */
+      function summon(p) {
+        for (let i = DR.length - 1; i >= 0; i--) if (DR[i].o === p) DR.splice(i, 1);   // 使い直すと古い機体は入れ替え
+        const pc = cen(p), n = X.droneN, t = now();
+        for (let i = 0; i < n; i++) {
+          const ang = i * TAU / n + Math.random() * .3, r = n > 1 ? X.orbitMin + (X.orbitMax - X.orbitMin) * i / (n - 1) : (X.orbitMin + X.orbitMax) / 2;
+          let x = pc.x + Math.cos(ang) * r, y = pc.y + Math.sin(ang) * r;
+          if (!free(x, y)) { x = pc.x; y = pc.y; }
+          DR.push({ o: p, x, y, hp: X.droneHp, mx: X.droneHp, ang, dir: i % 2 ? -1 : 1, r, face: ang, lt: t, ft: 0, hf: 0, tr: [] });
+        }
+        RG.push({ x: pc.x, y: pc.y, t0: t });
+        return true;
+      }
+      const _us = useSkill;
+      useSkill = function (p) {
+        if (!isA(p)) return _us(p);
+        const tm = now();
+        if (!gameActive || p.hp <= 0 || (p.xstun || 0) > tm || (p.stunUntil || 0) > tm || tm - p.skillLastUsed < p.skillCooldown) return;
+        if (summon(p)) p.skillLastUsed = tm;
+      };
+
+      /* ---- 通常攻撃に連動してドローンが撃つ ---- */
+      function droneFire(p, b0) {
+        const mine = DR.filter(d => d.o === p && d.hp > 0); if (!mine.length) return;
+        const sp = Math.hypot(b0.vx, b0.vy) || 1, ux = b0.vx / sp, uy = b0.vy / sp, t = now();
+        const ents = (window.targetsOf ? window.targetsOf(p) : foes(p)).filter(q => q && q.hp > 0 && !q.out && q.x > -100);   // キャラ＋ペット等の召喚物
+        mine.forEach(d => {
+          let best = null, bd = 1e9;
+          ents.forEach(q => {   // 自分の狙いの方向（約35度以内）にいる、ドローンから一番近い敵へ
+            const c = cen(q), vx = c.x - d.x, vy = c.y - d.y, m = Math.hypot(vx, vy) || 1;
+            if ((vx * ux + vy * uy) / m < .82) return;
+            if (m < bd) { bd = m; best = { x: c.x, y: c.y }; }
+          });
+          let ax = ux, ay = uy;   // 該当なしなら、自分と同じ方向へ
+          if (best) { const vx = best.x - d.x, vy = best.y - d.y, m = Math.hypot(vx, vy) || 1; ax = vx / m; ay = vy / m; }
+          bullets.push({ x: d.x + ax * 12, y: d.y + ay * 12, r: X.droneBulletR, vx: ax * X.droneBulletSpeed, vy: ay * X.droneBulletSpeed, from: p, damage: X.droneDmg, lifeTime: 0, maxLifeTime: p.bulletLifeTimeMax || 1000, ark: 1, adrone: 1 });
+          d.face = Math.atan2(ay, ax); d.ft = t;
+        });
+      }
+      const _sb = shootBullet;
+      shootBullet = function (s, t) {
+        if (!isA(s)) return _sb(s, t);
+        const n0 = bullets.length, r = _sb(s, t);
+        let b0 = null;
+        for (let i = n0; i < bullets.length; i++) if (bullets[i].from === s) { bullets[i].ark = 1; if (!b0) b0 = bullets[i]; }
+        if (b0) {
+          const sp = Math.hypot(b0.vx, b0.vy) || 1; s._arkFlash = now(); s._arkDir = [b0.vx / sp, b0.vy / sp];   // 手のひらが光る
+          if (!guest()) droneFire(s, b0);
+        }
+        return r;
+      };
+
+      /* ---- ドローンの移動（壁を避けて回り込む） ---- */
+      function moveDrone(d, tx, ty, dt, pc) {
+        if (!free(d.x, d.y)) {   // 壁の中に入ってしまったら、持ち主のほうへ抜け出す
+          const vx = pc.x - d.x, vy = pc.y - d.y, m = Math.hypot(vx, vy) || 1; d.x += vx / m * 3; d.y += vy / m * 3; return;
+        }
+        const dx = tx - d.x, dy = ty - d.y;
+        if (Math.hypot(dx, dy) < .5) return;
+        const k = 1 - Math.pow(1 - X.follow, dt * 60);   // 少し遅れて滑らかに追従
+        let sx = dx * k, sy = dy * k;
+        const sp = Math.hypot(sx, sy), mx = X.maxSpeed * dt * 60;
+        if (sp > mx) { sx *= mx / sp; sy *= mx / sp; }
+        if (free(d.x + sx, d.y + sy)) { d.x += sx; d.y += sy; return; }
+        if (free(d.x + sx, d.y)) { d.x += sx; return; }
+        if (free(d.x, d.y + sy)) { d.y += sy; return; }
+        const m = Math.hypot(sx, sy) || 1, sc = Math.max(1, Math.min(3, mx / m));
+        for (const a of [.7, -.7, 1.4, -1.4, 2.1, -2.1]) {   // 迂回
+          const c = Math.cos(a), s = Math.sin(a), vx = (sx * c - sy * s) * sc, vy = (sx * s + sy * c) * sc;
+          if (free(d.x + vx, d.y + vy)) { d.x += vx; d.y += vy; return; }
+        }
+      }
+
+      /* ---- 毎フレームの処理（ホスト／ひとり用のみ） ---- */
+      function tick() {
+        const t = now(), fl = fighterList();
+        for (let i = DR.length - 1; i >= 0; i--) {
+          const d = DR[i], alive = fl.includes(d.o) && d.o.hp > 0 && !d.o.out;
+          if (d.hp <= 0 || !alive) { if (alive || d.hp <= 0) explosions.push({ x: d.x, y: d.y, r: 26, life: 10 }); DR.splice(i, 1); }
+        }
+        DR.forEach(d => {
+          const dt = Math.min(.05, Math.max(0, (t - (d.lt || t)) / 1000)); d.lt = t;
+          const pc = cen(d.o); d.ang += d.dir * X.orbitSpeed * dt;
+          moveDrone(d, pc.x + Math.cos(d.ang) * d.r, pc.y + Math.sin(d.ang) * d.r, dt, pc);
+          DR.forEach(e => {   // 同じ持ち主の機体どうしが重ならないように
+            if (e === d || e.o !== d.o) return;
+            const dx = d.x - e.x, dy = d.y - e.y, m = Math.hypot(dx, dy) || 1;
+            if (m < 24) { const nx = d.x + dx / m * (24 - m) * .3, ny = d.y + dy / m * (24 - m) * .3; if (free(nx, ny)) { d.x = nx; d.y = ny; } }
+          });
+          const dist = Math.hypot(d.x - pc.x, d.y - pc.y);
+          d.far = dist > X.farDist;
+          d.hp -= (d.far ? X.decay * X.farMul : X.decay) * dt;   // 離れすぎると減りが速い
+          d.tr.push({ x: d.x, y: d.y }); if (d.tr.length > 10) d.tr.shift();
+          if (t - d.ft > 250) d.face = d.ang + d.dir * Math.PI / 2;   // 撃っていない間は進行方向を向く
+        });
+        for (let j = bullets.length - 1; j >= 0; j--) {   // ドローンへの被弾（敵の弾）
+          const b = bullets[j]; if (!b.from || b.explosive) continue;
+          const hit = d => teamOf(d.o) !== teamOf(b.from) && circleHitRect(b, { x: d.x - 12, y: d.y - 12, w: 24, h: 24 });
+          if (b.isBoomerang) { DR.forEach(d => { if (hit(d) && window.boomHit && window.boomHit(b, d)) { d.hp -= b.damage; d.hf = t; } }); continue; }   // ブーメランは消えない
+          const m = DR.find(hit); if (m) { m.hp -= b.damage; m.hf = t; bullets.splice(j, 1); }
+        }
+        for (let i = RG.length - 1; i >= 0; i--) if (t - RG[i].t0 >= 500) RG.splice(i, 1);
+      }
+      const _up = update;
+      update = function () {
+        _up();
+        if (window.__introOn) return;
+        if (!gameActive) { if (DR.length) DR.length = 0; return; }
+        if (anyA() || DR.length) { try { tick(); } catch (e) { console.error("ark", e); } }
+      };
+
+      /* ---- 描画 ---- */
+      /* ドローンの見た目（添付イメージ）：クリーム色×金の装甲／黒いフチ／青く光る丸いレンズ／翼／青い渦の軌跡 */
+      function body(g, x, y, face, s) {
+        const t = now(), K = "#17121a", CR = "#f3e9d6", GD = "#e0a93a";
+        g.save(); g.translate(x, y);
+        g.lineCap = "round"; g.lineWidth = 1.4; g.strokeStyle = "rgba(100,205,255,.9)";   // 回る青い渦
+        for (let i = 0; i < 2; i++) { const a = t * .012 + i * Math.PI; g.beginPath(); g.arc(0, 0, 16 * s, a, a + 1.1); g.stroke(); }
+        g.rotate(face); g.scale(s, s); g.lineJoin = "round"; g.lineWidth = 1.5; g.strokeStyle = K;
+        g.fillStyle = "rgba(90,200,255,.65)"; g.beginPath(); g.ellipse(-15, 0, 4.5, 2.6, 0, 0, TAU); g.fill();   // 推進器の光
+        g.fillStyle = "#2a2430"; g.beginPath(); g.rect(-13, -3, 5, 6); g.fill(); g.stroke();
+        [-1, 1].forEach(sd => {   // 翼
+          g.fillStyle = CR; g.beginPath(); g.moveTo(3, sd * 5); g.lineTo(-6, sd * 15); g.lineTo(-12, sd * 12); g.lineTo(-7, sd * 4); g.closePath(); g.fill(); g.stroke();
+          g.fillStyle = GD; g.beginPath(); g.moveTo(-3, sd * 10); g.lineTo(-6, sd * 15); g.lineTo(-12, sd * 12); g.lineTo(-9, sd * 8); g.closePath(); g.fill(); g.stroke();
+          g.fillStyle = "#5fd8ff"; g.fillRect(-6, sd * 8.2 - 1, 4, 2);   // 青いライン
+        });
+        g.fillStyle = CR; g.beginPath(); g.ellipse(0, 0, 11, 8, 0, 0, TAU); g.fill();   // 本体
+        g.fillStyle = GD; g.beginPath(); g.ellipse(0, 0, 11, 8, 0, Math.PI * .5, Math.PI * 1.5); g.closePath(); g.fill();
+        g.beginPath(); g.ellipse(0, 0, 11, 8, 0, 0, TAU); g.stroke();
+        g.fillStyle = GD; g.beginPath(); g.arc(6, 0, 6.2, 0, TAU); g.fill(); g.stroke();   // レンズ
+        g.fillStyle = K; g.beginPath(); g.arc(6, 0, 4.4, 0, TAU); g.fill();
+        const gr = g.createRadialGradient(6, 0, 0, 6, 0, 4); gr.addColorStop(0, "#fff"); gr.addColorStop(.55, "#aef0ff"); gr.addColorStop(1, "#28b4ff");
+        g.shadowColor = "#4cf"; g.shadowBlur = 9; g.fillStyle = gr; g.beginPath(); g.arc(6, 0, 3.5, 0, TAU); g.fill();
+        g.restore();
+      }
+      window.__arkDroneBody = body;
+
+      function drawAll() {
+        const g = ctx, t = now();
+        RG.forEach(r => { const k = (t - r.t0) / 500; g.globalAlpha = Math.max(0, 1 - k); g.strokeStyle = "#7fd6ff"; g.lineWidth = 3; g.beginPath(); g.arc(r.x, r.y, 14 + 90 * k, 0, TAU); g.stroke(); });
+        DR.forEach(d => {
+          for (let i = 1; i < d.tr.length; i++) { g.globalAlpha = i / d.tr.length * .55; g.strokeStyle = "#6cc8ff"; g.lineWidth = 2.4 * i / d.tr.length + .4; g.lineCap = "round"; g.beginPath(); g.moveTo(d.tr[i - 1].x, d.tr[i - 1].y); g.lineTo(d.tr[i].x, d.tr[i].y); g.stroke(); }
+          g.globalAlpha = 1; body(g, d.x, d.y, d.face, 1);
+          if (t - d.hf < 90) { g.globalAlpha = .6; g.fillStyle = "#fff"; g.beginPath(); g.arc(d.x, d.y, 11, 0, TAU); g.fill(); }
+          const f = Math.max(0, Math.min(1, d.hp / d.mx)), bw = 22;   // 残りHP
+          g.globalAlpha = .85; g.fillStyle = "#0a1a2a"; g.fillRect(d.x - bw / 2 - 1, d.y - 21, bw + 2, 5);
+          g.fillStyle = d.far ? "#ff6a5a" : f > .35 ? "#5cd0ff" : "#ffb04a"; g.fillRect(d.x - bw / 2, d.y - 20, bw * f, 3);
+        });
+        g.globalAlpha = 1; g.lineCap = "butt";
+        (guest() ? ABL : bullets.filter(b => b.ark)).forEach(b => {   // 青白いエネルギー弾の光
+          const r = b.r || 5, gr = g.createRadialGradient(b.x, b.y, 0, b.x, b.y, r * 3.2);
+          gr.addColorStop(0, "rgba(225,248,255,.95)"); gr.addColorStop(.4, "rgba(90,200,255,.55)"); gr.addColorStop(1, "rgba(60,160,255,0)");
+          g.fillStyle = gr; g.beginPath(); g.arc(b.x, b.y, r * 3.2, 0, TAU); g.fill();
+          g.fillStyle = "#fff"; g.beginPath(); g.arc(b.x, b.y, Math.max(1.5, r * .55), 0, TAU); g.fill();
+        });
+        fighterList().forEach(p => {   // 手のひらの発射口の光
+          if (!isA(p) || !p._arkFlash || t - p._arkFlash > 140 || !p._arkDir) return;
+          const c = cen(p), k = 1 - (t - p._arkFlash) / 140, x = c.x + p._arkDir[0] * 16, y = c.y + p._arkDir[1] * 16;
+          const gr = g.createRadialGradient(x, y, 0, x, y, 16); gr.addColorStop(0, `rgba(225,248,255,${.9 * k})`); gr.addColorStop(1, "rgba(80,190,255,0)");
+          g.fillStyle = gr; g.beginPath(); g.arc(x, y, 16, 0, TAU); g.fill();
+        });
+        g.globalAlpha = 1;
+      }
+      const _dr = draw; draw = function () { _dr(); if (ctx && (anyA() || DR.length || ABL.length)) { try { drawAll(); } catch (e) { } } };
+
+      /* ---- オンライン同期（ホスト→ゲスト） ---- */
+      const _bs = buildSnap;
+      buildSnap = function () {
+        const s = _bs();
+        if (anyA() || DR.length) {
+          const R = Math.round, fl = fighterList();
+          s.ak = { d: DR.map(m => [fl.indexOf(m.o), R(m.x), R(m.y), +m.hp.toFixed(1), m.mx, +m.ang.toFixed(2), +m.face.toFixed(2), m.far ? 1 : 0]),
+            b: bullets.filter(b => b.ark).map(b => [R(b.x), R(b.y), b.r]) };
+        }
+        return s;
+      };
+      const _as = applySnap;
+      applySnap = function (s) {
+        _as(s);
+        if (s.ak) {
+          const fl = fighterList();
+          s.ak.d.forEach((a, i) => {
+            const m = DR[i] || (DR[i] = { tr: [], hf: 0, ft: 0, dir: 1 });
+            m.o = fl[a[0]]; m.x = a[1]; m.y = a[2]; m.hp = a[3]; m.mx = a[4]; m.ang = a[5]; m.face = a[6]; m.far = !!a[7];
+            m.tr.push({ x: m.x, y: m.y }); if (m.tr.length > 10) m.tr.shift();
+          });
+          DR.length = s.ak.d.length;
+          ABL.length = 0; s.ak.b.forEach(a => ABL.push({ x: a[0], y: a[1], r: a[2] }));
+        } else { DR.length = 0; ABL.length = 0; }
       };
     })();
   </script>
