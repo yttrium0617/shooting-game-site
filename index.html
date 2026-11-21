@@ -1692,8 +1692,24 @@ if (shooter.charName === "ツインブラザーズ") {
       );
     }
 
-    function updateBullets() {
-      for (let i = bullets.length - 1; i >= 0; i--) {
+    /* ver78：ブーメランの命中管理。同じ相手には「往路で1回・復路で1回」まで（往復で2回当たれば2倍ダメージ）。
+       キャラだけでなく、ペット・タレット・雪だるまなどの召喚物にも同じルールで当たり、どれに当たっても弾は消えない */
+    function boomHit(b, key) {
+      const leg = b.goingOut ? 1 : 2;
+      if (!b.bhit) b.bhit = new Map();
+      const m = b.bhit.get(key) || 0;
+      if (m & leg) return false;
+      b.bhit.set(key, m | leg);
+      return true;
+    }
+    window.boomHit = boomHit;
+    function boomerangStrike(b) {
+      (window.foesOf ? foesOf(b.from) : [opponentOf(b.from)]).forEach(f => {
+        if (f && f.hp > 0 && !f.out && circleHitRect(b, f) && boomHit(b, f)) f.hp -= b.damage;
+      });
+    }
+
+    function updateBullets() {      for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         b.x += b.vx; b.y += b.vy;
         b.lifeTime++;
@@ -1735,6 +1751,7 @@ if (shooter.charName === "ツインブラザーズ") {
 }
 
 
+        if (b.isBoomerang) boomerangStrike(b);   // ver78：重なっている敵全員に、往路・復路で1回ずつダメージ（消えない）
         if (b.explosive && Math.sqrt(dx*dx+dy*dy) < 40) {
           explode(b);
           bullets.splice(i, 1);
@@ -1768,16 +1785,15 @@ if (shooter.charName === "ツインブラザーズ") {
           bullets.splice(i, 1);
           continue;
         }
+        if (b.isBoomerang && (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height)) {   // ver78：画面端に出たら消えずに折り返す
+          b.goingOut = false; b.x = Math.max(0, Math.min(canvas.width, b.x)); b.y = Math.max(0, Math.min(canvas.height, b.y));
+        }
         if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
           if (b.explosive) explode(b);
           bullets.splice(i, 1); continue;
         }
+        if (b.isBoomerang) continue;   // ブーメランは boomerangStrike() で処理済み（当たっても消えない）
         if (circleHitRect(b, target)) {
-          if (b.isBoomerang) {   // ブーメラン：消えずに飛び続け、行き・帰りで1回ずつダメージ
-            const leg = b.goingOut ? "out" : "back";
-            if (b.hitLeg !== leg) { b.hitLeg = leg; target.hp -= b.damage; }
-            continue;
-          }
           if (b.explosive) explode(b);
           else target.hp -= b.damage;
 
@@ -2064,8 +2080,8 @@ fighterList().forEach(p => {
         title:  "不屈の炎",
         intro:  "HPが初期で低い代わりに、不屈の体を手に入れた。",
         attack: "HPが減るほど弾のダメージ（10→最大50）・弾速・移動速度が上がり、リロードが遅くなる。HP1の時だけ青白い炎の弾になり、通った跡が1秒間燃え、踏んだ敵に火傷（0.8秒ごとに2ダメージ×3回、重複なし）。",
-        skill:  "1試合に1度、死ぬダメージを受けるとHP1で生き残り、状態異常を回復して敵をノックバック。その後、1回だけ全ダメージを無効化するシールドを得る。",
-        tips:   "HPが高いうちは弱い。蘇生後はシールドを活かして一気に攻めよう。回復パッドの回復量は上限70まで。"
+        skill:  "1試合に1度、死ぬダメージを受けるとHP1で生き残り、状態異常を回復して敵をノックバック。その後、約1.5秒の無敵と、1回だけ全ダメージを無効化するシールドを得る（無敵の間はシールドは剥がれない）。",
+        tips:   "HPが高いうちは弱い。蘇生後の無敵とシールドを活かして一気に攻めよう。回復パッドの回復量は上限70まで。"
       },
       "ペット＆テイマー": {
         title:  "雑なテイマー",
@@ -4922,6 +4938,40 @@ function think(i){
         bullets.push({ x: s.x + 15, y: s.y + 15, r: 4, vx: dx / m * v, vy: dy / m * v, from: s, damage: s.damage, lifeTime: 0, maxLifeTime: 65, ph: s.hp <= 1.001 ? 2 : 1, pl: (s.damage - 10) / 40, lx: s.x + 15, ly: s.y + 15 });
         s.ammo--; s.lastReload = now();
       };
+      /* ver78：不死鳥の「蘇生」と「蘇生直後の無敵」。
+         他キャラの追加ダメージ（update の外側で当たるもの）で蘇生を飛ばされないよう、
+         この関数を update の最後（一番外側）でも呼ぶ。何度呼んでも同じ結果になる。 */
+      const INV_MS = 1500;   // 蘇生直後の無敵時間（ms）。この間はシールドも剥がれない。長さはここで調整
+      function guard() {
+        const t = now();
+        fighterList().forEach(p => {
+          if (!isP(p) || p._pk) return;   // 異世界へ退避中のHP（+1e6）は触らない
+          if (p._ph == null) p._ph = p.hp;
+          if (p.rvInv && t >= p.rvInv) p.rvInv = 0;   // 無敵の終了（シールドは残る）
+          if (p.rvInv) {   // 無敵中：弾・爆発・火傷・安全地帯・召喚物など、どのダメージも無効
+            if (p.hp < p._ph - .001) p.hp = p._ph;
+            p.burn = null; p.stunUntil = 0;
+          } else if (p.shield && p.hp < p._ph - .001) {   // 無敵が切れた後：シールドが1回分のダメージを無効化して消える
+            p.hp = p._ph; p.shield = false; p.burn = null;
+            explosions.push({ x: p.x + 15, y: p.y + 15, r: 30, life: 8 });
+          } else if (p.hp <= 0 && !p.rv) {   // 不屈：一度だけHP1で蘇生
+            p.rv = 1; p.hp = 1; p._ph = 1; p.rvInv = t + INV_MS; p.shield = true; p.stunUntil = 0; p.hasteUntil = 0; p.burn = null;
+            const cx = p.x + 15, cy = p.y + 15;
+            explosions.push({ x: cx, y: cy, r: 120, life: 15 });
+            (window.targetsOf ? window.targetsOf(p) : [foe(p)]).forEach(e => {
+              const dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
+              if (d < 200) for (let k = 0; k < 30; k++) {
+                const nx = Math.max(0, Math.min(ARENA_W - 30, e.x + dx / d * 5)), ny = Math.max(0, Math.min(ARENA_H - 30, e.y + dy / d * 5));
+                if (collidesWithObstacles({ x: nx, y: ny, w: 30, h: 30 })) break;
+                e.x = nx; e.y = ny;
+              }
+            });
+          }
+          if (p.hp > 70) p.hp = 70;
+          p._ph = p.hp;
+        });
+      }
+      window.__phoenixGuard = guard;
       const _up = update;
       update = function () {
         fighterList().forEach(p => { // HPに応じた能力
@@ -4937,26 +4987,7 @@ function think(i){
           if (!p.burn) { for (const z of zones) if (teamOf(z.o) !== teamOf(p) && Math.hypot(p.x + 15 - z.x, p.y + 15 - z.y) < 26) { p.burn = { n: 3, nx: t + 800 }; break; } }
           else if (t >= p.burn.nx) { p.hp -= 2; p.burn.nx += 800; if (--p.burn.n <= 0) p.burn = null; }
         });
-        fighterList().forEach(p => {
-          if (!isP(p)) return;
-          if (p.hp <= 0 && !p.rv) { // 不屈：蘇生
-            p.rv = 1; p.hp = 1; p._ph = 1; p.shield = true; p.stunUntil = 0; p.hasteUntil = 0; p.burn = null;
-            const cx = p.x + 15, cy = p.y + 15;
-            explosions.push({ x: cx, y: cy, r: 120, life: 15 });
-            (window.targetsOf ? window.targetsOf(p) : [foe(p)]).forEach(e => {
-            const dx = e.x + 15 - cx, dy = e.y + 15 - cy, d = Math.hypot(dx, dy) || 1;
-            if (d < 200) for (let k = 0; k < 30; k++) {
-              const nx = Math.max(0, Math.min(ARENA_W - 30, e.x + dx / d * 5)), ny = Math.max(0, Math.min(ARENA_H - 30, e.y + dy / d * 5));
-              if (collidesWithObstacles({ x: nx, y: ny, w: 30, h: 30 })) break;
-              e.x = nx; e.y = ny;
-            }
-            });
-            return;
-          }
-          if (p.hp > 70) p.hp = 70;
-          if (p.shield && p.hp < p._ph - .001) { p.hp = p._ph; p.shield = false; explosions.push({ x: p.x + 15, y: p.y + 15, r: 30, life: 8 }); }
-          p._ph = p.hp;
-        });
+        guard();   // ver78：蘇生・無敵の判定（update の一番外側でももう一度呼ぶ）
       };
       function flame(x, y, r, a, blue, b) {
         const c = blue ? ["255,255,255", "120,200,255", "60,100,255"] : ["255,255,200", "255,150,40", "255,60,0"];
@@ -4977,7 +5008,7 @@ function think(i){
           bullets.forEach(b => { if (b.ph) flame(b.x, b.y, 5 + 9 * b.pl + (b.ph === 2 ? 4 : 0), 1, b.ph === 2, b); });
           fighterList().forEach(p => {
             if (p.burn) flame(p.x + 15, p.y, 8, 1, false);
-            if (isP(p) && p.shield) { ctx.save(); ctx.strokeStyle = "rgba(120,220,255,.9)"; ctx.lineWidth = 3; ctx.shadowColor = "#6cf"; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(p.x + 15, p.y + 15, 24, 0, 6.283); ctx.stroke(); ctx.restore(); }
+            if (isP(p) && p.shield && !(p.rvInv > t && p.rvInv - t < 500 && Math.floor(t / 80) % 2)) { ctx.save(); ctx.strokeStyle = "rgba(120,220,255,.9)"; ctx.lineWidth = 3; ctx.shadowColor = "#6cf"; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(p.x + 15, p.y + 15, 24, 0, 6.283); ctx.stroke(); ctx.restore(); }
           });
         } catch (e) { }
       };
@@ -5040,6 +5071,7 @@ function think(i){
       const petTakeHits = m => {
         for (let j = bullets.length - 1; j >= 0; j--) {
           const b = bullets[j]; if (teamOf(b.from) === teamOf(m.o) || !sweepHit(b, m)) continue;
+          if (b.isBoomerang) { if (window.boomHit && window.boomHit(b, m.k || m)) m.hp -= b.damage; continue; }   // ver78：ブーメランはペット・タレットに当たっても消えない（往路・復路で1回ずつ）
           if (b.explosive) {   // 爆発弾は範囲内の敵ペット全員にダメージ
             const rad = b.explosiveRadius || b.r || (b.from && b.from.bulletRadius) || 20;
             explode(b);
@@ -8113,7 +8145,17 @@ function think(i){
         _mp(p, u, d, l, r);
       };
       /* ---------- 毎フレーム ---------- */
-      let rec = [], hp0 = new Map();
+      let rec = [], snapE = [];
+      /* ver78：敵になりうる全存在（キャラ＋ペット・タレット・雪だるま）。跳弾は召喚物に当たっても発生し、召喚物へも飛ぶ */
+      const entsAll = () => {
+        const E = [];
+        fighterList().forEach(q => { if (q && !q.out && q.x > -100) E.push({ key: q, team: teamOf(q), cx: q.x + 15, cy: q.y + 15, hp: q.hp, fighter: 1 }); });
+        (window.TAMER_MINS || []).forEach(m => E.push({ key: m, team: teamOf(m.o), cx: m.x + 10, cy: m.y + 10, hp: m.hp }));
+        (typeof turrets !== "undefined" ? turrets : []).forEach(u => E.push({ key: u, team: teamOf(u.owner), cx: u.x, cy: u.y, hp: u.hp === undefined ? 80 : u.hp }));
+        (window.SANTA_SNOWS || []).forEach(m => E.push({ key: m, team: -1, cx: m.x + 13, cy: m.y + 13, hp: m.hp }));
+        (window.PSN || []).forEach(m => E.push({ key: m, team: teamOf(m.o), cx: m.x + 13, cy: m.y + 13, hp: m.hp }));
+        return E;
+      };
       function before() {
         const t = now(), fl = fighterList();
         // 異世界：同じ異世界にいる者どうしは普通に会える。別世界の者がいる間だけ、異世界側を画面外に退避させる
@@ -8144,7 +8186,7 @@ function think(i){
         }
         // 跳弾の判定用に、このフレーム前の状態を記録
         rec = bullets.filter(b => b.ace && !b.bn && b.from).map(b => ({ b, x: b.x, y: b.y, vx: b.vx, vy: b.vy }));
-        hp0 = new Map(fl.map(q => [q, q && q.hp]));
+        snapE = entsAll().filter(e => e.hp > 0);   // このフレーム前の状態（キャラ＋召喚物）
         for (let i = lines.length - 1; i >= 0; i--) if (lines[i].until < t) lines.splice(i, 1);
       }
       function after() {
@@ -8160,17 +8202,25 @@ function think(i){
           if (!p || !(p._slp > t)) { if (p && p._slp) p._slp = 0; return; }
           if (p.hp < p._sh - .01) { p.stunUntil = 0; p._slp = 0; } else if (p.hp > p._sh) p._sh = p.hp;
         });
-        rec.forEach(r => {   // 跳弾：1人目に当たって消えたら、近くの別の敵へ（1回だけ・同じ敵へは戻らない）
+        rec.forEach(r => {   // 跳弾：1人目（キャラ or 召喚物）に当たって消えたら、近くの別の敵（キャラ or 召喚物）へ（1回だけ・同じ相手へは戻らない）
           if (bullets.includes(r.b)) return;
-          const own = r.b.from, ex = r.x + r.vx, ey = r.y + r.vy;
-          const a = fl.find(q => q && teamOf(q) !== teamOf(own) && hp0.get(q) - q.hp >= .5 && Math.hypot(q.x + 15 - ex, q.y + 15 - ey) <= 48);
+          const own = r.b.from, ex = r.x + r.vx, ey = r.y + r.vy, myT = teamOf(own);
+          const curL = entsAll(), cur = new Map(curL.map(e => [e.key, e]));
+          let a = null, ad = 1e9;
+          snapE.forEach(sn => {
+            if (sn.team === myT) return;
+            const c0 = cur.get(sn.key), hpN = c0 ? c0.hp : 0, px = c0 ? c0.cx : sn.cx, py = c0 ? c0.cy : sn.cy;   // 倒されて消えた召喚物も1人目になれる
+            if (sn.hp - hpN < (sn.fighter ? .5 : 2)) return;   // 召喚物は自然減(1/秒)を除くため2以上の減少で判定
+            const d = Math.hypot(px - ex, py - ey);
+            if (d <= 48 && d < ad) { ad = d; a = { key: sn.key, x: px, y: py }; }
+          });
           if (!a) return;
-          const ax = a.x + 15, ay = a.y + 15;
-          const c = fl.filter(q => q && q !== a && teamOf(q) !== teamOf(own) && q.hp > 0 && !q.out && q.x > -100 && Math.hypot(q.x - a.x, q.y - a.y) <= 300).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))[0];
+          const c = curL.filter(q => q.key !== a.key && q.team !== myT && q.hp > 0 && Math.hypot(q.cx - a.x, q.cy - a.y) <= 300).sort((p, q) => Math.hypot(p.cx - a.x, p.cy - a.y) - Math.hypot(q.cx - a.x, q.cy - a.y))[0];
           if (!c) return;
-          const [ux, uy] = unit({ x: ax, y: ay }, { x: c.x + 15, y: c.y + 15 });
+          const ax = a.x, ay = a.y;
+          const [ux, uy] = unit({ x: ax, y: ay }, { x: c.cx, y: c.cy });
           bullets.push({ x: ax + ux * 26, y: ay + uy * 26, r: 6, vx: ux * 8, vy: uy * 8, from: own, damage: 8, lifeTime: 0, maxLifeTime: 50, bn: 1, ace: 1 });
-          lines.push({ x1: ax, y1: ay, x2: c.x + 15, y2: c.y + 15, k: 0, until: t + 320 });
+          lines.push({ x1: ax, y1: ay, x2: c.cx, y2: c.cy, k: 0, until: t + 320 });
           explosions.push({ x: ax, y: ay, r: 16, life: 8 });
         });
         // CPU：二度押し（方向転換）とスキル
@@ -8978,6 +9028,7 @@ function think(i){
         deers = deers.filter(o => o.x > -160 && o.x < ARENA_W + 160 && o.y > -160 && o.y < ARENA_H + 160);
         for (let j = bullets.length - 1; j >= 0; j--) {   // 雪だるまへの被弾
           const b = bullets[j]; if (!isHum(b.from) || b.explosive) continue;
+          if (b.isBoomerang) { snows.forEach(q => { if (circleHitRect(b, { x: q.x, y: q.y, w: 26, h: 26 }) && window.boomHit(b, q)) q.hp -= b.damage; }); continue; }   // ver78：ブーメランは雪だるまに当たっても消えない
           const m = snows.find(q => circleHitRect(b, { x: q.x, y: q.y, w: 26, h: 26 })); if (m) { m.hp -= b.damage; bullets.splice(j, 1); }
         }
         snows = snows.filter(m => { if (m.hp > 0) return true; explosions.push({ x: m.x + 13, y: m.y + 13, r: 26, life: 10 }); return false; });
@@ -9476,6 +9527,7 @@ function think(i){
         for (let i = SD.length - 1; i >= 0; i--) { const o = SD[i]; if (!(o.x > -160 && o.x < ARENA_W + 160 && o.y > -160 && o.y < ARENA_H + 160)) SD.splice(i, 1); }
         for (let j = bullets.length - 1; j >= 0; j--) {   // 雪だるまへの被弾（敵の弾）
           const b = bullets[j]; if (!b.from || b.explosive) continue;
+          if (b.isBoomerang) { SW.forEach(q => { if (teamOf(q.o) !== teamOf(b.from) && circleHitRect(b, { x: q.x, y: q.y, w: 26, h: 26 }) && window.boomHit(b, q)) q.hp -= b.damage; }); continue; }   // ver78：ブーメランは雪だるまに当たっても消えない
           const m = SW.find(q => teamOf(q.o) !== teamOf(b.from) && circleHitRect(b, { x: q.x, y: q.y, w: 26, h: 26 })); if (m) { m.hp -= b.damage; bullets.splice(j, 1); }
         }
         for (let i = SW.length - 1; i >= 0; i--) { const m = SW[i]; if (m.hp <= 0 || m.o.hp <= 0) { explosions.push({ x: m.x + 13, y: m.y + 13, r: 26, life: 10 }); SW.splice(i, 1); } }
@@ -9557,6 +9609,14 @@ function think(i){
         _up();
         lock.forEach((h, p) => { if (h > 0 && p.hp < h) p.hp = h; });   // 生きていた人はダメージ無効
       };
+    })();
+  </script>
+  <script>
+    /* ver78：不死鳥の蘇生を、全ての処理が終わった最後にもう一度確認する（他キャラの追加ダメージで蘇生を飛ばされないように） */
+    (function () {
+      const run = () => { try { if (window.__phoenixGuard) window.__phoenixGuard(); } catch (e) { console.error("phoenix", e); } };
+      const _u = update; update = function () { _u(); run(); };
+      const _rd = reapDead; reapDead = function () { run(); _rd(); };
     })();
   </script>
 </body>
