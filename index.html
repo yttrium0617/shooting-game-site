@@ -487,7 +487,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 77</div>
+      <div class="ver">VER 85</div>
     </div>
   </div>
 
@@ -754,7 +754,7 @@ let lastPoisonTick = 0;
          reward : { char:"キャラ名" } または { fx:["bullet:キャラ名:ID", "kill:ID"] }（エフェクト）
        ============================================================ */
     const NEW_CHARS = {
-      "メープル": { img: "images/maple.png", quest: "login", tag: "長押しの扇形シールドで守る重装タンク。回復エリアで味方も癒やす", info: { title: "重装サポートタンク", intro: "紅葉色の堅牢なシールドで仲間を守る森の守護者。癒やしの力と鉄壁の守りで、どんな猛攻からも味方を守り抜く。", attack: "攻撃ボタンを押している間、前方120度に扇形のエネルギーシールドを展開（離すと解除）。敵の弾や投擲物を受け止め、受けたダメージ分エネルギーが減る。展開中は1秒に5消費、解除中は1秒に5回復。エネルギー0で破壊され、5秒間使用不可（その後全回復）。シールドに敵が触れると5ダメージ（触れている間は0.5秒ごと）。怪獣王の熱線などシールド貫通攻撃は防げない。", skill: "その場に回復エリアを設置。2秒後から2秒おきに3回、エリア内の味方と自分のHPを20ずつ回復（最大60）。使うとシールドのエネルギーも全回復し、破壊中なら即復帰。クールタイム25秒。", tips: "移動が遅いので味方の前に立って守ろう。背後と貫通攻撃は苦手。エネルギーは押しっぱなしにせず、こまめに解除して管理しよう。" } },
+      "メープル": { img: "images/maple.png", quest: "login", tag: "長押しの扇形シールドで守る重装タンク。回復エリアで味方も癒やす", info: { title: "重装サポートタンク", intro: "紅葉色の堅牢なシールドで仲間を守る森の守護者。癒やしの力と鉄壁の守りで、どんな猛攻からも味方を守り抜く。", attack: "攻撃ボタンを押している間、前方120度に扇形のエネルギーシールドを展開（離すと解除。展開時にエネルギー6消費）。敵の弾や投擲物を受け止め、受けたダメージ分エネルギーが減る。展開中は1秒に5消費、解除中は1秒に5回復。エネルギー0で破壊され、5秒間使用不可（その後全回復）。シールドに敵が触れると5ダメージ（触れている間は0.5秒ごと）。受け止めた弾は威力50%（最低5ダメージ）の反射弾となり、撃った本人へ跳ね返る（メープルの攻撃扱い／弾の特性は引き継ぐ）。壁で跳ねた弾や引っ掻きなどの近接攻撃は反射できない。怪獣王の熱線などシールド貫通攻撃は防げない。", skill: "その場に回復エリアを設置。2秒後から2秒おきに3回、エリア内の味方と自分のHPを20ずつ回復（最大60）。使うとシールドのエネルギーが50回復し、破壊中なら即復帰。さらに周囲へ衝撃波を放ち、敵は吹き飛ばし、味方は中心へ吸い込む（メープル自身は動かない）。クールタイム25秒。", tips: "移動が遅いので味方の前に立って守ろう。背後と貫通攻撃は苦手。エネルギーは押しっぱなしにせず、こまめに解除して管理しよう。" } },
       "上裸の鳥頭": { img: "images/birdhead.png", quest: "online2v2", tag: "うさぎ弾を途中で曲げる変則アタッカー。異世界へ逃げて奇襲", info: { title: "トリックスター", intro: "鳥の面を被った謎多き変人。緩急自在の不思議な弾道と、どこへ飛ぶか分からない異世界逃避行で戦場をかき乱す。", attack: "ふわりと遅い白いうさぎ弾（20ダメージ）を撃つ。飛んでいる間にもう一度押すと、敵の方向へ向き直って光の弾（8ダメージ）に変化し、一気に加速。弾が消えるまで次は撃てない（弾数1・リロード1秒）。", skill: "異世界へ飛び込み、2〜3秒間、姿も当たり判定も消える（完全無敵）。戻る位置は完全にランダムで、運が良ければ敵の背後に出られる。クールタイム16秒。", tips: "最初から曲げて奇襲するか、重い一撃を当ててから曲げるか。外すと隙が大きいので、ピンチの一発逆転にスキルを使おう。" } },
       "エース・キッカー": { img: "images/acekicker.png", quest: null, tag: "敵2人を跳弾で同時に狙う名探偵。シールド貫通の麻酔針で眠らせる", info: { title: "名探偵アタッカー", intro: "天才的な頭脳と特製ガジェットで戦場を推理する若き探偵。死角からの一撃と精密な麻酔弾で、どんな強敵も鮮やかに無力化する。", attack: "スニーカーからエネルギーボール（14ダメージ）を蹴り出す。1人目に当たると、近く（中距離）にいる別の敵へ自動で跳弾し、8ダメージ。跳弾は1発につき1回だけで、同じ敵には戻らない。弾数3・リロード1.6秒。", skill: "腕時計型ガジェットから麻酔針を高速で1発。シールド貫通で、命中した敵を1.5秒眠らせる（ダメージを受けると即起床）。クールタイム18秒。", tips: "眠らせた敵の近くにいるもう1人へ通常攻撃を当てると、跳弾が眠った敵に当たって起こしてしまう。撃つ順番に注意。" } }
     };
@@ -3699,6 +3699,10 @@ function think(i){
   if(stn){range=14;fire=110;chase=.22;expoW=0}              // スタン中は一気に詰めて近距離で通常を当てる
   else if(hst){range=40;fire=120;chase=.2;expoW=2}           // 加速中は接近を狙う
   else{range=240;fire=200;chase=.05;expoW=Math.max(expoW,7)}} // 通常時は牽制しつつ弾避け
+ if(nm==='ブーメランボーイ'){range=Math.max(70,210-el*3.2);chase=.07;expoW=Math.max(expoW,4)}   // 壁貫通＋高火力で、時間とともにじわじわ前線を上げる
+ if(nm==='サンタ'){   // 通常攻撃は一斉に使わず、1発使って敵が動き出してから次を使う（同じ位置への無駄落ちを避ける）
+  if(me._sa!==undefined&&me.ammo<me._sa)me._sg={t:NOW(),x:ex,y:ey};me._sa=me.ammo;
+  const g=me._sg;if(g&&NOW()-g.t<2500&&HY(ex-g.x,ey-g.y)<28&&me.ammo<me.maxAmmo)hold=true}
  if(nm==='不死鳥'){if(me.rv){expoW=Math.max(expoW,7);range=en.ammo<=0?55:250}else{expoW=0;range=120;chase=.12}} // 蘇生前は被弾覚悟で攻め、蘇生後は避けつつ隙に突っ込む
  // ===== ver31_1：キャラ別の戦い方 =====
  if(nm==='怪獣王'){   // 中央ブロックを盾に弾を避けて時間を稼ぎ、接近されたら薙ぎ払って離れる
@@ -3766,7 +3770,7 @@ function think(i){
   case'サンダーマウス':use=rdy&&(myTrap||(cur>=10&&(bd[0]||bd[1])));break;
   case'ボマー':use=rdy&&me.hp>35&&d<280&&(en.ammo<=0||d<200||enTrap);break;
   case'ジョーカー':use=rdy&&me.hp>40;break;
-  case'ブーメランボーイ':use=rdy&&(me.warpPoint?(myTrap||me.hp<35||(hpLow&&cur>5)):(me.hp>50&&cur<5&&HY(mx-400,my-200)<260));break;
+  case'ブーメランボーイ':{const wp=me.warpPoint;use=rdy&&(wp?(myTrap||me.hp<35||(hpLow&&cur>5)||(HY(mx-(wp.x+15),my-(wp.y+15))>170&&d>100&&cur<8)):(me.hp>50&&cur<5&&HY(mx-ARENA_W/2,my-ARENA_H/2)<150))}break;   // 1回目は中央付近に設置、前線が下がったら2回目で一気に押し上げ
   case'怪盗レッド':use=rdy&&d>130&&d<520&&hit&&turrets.filter(t=>t.owner===me).length<2;break;
   case'ガジェットボット':use=rdy&&(myTrap||(hpLow&&cur>5)||(el>35&&HY(mx-ARENA_W/2,my-ARENA_H/2)>zr-30));break;
   case'ツインブラザーズ':use=rdy&&((!twin&&d<125)||(twin&&d>210));break;
@@ -7902,6 +7906,7 @@ function think(i){
       const SR = 46, HALF = Math.PI / 3, ZR = 75, TICKS = [2000, 4000, 6000];   // シールド半径／前方120度／回復エリア半径／回復タイミング
       const isM = p => p && p.charName === M, stunned = p => (p.stunUntil || 0) > now();
       const zones = [];   // 回復エリア
+      const OPEN_COST = 6, SKILL_EN = 50, KR = 150, KB = 100, RF = 0.5, RMIN = 5, mwaves = [];   // ver82：ノックバック範囲／距離、反射ダメージ倍率
       const _cp = createPlayer;
       createPlayer = function (x, y, c, n) {
         const p = _cp(x, y, c, n);
@@ -7915,6 +7920,7 @@ function think(i){
       shootBullet = function (s, t) {
         if (!isM(s)) return _sb(s, t);
         if (!gameActive || s.hp <= 0 || s.out || s.shBrk || s.en <= 0 || stunned(s)) return;
+        if (!s.shOn) { if (s.en <= OPEN_COST) return; s.en -= OPEN_COST; }   // ver84：展開時に4消費
         s.shOn = true;
       };
       const _ku = keyUpHandler;
@@ -7926,14 +7932,29 @@ function think(i){
         if (onl.isHost) { if (player1) player1.shOn = false; } else sendMsg({ t: "shootUp" });
       };
       window.addEventListener("blur", () => { try { fighterList().forEach(p => { if (p) p.shOn = false; }); } catch (e) {} });
-      /* スキル：回復エリア（2秒後から2秒おきに3回、味方と自分を+20）／シールドを即全回復 */
+      /* スキル：回復エリア（2秒後から2秒おきに3回、味方と自分を+20）／シールドのエネルギーを+50 */
       const _us = useSkill;
       useSkill = function (p) {
         if (!isM(p)) return _us(p);
         const t = now();
         if (!gameActive || p.hp <= 0 || p.out || t - p.skillLastUsed < p.skillCooldown) return;
-        p.skillLastUsed = t; p.en = 100; p.shBrk = 0; p.ammo = 10;
+        p.skillLastUsed = t; p.shBrk = 0; p.en = Math.min(100, (p.en || 0) + SKILL_EN); p.ammo = Math.ceil(p.en / 10);   // ver84：シールド回復は50
         zones.push({ x: p.x + 15, y: p.y + 15, o: p, tm: teamOf(p), t0: t, n: 0 });
+        /* ver82：必殺技の周囲ノックバック（敵は吹き飛ばし、味方は中心へ吸い込む。メープル自身は動かない） */
+        const cx = p.x + 15, cy = p.y + 15;
+        fighterList().forEach(q => {
+          if (!q || q === p || q.hp <= 0 || q.out) return;
+          const dx = q.x + 15 - cx, dy = q.y + 15 - cy, d = Math.hypot(dx, dy);
+          if (d > KR) return;
+          const ux = d > .5 ? dx / d : 1, uy = d > .5 ? dy / d : 0, ally = teamOf(q) === teamOf(p);
+          const dist = ally ? Math.max(0, d - 22) : KB; const sx = ally ? -ux : ux, sy = ally ? -uy : uy;
+          for (let k = 0; k < dist / 5; k++) {
+            const step = Math.min(5, dist - k * 5), nx = Math.max(0, Math.min(ARENA_W - 30, q.x + sx * step)), ny = Math.max(0, Math.min(ARENA_H - 30, q.y + sy * step));
+            if (collidesWithObstacles({ x: nx, y: ny, w: 30, h: 30 })) break;
+            q.x = nx; q.y = ny;
+          }
+        });
+        mwaves.push({ x: cx, y: cy, t0: t });
       };
       function breakShield(p) { p.en = 0; p.shOn = false; p.shBrk = now() + 5000; p.ammo = 0; explosions.push({ x: p.x + 15, y: p.y + 15, r: 36, life: 10 }); }
       const inSector = (p, x, y) => {
@@ -7953,6 +7974,15 @@ function think(i){
           if (!hit) continue;
           const cost = b.damage != null ? b.damage : (b.dmg != null ? b.dmg : 5);
           arr.splice(i, 1); p.en -= cost;
+          if (!b.bn && !b.mrf && !b.hasReflected && !b.melee) {   // ver82：壁で跳ねた弾・反射済みの弾は反射しない（引っ掻き等の近接は弾ではないので対象外）
+            const o = b.from, v0 = Math.hypot(b.vx || 0, b.vy || 0) || 6;
+            let ax = -(b.vx || 0), ay = -(b.vy || 0);
+            if (o && o.hp > 0 && !o.out && isFinite(o.x)) { ax = o.x + 15 - b.x; ay = o.y + 15 - b.y; }
+            const m = Math.hypot(ax, ay) || 1, nb = Object.assign({}, b, { from: p, vx: ax / m * v0, vy: ay / m * v0, lifeTime: 0, mrf: 1, hasReflected: false });
+            if (b.damage != null) nb.damage = Math.max(RMIN, b.damage * RF); if (b.dmg != null) nb.dmg = Math.max(RMIN, b.dmg * RF); if (b.damage == null && b.dmg == null) nb.damage = RMIN;
+            nb.x = b.x + nb.vx; nb.y = b.y + nb.vy;
+            arr.push(nb); explosions.push({ x: b.x, y: b.y, r: 12, life: 6 });
+          }
           explosions.push({ x: b.x, y: b.y, r: 8, life: 5 });
           if (p.en <= 0) { breakShield(p); return; }
         }
@@ -8041,6 +8071,7 @@ function think(i){
         try {
           if (!ctx) return; const t = now();
           zones.forEach(z => drawZone(z, t));
+          for (let i = mwaves.length - 1; i >= 0; i--) { const w = mwaves[i], k = (t - w.t0) / 450; if (k >= 1) { mwaves.splice(i, 1); continue; } ctx.save(); ctx.globalAlpha = .7 * (1 - k); ctx.strokeStyle = "#ffb347"; ctx.lineWidth = 5 * (1 - k) + 1; ctx.beginPath(); ctx.arc(w.x, w.y, 20 + (KR - 20) * k, 0, TAU); ctx.stroke(); ctx.restore(); }
           fighterList().forEach(p => { if (isM(p) && p.hp > 0 && !p.out) drawShield(p, t); });
         } catch (e) { console.error("maple draw", e); }
       };
@@ -8060,21 +8091,45 @@ function think(i){
       };
       /* ---- CPU（味方の前に立ち、敵弾が近づくか至近距離のときだけ展開）---- */
       window.__mapleThink = function (me, en, K, i, mx, my, ex, ey, d, rdy) {
-        const fl = fighterList(), ally = fl.find(q => q && q !== me && q.hp > 0 && !q.out && teamOf(q) === teamOf(me));
-        let tx = ex, ty = ey, want = 78;
-        if (ally) { const ax = ally.x + 15, ay = ally.y + 15, ad = Math.hypot(ex - ax, ey - ay) || 1; tx = ax + (ex - ax) / ad * 60; ty = ay + (ey - ay) / ad * 60; want = 0; }
-        let dx = tx - mx, dy = ty - my; const dd = Math.hypot(dx, dy) || 1;
-        const go = want ? d > want : dd > 14;
-        const t = now(), sk = me._sk || (me._sk = { x: mx, y: my, t, until: 0, s: 1 });   // 障害物で止まったら少し横へ回り込む
+        const fl = fighterList(), t = now(), cx0 = ARENA_W / 2, cy0 = ARENA_H / 2;
+        const ally = fl.find(q => q && q !== me && q.hp > 0 && !q.out && teamOf(q) === teamOf(me));
+        const P = (typeof PROF !== "undefined" && PROF[en.charName]) || null;
+        const ER = P ? P.range : 260;
+        const strong = ER <= 170 || ["怪獣王", "ボマー", "パイハークン", "ブーメランボーイ", "不死鳥", "ツインブラザーズ"].includes(en.charName);   // 近距離で火力の高い敵
+        const blk = obstacles.filter(o => !o.mir).sort((a, b) => Math.hypot(a.x + a.w / 2 - cx0, a.y + a.h / 2 - cy0) - Math.hypot(b.x + b.w / 2 - cx0, b.y + b.h / 2 - cy0))[0];
+        const hide = () => {   // 中央の壁の、敵と反対側
+          if (!blk || Math.hypot(blk.x + blk.w / 2 - cx0, blk.y + blk.h / 2 - cy0) > 150) return [cx0, cy0];
+          const bx = blk.x + blk.w / 2, by = blk.y + blk.h / 2, dx = bx - ex, dy = by - ey, m = Math.hypot(dx, dy) || 1, k = Math.min(Math.abs(dx / m) > 1e-3 ? (blk.w / 2 + 26) / Math.abs(dx / m) : 1e9, Math.abs(dy / m) > 1e-3 ? (blk.h / 2 + 26) / Math.abs(dy / m) : 1e9);
+          return [bx + dx / m * k, by + dy / m * k];
+        };
+        const zr = (typeof safeZone !== "undefined" && safeZone.shrinking) ? safeZone.radius : 9999, sz = typeof safeZone !== "undefined" ? safeZone : { x: cx0, y: cy0 };
+        const incs = bullets.concat(window.X21 ? X21.xb : []).filter(b => b.from && teamOf(b.from) !== teamOf(me) && !b.sp && !b.pass && Math.hypot(b.x - mx, b.y - my) < 190 && ((mx - b.x) * (b.vx || 0) + (my - b.y) * (b.vy || 0)) > 0);
+        const refl = incs.some(b => !b.bn && !b.mrf && !b.hasReflected), brk = !!me.shBrk;
+        if (me._ph === undefined) me._ph = "atk";
+        if (me._ph === "atk" && (brk || me.en < 28 || me.ammo <= 2)) me._ph = "ret";
+        else if (me._ph === "ret" && !brk && me.en >= 80) me._ph = "atk";
+        let tx, ty, want = 0, shield = false;
+        if (strong) {   // 近距離火力の敵：距離を取り続け、反射できる弾はシールドで返し、できない攻撃はゾーン端ぎりぎりで耐える
+          const dd = Math.hypot(mx - sz.x, my - sz.y), edge = zr < 9000 ? Math.max(0, zr - 30) : 0;
+          if (d < 200) { const m = d || 1; tx = mx - (ex - mx) / m * 90; ty = my - (ey - my) / m * 90; }
+          else { [tx, ty] = hide(); }
+          if (zr < 9000 && dd < edge - 20 && d >= 200) { tx = sz.x + (mx - sz.x) / (dd || 1) * edge; ty = sz.y + (my - sz.y) / (dd || 1) * edge; }
+          shield = !brk && me.en > 10 && (refl || d < 70);
+        } else if (me._ph === "atk") {   // 通常（シールド接触ダメージ）が入る近さまで詰める
+          tx = ex; ty = ey; want = 40; shield = !brk && me.en > 8 && (d < 75 || refl);
+        } else { [tx, ty] = hide(); shield = !brk && me.en > 10 && (refl || d < 45); }
+        if (ally && !strong && me._ph !== "atk") { const ax = ally.x + 15, ay = ally.y + 15, ad = Math.hypot(ex - ax, ey - ay) || 1; tx = ax + (ex - ax) / ad * 60; ty = ay + (ey - ay) / ad * 60; }
+        let dx = tx - mx, dy = ty - my; const dd2 = Math.hypot(dx, dy) || 1;
+        const go = want ? d > want : dd2 > 14;
+        const sk = me._sk || (me._sk = { x: mx, y: my, t, until: 0, s: 1 });   // 障害物で止まったら少し横へ回り込む
         if (t - sk.t > 350) { if (go && Math.hypot(mx - sk.x, my - sk.y) < 3) { sk.until = t + 800; sk.s = Math.random() < .5 ? -1 : 1; } sk.x = mx; sk.y = my; sk.t = t; }
-        if (t < sk.until) { const px = -dy / dd * sk.s, py = dx / dd * sk.s; dx = px * 100; dy = py * 100; }
+        if (t < sk.until) { const px = -dy / dd2 * sk.s, py = dx / dd2 * sk.s; dx = px * 100; dy = py * 100; }
         keys[K.left] = go && dx < -5; keys[K.right] = go && dx > 5; keys[K.up] = go && dy < -5; keys[K.down] = go && dy > 5;
-        const inc = bullets.concat(window.X21 ? X21.xb : []).some(b => b.from && teamOf(b.from) !== teamOf(me) && !b.sp && !b.pass && Math.hypot(b.x - mx, b.y - my) < 190 && ((mx - b.x) * (b.vx || 0) + (my - b.y) * (b.vy || 0)) > 0);
-        const brk = !!me.shBrk, weak = me.en < 30;
-        if (me.shOn) { if (me.en < 8 || (!inc && d > 110)) me.shOn = false; }
-        else if (!brk && me.en > 18 && (inc || d < 100)) me.shOn = true;
+        if (me.shOn && !shield) me.shOn = false; else if (!me.shOn && shield && me.en > OPEN_COST) { me.shOn = true; me.en -= OPEN_COST; }
         const hurt = fl.some(q => q && q.hp > 0 && teamOf(q) === teamOf(me) && Math.hypot(q.x - me.x, q.y - me.y) < ZR && q.hp <= (q.maxHp || 100) - 40);
-        if (rdy && (brk || weak || hurt)) useSkill(me);
+        const edgeFoe = zr < 9000 && Math.hypot(ex - sz.x, ey - sz.y) > zr - 70 && d < KR - 20;   // 敵が安置の縁にいるなら、スキルで外へ押し出す
+        const push = edgeFoe && Math.hypot(ex - sz.x, ey - sz.y) > Math.hypot(mx - sz.x, my - sz.y);
+        if (rdy && (push || brk || me.en < 30 || hurt || (strong && d < 90))) useSkill(me);
       };
     })();
   </script>
@@ -8868,6 +8923,49 @@ function think(i){
         _sc(name);
         try { const h = document.querySelector("#codexDetail .cd-head"); if (h && window.Quest) h.insertAdjacentHTML("afterend", window.Quest.codexHtml(name)); } catch (e) { console.warn(e); }
       };
+    })();
+  </script>
+  <script>
+    /* ver82：リワーク表示（REWORK 表に足すと、図鑑・キャラ選択でバッジと「変更点」が出る） */
+    (function () {
+      window.REWORK = {
+        "メープル": { ver: "ver82", summary: "防御特化から「守って反撃」へ", notes: [
+          "ガードで受け止めた敵弾が、威力50%（最低5ダメージ）の反射弾になって撃った本人へ跳ね返る（メープルの攻撃扱い・弾の特性は引き継ぎ）",
+          "壁で跳ねた弾・引っ掻きなどの近接攻撃は反射しない（従来どおり防ぐだけ／貫通攻撃は防げない）",
+          "シールドは従来どおり、受けたダメージ分エネルギーが減る",
+          "必殺技に周囲ノックバックを追加：敵は吹き飛ばし、味方は中心へ吸い込む（メープル自身は動かない）"
+        ] }
+      };
+      const st = document.createElement("style");
+      st.textContent = ".rw-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;background:linear-gradient(135deg,#ff9a3c,#ff4f6a);color:#fff;font:bold 10px sans-serif;letter-spacing:.5px;vertical-align:middle;box-shadow:0 0 8px rgba(255,120,60,.7)}" +
+        ".cx-item.rw,.cs-card.rw{box-shadow:0 0 0 2px #ff9a3c,0 0 12px rgba(255,120,60,.6)}" +
+        ".cx-item,.cs-card{position:relative}.rw-corner{position:absolute;top:2px;right:2px;padding:0 5px;border-radius:5px;background:#ff4f6a;color:#fff;font:bold 9px sans-serif;z-index:3}" +
+        ".cd-rework{margin-top:12px;padding:10px 12px;border:2px solid #ff9a3c;border-radius:10px;background:rgba(255,120,60,.12)}.cd-rework h4{margin:0 0 6px;color:#ffb347}.cd-rework ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6}";
+      document.head.appendChild(st);
+      function mark() {
+        document.querySelectorAll(".cx-item,.cs-card").forEach(b => {
+          const n = b.dataset.name, on = !!window.REWORK[n];
+          b.classList.toggle("rw", on);
+          const c = b.querySelector(".rw-corner");
+          if (on && !c) b.insertAdjacentHTML("beforeend", '<i class="rw-corner">REWORK</i>'); else if (!on && c) c.remove();
+        });
+      }
+      const _sc = selectCodex;
+      selectCodex = function (name) {
+        _sc(name);
+        try {
+          mark();
+          const r = window.REWORK[name], h = document.querySelector("#codexDetail .cd-head");
+          if (r && h) {
+            const nm = h.querySelector(".cd-name"); if (nm) nm.insertAdjacentHTML("beforeend", '<span class="rw-tag">REWORK ' + r.ver + '</span>');
+            h.insertAdjacentHTML("afterend", '<div class="cd-rework"><h4>🔧 リワーク変更点（' + r.ver + '）：' + escapeHtml(r.summary) + '</h4><ul>' + r.notes.map(x => "<li>" + escapeHtml(x) + "</li>").join("") + "</ul></div>");
+          }
+        } catch (e) { console.warn(e); }
+      };
+      const _rc = renderCharSelect;
+      renderCharSelect = function () { _rc.apply(this, arguments); try { mark(); } catch (e) {} };
+      const _shc = showCodex;
+      showCodex = function () { _shc.apply(this, arguments); try { mark(); } catch (e) {} };
     })();
   </script>
   <script>
