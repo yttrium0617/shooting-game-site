@@ -431,6 +431,49 @@
     body.compact .cd-sec { margin-top: 6px; }
     body.compact .cd-sec h4 { font-size: 11px; }
     body.compact .cd-sec p { font-size: 11px; line-height: 1.5; }
+      /* ver92：エイム（引っ張り操作）の表示 */
+    #touchUI .atkpad { position: fixed; top: 0; bottom: 0; right: 0; width: 50%; display: none; touch-action: none; pointer-events: auto; }   /* 攻撃：画面右半分のどこからでもエイム開始（ボタンはその上に重なる） */
+    body.cpu #touchUI .atkpad, #touchUI.online .atkpad { display: block; }
+    /* ver93：ブロスタ風の操作UI */
+    #touchUI .tbtn { position: relative; display: flex; align-items: center; justify-content: center; overflow: visible; color: #fff; border: 3px solid rgba(27,13,5,.7); transition: transform .07s, filter .12s; }
+    #touchUI .tbtn.atk { width: 84px; height: 84px; background: radial-gradient(circle at 50% 30%, rgba(255,196,104,.78) 0, rgba(255,138,31,.78) 52%, rgba(217,82,11,.78) 100%); box-shadow: 0 4px 0 rgba(122,42,5,.7), inset 0 2px 0 rgba(255,255,255,.3); }
+    #touchUI .tp2 .tbtn.atk { background: radial-gradient(circle at 50% 30%, rgba(255,154,168,.78) 0, rgba(255,61,90,.78) 52%, rgba(184,23,58,.78) 100%); box-shadow: 0 4px 0 rgba(106,15,38,.7), inset 0 2px 0 rgba(255,255,255,.3); }
+    #touchUI .tbtn.skl { width: 66px; height: 66px; margin-bottom: 30px; background: radial-gradient(circle at 50% 30%, rgba(107,116,136,.72), rgba(59,66,84,.72) 60%, rgba(38,43,56,.72)); box-shadow: 0 4px 0 rgba(17,20,28,.65), inset 0 2px 0 rgba(255,255,255,.12); filter: saturate(.7); }
+    #touchUI .tbtn.skl.ready { background: radial-gradient(circle at 50% 30%, rgba(255,243,168,.78) 0, rgba(255,210,31,.78) 52%, rgba(224,160,0,.78) 100%); box-shadow: 0 4px 0 rgba(122,90,0,.7), 0 0 16px rgba(255,210,40,.7), inset 0 2px 0 rgba(255,255,255,.4); filter: none; animation: skPulse 1.1s ease-in-out infinite; }
+    #touchUI .tbtn.skl.ready .ico path { fill: #5a3a00; }
+    #touchUI .tbtn.atk.empty { filter: grayscale(.85) brightness(.7); }
+    #touchUI .tbtn.down { transform: scale(.92); filter: brightness(1.15); }
+    #touchUI .tbtn.fire { transform: scale(1.08); }
+    #touchUI .tbtn.nope { animation: nope .26s; }
+    #touchUI .tbtn .ico { opacity: .9; width: 46%; height: 46%; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.55)); }
+    #touchUI .tbtn .ring { position: absolute; left: -13%; top: -13%; width: 126%; height: 126%; pointer-events: none; overflow: visible; }
+    #touchUI .tbtn .ring circle { fill: none; stroke-width: 6; }
+    #touchUI .tbtn .ring .t { stroke: rgba(0,0,0,.55); }
+    #touchUI .tbtn .ring .f { stroke: #ffd23a; }
+    #touchUI .tbtn .ring .r { stroke: #ff9a1f; }
+    #touchUI .tbtn.skl .ring .f { stroke: #ffe35a; }
+    @keyframes skPulse { 50% { box-shadow: 0 4px 0 #7a5a00, 0 0 26px rgba(255,220,60,1), inset 0 2px 0 rgba(255,255,255,.5); } }
+    @keyframes nope { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    #touchUI .aimring { position: fixed; display: none; width: 176px; height: 176px; margin: -88px 0 0 -88px; border-radius: 50%; border: 3px solid rgba(255,255,255,.5); background: rgba(255,255,255,.07); pointer-events: none; }
+    #touchUI .aimring.on { border-color: rgba(255,255,255,.9); background: rgba(255,255,255,.12); }
+    #touchUI .aimring.skl { border-color: rgba(255,214,64,.6); background: rgba(255,214,64,.07); }
+    #touchUI .aimring.skl.on { border-color: #ffd640; background: rgba(255,214,64,.14); }
+    #touchUI .aimring.cancel { border-color: #ff5252; background: rgba(255,60,60,.16); }
+    #touchUI .aimring.cancel::after { content: "✕"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #ff6b6b; font: 800 34px sans-serif; }
+    #touchUI .aimring i { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(255,255,255,.85); border: 3px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,.35); }
+    #touchUI .aimring.skl i { background: #ffd640; border-color: #fff3b0; }
+    #touchUI .aimring.cancel i { opacity: .3; }
+    /* ver95：攻撃ボタンは、エイムした指の位置に出る（CPU／オンライン時は常時表示しない） */
+    body.cpu #touchUI .tp1 .tbtn.atk, #touchUI.online .tp1 .tbtn.atk { display: none; }
+    #touchUI .aimring.atk i { display: flex; align-items: center; justify-content: center; overflow: visible; width: 78px; height: 78px; margin: -39px 0 0 -39px; border: 3px solid rgba(27,13,5,.7); background: radial-gradient(circle at 50% 30%, rgba(255,196,104,.8) 0, rgba(255,138,31,.8) 52%, rgba(217,82,11,.8) 100%); box-shadow: 0 3px 0 rgba(122,42,5,.7), inset 0 2px 0 rgba(255,255,255,.3); }
+    #touchUI .aimring.atk.p2 i { background: radial-gradient(circle at 50% 30%, rgba(255,154,168,.8) 0, rgba(255,61,90,.8) 52%, rgba(184,23,58,.8) 100%); box-shadow: 0 3px 0 rgba(106,15,38,.7), inset 0 2px 0 rgba(255,255,255,.3); }
+    #touchUI .aimring i.empty { filter: grayscale(.85) brightness(.7); }
+    #touchUI .aimring i .ico { width: 46%; height: 46%; opacity: .9; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.55)); }
+    #touchUI .aimring i .ring { position: absolute; left: -13%; top: -13%; width: 126%; height: 126%; pointer-events: none; overflow: visible; }
+    #touchUI .aimring i .ring circle { fill: none; stroke-width: 6; }
+    #touchUI .aimring i .ring .t { stroke: rgba(0,0,0,.55); }
+    #touchUI .aimring i .ring .f { stroke: #ffd23a; }
+    #touchUI .aimring i .ring .r { stroke: #ff9a1f; }
   </style>
   <style>
     /* 拡大防止（iPhoneのホーム画面アプリ対策） */
@@ -438,6 +481,15 @@
     input, select, textarea { font-size: 16px !important; } /* 入力欄タップ時の自動ズーム防止 */
     button, .menu-btn, .tbtn { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   </style>
+  <script>
+    /* ver92：モバイル専用。物理キーボードの入力は受け付けない（文字入力欄は除く）。操作は画面のスティック／ボタンだけ */
+    (function () {
+      const typing = t => t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
+      ["keydown", "keyup", "keypress"].forEach(ev => window.addEventListener(ev, e => {
+        if (e.isTrusted && !typing(e.target)) { e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); }
+      }, true));
+    })();
+  </script>
   <script>
     (function () {
       const stop = e => { if (e.cancelable) e.preventDefault(); };
@@ -450,7 +502,7 @@
     })();
   </script>
 </head>
-<body>
+<body class="mobile">
   <canvas id="menuBg"></canvas>
 
   <!-- ホーム画面 -->
@@ -458,7 +510,6 @@
     <div class="home-wrap">
       <div class="logo-sub">1 VS 1 ARENA</div>
       <h1 class="logo">2D対戦<span>シューティング</span></h1>
-      <div class="mode-sel" style="margin:-16px 0 20px"><span>プレイ方法</span><button id="modePC" onclick="setPlayMode('pc', true)">🖥 PC</button><button id="modeMobile" onclick="setPlayMode('mobile', true)">📱 モバイル</button></div>
       <div class="accbar">👤 <b id="accName">ゲスト</b><button id="accBtn" onclick="Account_open()">ログイン</button><span id="accBadge"></span></div>
       <div class="menu-list">
         <button class="menu-btn cpu" onclick="cpuMode=true;goToCharacterSelect()">
@@ -487,7 +538,7 @@
         </button>
       </div>
       
-      <div class="ver">VER 85</div>
+      <div class="ver">VER 87</div>
     </div>
   </div>
 
@@ -609,9 +660,6 @@
       <button id="lobbyStartBtn" class="cta hidden" onclick="hostStartGame()" disabled>ゲーム開始 ▶</button>
       <div id="lobbyStatus" class="status"></div>
     </div>
-    <div class="keyhelp lobby-keys">
-      操作：移動 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> または <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>　攻撃 <kbd>F</kbd>　スキル <kbd>G</kbd>（モバイルは画面のボタン）
-    </div>
   </div>
 
   <!-- オンライン：リザルト -->
@@ -683,6 +731,7 @@
       "上裸の鳥頭": { hp: 90, speed: 3.5, damage: 20, maxAmmo: 1, reload: 1000, shots: 1, bulletSpeed: 2.4, bulletLife: 1000, bulletRadius: 8, pass: false, skillCd: 16000 },
       "エース・キッカー": { hp: 95, speed: 3.2, damage: 14, maxAmmo: 3, reload: 1600, shots: 1, bulletSpeed: 8, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 18000 },
       "サンタ": { hp: 100, speed: 3, damage: 15, maxAmmo: 2, reload: 1500, shots: 3, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 1500 },   // shots＝プレゼント3個／skillCd＝スキルのクールタイム
+      "海鮮塗装屋": { hp: 105, speed: 3.2, damage: 7, maxAmmo: 3, reload: 1400, shots: 3, bulletSpeed: 8.5, bulletLife: 850, bulletRadius: 5, pass: false, skillCd: 6000 },   // shots＝1回に撃つ弾数(3連バースト)／reload＝カニ中は0.5秒／skillCd＝カニダッシュ解除後のクールタイム
       "アーク・フォージ": { hp: 100, speed: 3, damage: 10, maxAmmo: 5, reload: 1200, shots: 1, bulletSpeed: 7, bulletLife: 1000, bulletRadius: 6, pass: false, skillCd: 20000 },   // skillCd＝ドローン・リンクのクールタイム(ms)
     };
     /* キャラ固有の数値 */
@@ -698,8 +747,9 @@
         extraDmg: 5                                                                 // 弱点「限られた時間」：被ダメージごとの追加ダメージ
       },
       ark: {   // アーク・フォージ（ドローン・リンク）
-        droneN: 2, droneHp: 16, decay: 2, farDist: 130, farMul: 2,       // 召喚数／ドローン1機の初期HP／毎秒のHP減少／この距離(px)以上離れると／減少が何倍になるか
-        orbitMin: 65, orbitMax: 85, orbitSpeed: 2.4, follow: .1, maxSpeed: 6,   // 旋回半径の最小・最大(px)／旋回の速さ(ラジアン/秒)／追従のなめらかさ(小さいほど遅れる)／最高速度
+        droneN: 3, droneHp: 16, decay: 2, farDist: 215, farMul: 2,       // 召喚数／ドローン1機の初期HP／毎秒のHP減少／この距離(px)以上離れると／減少が何倍になるか
+        spawnMin: 65, spawnMax: 85,                                          // 召喚直後の出現位置の半径(px)（ここから旋回軌道へ移動する）
+        orbitMin: 120, orbitMax: 150, orbitSpeed: 2.4, follow: .1, maxSpeed: 6, turn: .25,   // 旋回半径の最小・最大(px)／旋回の速さ(ラジアン/秒)／追従のなめらかさ(小さいほど遅れる)／最高速度／敵への向き直りの速さ
         droneDmg: 4, droneBulletSpeed: 7, droneBulletR: 4                // ドローンの弾：ダメージ／速さ／大きさ
       },
       mage: { manaMax: 300, manaStart: 150, manaRegen: 10, cost: [10, 25, 25], dmg: [20, 20, 15], speed: [11, 7.5, 10], delay: [700, 1100, 1300] }
@@ -756,10 +806,11 @@ let lastPoisonTick = 0;
     const NEW_CHARS = {
       "メープル": { img: "images/maple.png", quest: "login", tag: "長押しの扇形シールドで守る重装タンク。回復エリアで味方も癒やす", info: { title: "重装サポートタンク", intro: "紅葉色の堅牢なシールドで仲間を守る森の守護者。癒やしの力と鉄壁の守りで、どんな猛攻からも味方を守り抜く。", attack: "攻撃ボタンを押している間、前方120度に扇形のエネルギーシールドを展開（離すと解除。展開時にエネルギー6消費）。敵の弾や投擲物を受け止め、受けたダメージ分エネルギーが減る。展開中は1秒に5消費、解除中は1秒に5回復。エネルギー0で破壊され、5秒間使用不可（その後全回復）。シールドに敵が触れると5ダメージ（触れている間は0.5秒ごと）。受け止めた弾は威力50%（最低5ダメージ）の反射弾となり、撃った本人へ跳ね返る（メープルの攻撃扱い／弾の特性は引き継ぐ）。壁で跳ねた弾や引っ掻きなどの近接攻撃は反射できない。怪獣王の熱線などシールド貫通攻撃は防げない。", skill: "その場に回復エリアを設置。2秒後から2秒おきに3回、エリア内の味方と自分のHPを20ずつ回復（最大60）。使うとシールドのエネルギーが50回復し、破壊中なら即復帰。さらに周囲へ衝撃波を放ち、敵は吹き飛ばし、味方は中心へ吸い込む（メープル自身は動かない）。クールタイム25秒。", tips: "移動が遅いので味方の前に立って守ろう。背後と貫通攻撃は苦手。エネルギーは押しっぱなしにせず、こまめに解除して管理しよう。" } },
       "上裸の鳥頭": { img: "images/birdhead.png", quest: "online2v2", tag: "うさぎ弾を途中で曲げる変則アタッカー。異世界へ逃げて奇襲", info: { title: "トリックスター", intro: "鳥の面を被った謎多き変人。緩急自在の不思議な弾道と、どこへ飛ぶか分からない異世界逃避行で戦場をかき乱す。", attack: "ふわりと遅い白いうさぎ弾（20ダメージ）を撃つ。飛んでいる間にもう一度押すと、敵の方向へ向き直って光の弾（8ダメージ）に変化し、一気に加速。弾が消えるまで次は撃てない（弾数1・リロード1秒）。", skill: "異世界へ飛び込み、2〜3秒間、姿も当たり判定も消える（完全無敵）。戻る位置は完全にランダムで、運が良ければ敵の背後に出られる。クールタイム16秒。", tips: "最初から曲げて奇襲するか、重い一撃を当ててから曲げるか。外すと隙が大きいので、ピンチの一発逆転にスキルを使おう。" } },
-      "エース・キッカー": { img: "images/acekicker.png", quest: null, tag: "敵2人を跳弾で同時に狙う名探偵。シールド貫通の麻酔針で眠らせる", info: { title: "名探偵アタッカー", intro: "天才的な頭脳と特製ガジェットで戦場を推理する若き探偵。死角からの一撃と精密な麻酔弾で、どんな強敵も鮮やかに無力化する。", attack: "スニーカーからエネルギーボール（14ダメージ）を蹴り出す。1人目に当たると、近く（中距離）にいる別の敵へ自動で跳弾し、8ダメージ。跳弾は1発につき1回だけで、同じ敵には戻らない。弾数3・リロード1.6秒。", skill: "腕時計型ガジェットから麻酔針を高速で1発。シールド貫通で、命中した敵を1.5秒眠らせる（ダメージを受けると即起床）。クールタイム18秒。", tips: "眠らせた敵の近くにいるもう1人へ通常攻撃を当てると、跳弾が眠った敵に当たって起こしてしまう。撃つ順番に注意。" } }
+      "エース・キッカー": { img: "images/acekicker.png", quest: null, tag: "敵2人を跳弾で同時に狙う名探偵。シールド貫通の麻酔針で眠らせる", info: { title: "名探偵アタッカー", intro: "天才的な頭脳と特製ガジェットで戦場を推理する若き探偵。死角からの一撃と精密な麻酔弾で、どんな強敵も鮮やかに無力化する。", attack: "スニーカーからエネルギーボール（14ダメージ）を蹴り出す。1人目に当たると、近く（中距離）にいる別の敵へ自動で跳弾し、8ダメージ。跳弾は1発につき1回だけで、同じ敵には戻らない。弾数3・リロード1.6秒。", skill: "腕時計型ガジェットから麻酔針を高速で1発。シールド貫通で、命中した敵を3秒眠らせる（ダメージを受けると即起床）。眠っている敵が次に受ける1回のダメージは2倍（ストームダメージは等倍）。クールタイム18秒。", tips: "眠った敵への最初の一撃は2倍ダメージ。ただし近くにいるもう1人へ通常攻撃を当てると、跳弾が眠った敵に当たって起こしてしまう。撃つ順番に注意。" } }
     };
     NEW_CHARS["サンタ"] = { img: "images/santa.png", quest: "xmas_allchar", tag: "降るプレゼントとランダム技で攻める完結型。ただし被ダメージ+5", info: { title: "完結型のオールラウンダー", intro: "日付を間違えてしまったようだ！夜が明ける前に決着をつけたいらしい。", attack: "敵の頭上にプレゼントボックスを3つ落とす（そこそこ広い範囲に届き、遠すぎる時は範囲内のどこかにランダムで落ちる）。着地すると15ダメージ＋0.2秒スタン。弾数2・リロード1.5秒。", skill: "「プレゼントをあげよう！」クールタイム1.5秒の連打OKなスキルで、次のうちどれかがランダムに起こる。「靴下」…15ダメージの弾を撃ち、スローの軌跡を残す／「トナカイ」…左右にトナカイを呼び、壁を貫いて突進（20ダメージ・出にくい）／「雪だるま」…雪玉を撃つ雪だるまを召喚（HP30・ダメージ5・最大2体）／「ノックバック」…周りの敵を吹き飛ばす／「サンタダッシュ」…進行方向へダッシュ。敵との距離や壁の有無で出やすい技が変わり、近いとノックバック、壁越しだとトナカイが出やすい。弱点「限られた時間」：ダメージを受けるたびに追加で+5ダメージ。", tips: "スキルのクールタイムが短いので、2種類目の通常攻撃だと思ってバシバシ使うべし！とにかく使え。" } };   // ★画像は images/santa.png
-    NEW_CHARS["アーク・フォージ"] = { img: "images/arkforge.png", quest: null, tag: "高性能アーマーと自律型ドローンを操り、圧倒的な火力で敵を制圧する！", info: { title: "最新鋭パワードスーツの開発者", intro: "最先端技術を結集した高性能アーマーを身にまとい、手のひらから放つエネルギー兵器で戦う天才技術者。自律型の戦闘ドローンを従え、複数方向から敵を攻撃する。", attack: "手のひらの発射口から、リパルサーのような青白いエネルギー弾（10ダメージ）を撃つ。まっすぐ飛ぶだけで追加効果はない。弾数5・リロード1.2秒。", skill: "「ドローン・リンク」：小型戦闘ドローンを2機召喚し、自分の周囲を旋回させる。ドローンはそれぞれ独立したHP（16）を持ち、毎秒2ずつ減る（自分から離れすぎると毎秒4）。HPが0になると消滅。通常攻撃に連動して、ドローンも敵へ1発4ダメージの弾を撃つ。ドローンも弾も壁は貫通せず、敵の弾で壊される。クールタイム20秒。", tips: "ドローンが活動している間に積極的に攻撃しよう。ドローンが自分から離れすぎると活動時間が短くなるので、適切な距離を保って戦うのが大事。" } };
+    NEW_CHARS["海鮮塗装屋"] = { img: "images/seafood.png", quest: null, tag: "インクで戦場を塗り広げ、カニになってインクの上を高速移動するペンキ職人", info: { title: "戦場を塗り替えるペンキ職人", intro: "特製のブキで地面を広く塗りたくる、海からやってきた塗装のプロフェッショナル。インクの上をカニの姿で素早く移動＆リロードし、さらに状態異常もすべて洗い流して戦場を駆け回る。", attack: "少し角度のブレる3発のインク弾をタタタンと連射（1発7ダメージ・最大3回＝計9発）。弾の軌道と着弾点に、くねくねしたインクを広く塗り残す。インク自体に減速やダメージはない。敵の弾・爆発が触れた場所のインクは広く消え、敵がインクの上を歩くと足跡に合わせて削れる。弾数3・リロード1.4秒（カニ中は0.5秒）。", skill: "「カニダッシュ」（長押し）：自分のチームのインクの上でスキルボタンを押している間だけ小さなカニに変身してインクに潜る。変身の瞬間にすべての状態異常を解除し、潜っている間は移動速度1.5倍・リロード0.5秒。ボタンを離す／足が少しでもインクからはみ出す／足元のインクが消されると人型に戻り、6秒のクールタイム。カニ中は通常攻撃ができず、無敵でもない（当たり判定は人型と同じ）。", tips: "試合開始時とリスポーン地点の周辺（半径約175）が最初から塗られているので、開幕すぐカニダッシュで有利なポジションへ。前線にも塗り広げて、弾の補充と状態異常の解除に使おう。インクの色はチームごとに試合ごとランダムで、相手とは別の色。近くのインクはつながって塗られる。つながっていない所は泳げず、足が少しでもインクの外に出るとカニは解除される。潜れるのは自分のチーム（味方と共通）のインクだけで、相手のインクには潜れない。相手のインクは塗り重ねると自分のインクにできる。" } };
+    NEW_CHARS["アーク・フォージ"] = { img: "images/arkforge.png", quest: null, tag: "高性能アーマーと自律型ドローンを操り、圧倒的な火力で敵を制圧する！", info: { title: "最新鋭パワードスーツの開発者", intro: "最先端技術を結集した高性能アーマーを身にまとい、手のひらから放つエネルギー兵器で戦う天才技術者。自律型の戦闘ドローンを従え、複数方向から敵を攻撃する。", attack: "手のひらの発射口から、リパルサーのような青白いエネルギー弾（10ダメージ）を撃つ。まっすぐ飛ぶだけで追加効果はない。弾数5・リロード1.2秒。", skill: "「ドローン・リンク」：小型の銃型ドローンを3機召喚し、自分のやや外側を旋回させる。ドローンは常に敵の方向を向き、それぞれ独立したHP（16）を持ち、毎秒2ずつ減る（自分から離れすぎると毎秒4）。HPが0になると消滅。通常攻撃に連動して、ドローンも敵へ1発4ダメージの弾を撃つ。ドローンも弾も壁は貫通せず、敵の弾で壊される。クールタイム20秒。", tips: "ドローンが活動している間に積極的に攻撃しよう。ドローンが自分から離れすぎると活動時間が短くなるので、適切な距離を保って戦うのが大事。" } };
     const QUESTS = [
       { id: "login",    title: "ログインする", desc: "Googleアカウントでのログインがおすすめです（メールアドレスでもOK）。", goal: 1, event: "login", mode: "set", auto: true, reward: { char: "メープル" } },
       { id: "sniper_nocskill", char: "スナイパー太郎", title: "スナイパー太郎でスキルなしCPU撃破", desc: "スナイパー太郎を使い、スキルを一度も使わずにCPUと1対1で勝つ。", goal: 1, event: "sniperNoSkill", reward: { fx: ["bullet:スナイパー太郎:redlightning"] } },
@@ -803,6 +854,7 @@ let lastPoisonTick = 0;
       { id: "reaper", name: "白き死神の鎌", desc: "大鎌が弧を描いて一閃し、青白い魂が昇る（白い死神）", quest: "master_白い死神" },
       { id: "phantom", name: "予告状・頂戴いたす", desc: "スポットライトに浮かぶ予告状、トランプと薔薇が舞う（怪盗レッド）", quest: "master_怪盗レッド" },
       { id: "gadget", name: "SYSTEM DOWN", desc: "歯車と走査線、バイナリが流れてエラー表示（ガジェットボット）", quest: "master_ガジェットボット" },
+      { id: "seafood", name: "大漁スプラッシュ", desc: "カラフルなインクの波しぶきとともに弾け、小さなカニと泡が舞い上がる（海鮮塗装屋）", quest: "master_海鮮塗装屋" },
       { id: "aqua", name: "蒼海の大海嘯", desc: "水柱が天を突き、巨大な魚が跳ね、大波が画面を洗う（アクアファイター）", quest: "master_アクアファイター" },
       { id: "pop", name: "ビリビリ・ZAP!", desc: "アメコミ調の爆発と稲妻、集中線（サンダーマウス）", quest: "master_サンダーマウス" },
       { id: "kaiju", name: "怪獣王の爪痕", desc: "巨影が浮かび、三本の爪痕と地割れが走る（怪獣王）", quest: "master_怪獣王" },
@@ -1896,7 +1948,7 @@ fighterList().forEach(p => {
   if (safeZone.shrinking && dist > safeZone.radius) {
     // 外にいる場合、1秒ごとにダメージ
     if (now - lastPoisonTick >= 1000) {
-      p.hp -= 25; // ダメージを25から5に調整（調整可能）
+      p.hp -= 25; p._stormHit = Date.now(); // ダメージを25から5に調整（調整可能）／ストームダメージの目印（エース・キッカーの眠り2倍ダメージの対象外にする）
       console.log(`${p.charName} が安全地帯外でダメージを受けました！ HP: ${p.hp}`); // デバッグ用
     }
   }
@@ -2200,7 +2252,7 @@ fighterList().forEach(p => {
        ★熟練度クエストは、キャラ一覧（characterImages）から全キャラ分を自動で作ります＝新キャラを追加すれば自動で増えます。
        ★キャラ固有のクエストは QUESTS に char:"キャラ名" を付けて追加（クエスト画面の「キャラ別」と図鑑に出ます） */
     /* キャラ別キルエフェクト（そのキャラの「達人」クエストの報酬）。新しく作ったら KILL_FX と KILL_DRAW に登録して、ここに追加 */
-    const MASTER_FX = { "ジョーカー": "slot777", "スナイパー太郎": "scope", "白い死神": "reaper", "怪盗レッド": "phantom", "ガジェットボット": "gadget", "アクアファイター": "aqua", "サンダーマウス": "pop", "怪獣王": "kaiju", "不死鳥": "phoenix", "元素の魔女": "elemental", "既視感のあるGAY": "dejavu", "ツインブラザーズ": "twin", "聖なる使者": "holy", "ジャンパー": "jump", "ボマー": "bomb", "ブーメランボーイ": "boomerang", "パイハークン": "pie24", "ペット＆テイマー": "tamer", "メープル": "maple", "上裸の鳥頭": "bird", "エース・キッカー": "ace", "サンタ": "grave", "アーク・フォージ": "ark" };
+    const MASTER_FX = { "ジョーカー": "slot777", "スナイパー太郎": "scope", "白い死神": "reaper", "怪盗レッド": "phantom", "ガジェットボット": "gadget", "アクアファイター": "aqua", "サンダーマウス": "pop", "怪獣王": "kaiju", "不死鳥": "phoenix", "元素の魔女": "elemental", "既視感のあるGAY": "dejavu", "ツインブラザーズ": "twin", "聖なる使者": "holy", "ジャンパー": "jump", "ボマー": "bomb", "ブーメランボーイ": "boomerang", "パイハークン": "pie24", "ペット＆テイマー": "tamer", "メープル": "maple", "上裸の鳥頭": "bird", "エース・キッカー": "ace", "サンタ": "grave", "アーク・フォージ": "ark", "海鮮塗装屋": "seafood"  };
     const MASTERY = [{ n: "ビギナー", t: 0 }, { n: "中級者", t: 30 }, { n: "上級者", t: 120 }, { n: "達人", t: 300 }];
     CHAR_NAMES.forEach(n => QUESTS.push({ id: "master_" + n, char: n, icon: "🎓", title: n + " 達人", desc: n + "で対戦して熟練度を上げ、「達人」になる。（遊ぶと+1、勝つと+2ポイント。達人は" + MASTERY[3].t + "ポイント）", goal: MASTERY[3].t, src: "mp:" + n, reward: MASTER_FX[n] ? { fx: ["kill:" + MASTER_FX[n]] } : undefined }));
 
@@ -2509,8 +2561,10 @@ fighterList().forEach(p => {
             keys["ArrowLeft"] = !!m.l; keys["ArrowRight"] = !!m.r;
           }
           break;
-        case "shoot": if (onl.isHost && onl.running && gameActive && player2.hp > 0) shootBullet(player2, opponentOf(player2)); break;
-        case "skill": if (onl.isHost && onl.running && gameActive && player2.hp > 0) useSkill(player2); break;
+        case "shoot": if (onl.isHost && onl.running && gameActive && player2.hp > 0) __aimRun(m, "atk", () => shootBullet(player2, opponentOf(player2))); break;
+        case "skill": if (onl.isHost && onl.running && gameActive && player2.hp > 0) __aimRun(m, "skl", () => useSkill(player2)); break;
+        case "mAim": if (onl.isHost && onl.running && player2) player2.__mAim = Number.isFinite(m.a) ? m.a : null; break;
+        case "skillUp": if (onl.isHost && onl.running && player2) player2.ckHold = false; break;
       }
     }
 
@@ -2671,7 +2725,7 @@ fighterList().forEach(p => {
       showScreen("onlineResult");
     }
 
-    /* ----- オンライン用キー入力（両者共通：移動 WASD/矢印, 攻撃 F, スキル G） ----- */
+    /* ----- オンライン用の入力（画面のスティック／ボタンが発行する内部イベントを受ける） ----- */
     const DIR_KEYS = { w: "u", ArrowUp: "u", s: "d", ArrowDown: "d", a: "l", ArrowLeft: "l", d: "r", ArrowRight: "r" };
     function normKey(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key; }
 
@@ -2692,8 +2746,8 @@ fighterList().forEach(p => {
       if (k.startsWith("Arrow") || k === " ") e.preventDefault();
       if (!onl.running) return;
       if (DIR_KEYS[k]) { onl.dirs[DIR_KEYS[k]] = true; sendDirs(); return; }
-      if (k === "f") { onl.isHost ? (gameActive && player1.hp > 0 && shootBullet(player1, opponentOf(player1))) : sendMsg({ t: "shoot" }); }
-      if (k === "g") { onl.isHost ? (gameActive && player1.hp > 0 && useSkill(player1)) : sendMsg({ t: "skill" }); }
+      if (k === "f") { onl.isHost ? (gameActive && player1.hp > 0 && shootBullet(player1, opponentOf(player1))) : sendMsg(__aimTag({ t: "shoot" })); }
+      if (k === "g") { onl.isHost ? (gameActive && player1.hp > 0 && useSkill(player1)) : sendMsg(__aimTag({ t: "skill" })); }
     }
     function onlineKeyUp(e) {
       const k = normKey(e);
@@ -3266,19 +3320,14 @@ fighterList().forEach(p => {
       $("hudImg" + i).innerHTML = img ? `<img src="${img}" alt="" onerror="this.outerHTML='${escapeHtml(p.charName.charAt(0))}'">` : escapeHtml(p.charName.charAt(0));
       $("hudTrail" + i).style.width = "100%";
     }
-    function skillKey(i) {
-      if (typeof onl !== "undefined" && onl.running) return (window.TWOVTWO ? i === 1 : (onl.isHost ? i === 1 : i === 2)) ? "G" : "";
-      return i === 1 ? "G" : "L";
-    }
+    function skillKey(i) { return ""; }   // ver92：モバイル専用（キー表示なし）
     function updateHud() {
       const now = Date.now(), H1 = hudP(1), H2 = hudP(2);
       if (hudState.p1 !== H1 || hudState.p2 !== H2) {
         hudState.p1 = H1; hudState.p2 = H2; hudState.mx = [-1, -1];
         hudSetPlayer(1, H1); hudSetPlayer(2, H2);
         const online = typeof onl !== "undefined" && onl.running;
-        $("controlHelp").textContent = online
-          ? "移動：WASD / 矢印キー　攻撃：F　スキル：G"
-          : "1P　移動 WASD ・ 攻撃 F ・ スキル G　　|　　2P　移動 ↑↓←→ ・ 攻撃 K ・ スキル L";
+        $("controlHelp").textContent = "移動：左スティック　攻撃：画面右半分のどこからでも引っ張ってエイム　スキル：ボタンを引っ張ってエイム（押すだけでオートエイム／引いて中心に戻すとキャンセル）";
         const label = (MAP_DEFS[selectedMap] ? selectedMap + " / " + MAP_DEFS[selectedMap].tag : selectedMap);
         $("gameInfo").textContent = label;
       }
@@ -3486,10 +3535,10 @@ fighterList().forEach(p => {
 
   <script>
     /* ============================================================
-       ver17：プレイ方法の選択（PC / モバイル）とタッチ操作
+       ver17：モバイル操作（タッチ操作）。ver92でモバイル専用に
        ※ ゲーム本体は変更せず、キー入力と同じイベントを発行して操作します
        ============================================================ */
-    let playMode = "pc";
+    const playMode = "mobile";   // ver92：モバイル専用
     function tkey(type, key) { document.dispatchEvent(new KeyboardEvent(type, { key: key, bubbles: true })); }
 
     function makeJoy(el, keyMap, slot) {
@@ -3498,36 +3547,152 @@ fighterList().forEach(p => {
       let id = null, cx = 0, cy = 0;
       const set = (k, v) => { if (st[k] !== v) { st[k] = v; tkey(v ? "keydown" : "keyup", keyMap[k]); } };
       const reset = () => { id = null; touchAnalog[slot].x = 0; touchAnalog[slot].y = 0; knob.style.transform = ""; base.style.display = "none"; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
+      const sm = { x: 0, y: 0 }; let lt = 0;
       const upd = e => {
-        const R = 62;
-        const dx = e.clientX - cx, dy = e.clientY - cy, m = Math.hypot(dx, dy) || 1, c = Math.min(m, R);
+        const R = 62; ema(sm, e.clientX, e.clientY, e.timeStamp - lt); lt = e.timeStamp;
+        let dx = sm.x - cx, dy = sm.y - cy, m = Math.hypot(dx, dy) || 1;
+        if (m > R * JOY_FLOAT) {   // 最大半径を大きく超えたら、中心がじわっと追従
+          const f = (m - R * JOY_FLOAT) * .2 / m; cx += dx * f; cy += dy * f; base.style.left = cx + "px"; base.style.top = cy + "px";
+          dx = sm.x - cx; dy = sm.y - cy; m = Math.hypot(dx, dy) || 1;
+        }
+        const c = Math.min(m, R);
         knob.style.transform = `translate(${dx / m * c * .6}px, ${dy / m * c * .6}px)`;
-        const on = m > R * .3, a = m * .38;
-        const mag = on ? Math.min(1, (m - R * .3) / (R * .5)) : 0;
+        const on = m > R * JOY_DEAD, a = m * .38;
+        const mag = on ? Math.pow(Math.min(1, (m - R * JOY_DEAD) / (R * (JOY_FULL - JOY_DEAD))), JOY_CURVE) : 0;   // 少し倒す＝ゆっくり精密／大きく倒す＝素早く
         touchAnalog[slot].x = on ? dx / m * mag : 0; touchAnalog[slot].y = on ? dy / m * mag : 0;
         set("l", on && dx < -a ? 1 : 0); set("r", on && dx > a ? 1 : 0);
         set("u", on && dy < -a ? 1 : 0); set("d", on && dy > a ? 1 : 0);
       };
-      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} cx = e.clientX; cy = e.clientY; base.style.left = cx + "px"; base.style.top = cy + "px"; base.style.display = "block"; upd(e); e.preventDefault(); });
+      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} cx = e.clientX; cy = e.clientY; sm.x = cx; sm.y = cy; lt = e.timeStamp; base.style.left = cx + "px"; base.style.top = cy + "px"; base.style.display = "block"; upd(e); e.preventDefault(); });
       el.addEventListener("pointermove", e => { if (e.pointerId === id) upd(e); });
       const end = e => { if (e.pointerId === id) reset(); };
       el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
       return { release() { if (id !== null) reset(); } };
     }
+    /* ============================================================
+       ver92：エイム操作（ブロスタ式）
+       ・攻撃／スキルのボタンを「撃ちたい方向へ引っ張って離す」と、その方向へ発動
+       ・引っ張らずに押す（タップ）と、これまでどおりオートエイム
+       ・長押しタイプ（メープルのシールド／海鮮塗装屋のカニダッシュ）は押している間が有効。
+         メープルは引っ張るとシールドの向きを指定できる
+       ============================================================ */
+    window.__aim = { ctx: null, st: {} };   // ctx＝発動する瞬間の狙い（攻撃・スキルの関数が読む）／st＝いま引っ張り中の狙い（エイム線の表示用）
+    const AIM_DEAD = 14, AIM_R = 88;        // 引っ張りと認める最小距離(px)／最大に引いたときの距離(px)
+    window.__aimTag = m => { const c = window.__aim.ctx; if (c && m) { m.a = +c.ang.toFixed(3); m.d = Math.round(c.dist); } return m; };   // オンライン送信にエイムを添える
+    window.__aimRun = (m, kind, fn) => {   // 受け取ったエイムで発動する（ホスト側）
+      const A = window.__aim, prev = A.ctx;
+      A.ctx = (m && Number.isFinite(m.a)) ? { kind, ang: m.a, dist: Number.isFinite(m.d) ? Math.max(40, Math.min(600, m.d)) : 300, n: 0 } : null;
+      try { return fn(); } finally { A.ctx = prev; }
+    };
+    function aimPlayer(key) {   // このボタンを操作している自分のキャラ
+      try {
+        if (typeof onl !== "undefined" && onl.running) {
+          if (onl.isHost) return player1;
+          const pl = [player1, player2, typeof player3 !== "undefined" ? player3 : null, typeof player4 !== "undefined" ? player4 : null];
+          return pl[onl.mySlot != null ? onl.mySlot : 1] || player2;
+        }
+      } catch (e) {}
+      return (key === "f" || key === "g") ? player1 : player2;
+    }
+    const aimHold = (kind, p) => !!p && ((kind === "atk" && p.charName === "メープル") || (kind === "skl" && p.charName === "海鮮塗装屋"));
+    function setHoldAim(p, a, send) {   // 長押しタイプの向き（メープルのシールド）
+      if (!p) return;
+      p.__mAim = a;
+      try { if (send && typeof onl !== "undefined" && onl.running && !onl.isHost) sendMsg({ t: "mAim", a: a }); } catch (e) {}
+    }
+    /* ver94：操作のなめらかさ（調整値） */
+    const AIM_DEAD_X = 10, AIM_LEAVE = 7;     // デッドゾーン：エイムに入る距離／抜ける距離(px)（ヒステリシスで境目のバタつきを防ぐ）
+    const AIM_FLOAT = 1.25, JOY_FLOAT = 1.3;  // クランプ追従型フローティング：最大半径の何倍を超えたら中心が追従するか
+    const TAP_MS = 220, TAP_PX = 26;          // タップ判定：この時間(ms)以内かつこの移動量(px)以内ならオートエイム
+    const REL_BACK = 35;                      // リリース補正：指を離す何ms前の座標で向きを確定するか
+    const JOY_DEAD = .1, JOY_FULL = .65;     // 移動スティック：デッドゾーン（半径の割合）／全速になる倒し具合（旧 .3／.8）
+    const JOY_CURVE = 1.3, AIM_CURVE = 1.4;   // 非線形カーブ：移動スティックの倒し具合／スキルの飛距離の指数（1で直線）
+    const KNOB_ATK = '<svg class="ring" viewBox="0 0 100 100"></svg><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>';   // 指の位置に出る攻撃ボタン（残弾リング付き）
+    /* 指数移動平均（EMA）：ゆっくり動かすときは強くならし、素早く動かすときは遅れない（速度適応） */
+    const ema = (o, x, y, dt) => {
+      dt = Math.max(1, Math.min(60, dt || 16));
+      const sp = Math.hypot(x - o.x, y - o.y) / dt, tau = 26 - 18 * Math.min(1, sp / .6), a = 1 - Math.exp(-dt / tau);
+      o.x += (x - o.x) * a; o.y += (y - o.y) * a;
+    };
+    const vibe = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+    const skReady = p => { try { return !!p && isSkillReady(p, Date.now()); } catch (e) { return true; } };
     function makeBtn(el) {
-      const key = el.dataset.key; let id = null;
-      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} el.classList.add("down"); tkey("keydown", key); e.preventDefault(); });
-      const end = e => { if (e.pointerId !== id) return; id = null; el.classList.remove("down"); tkey("keyup", key); };
-      el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+      const key = el.dataset.key, kind = (key === "f" || key === "k") ? "atk" : "skl";
+      let id = null, sx = 0, sy = 0, aimed = false, ever = false, ang = 0, angS = 0, len = 0, maxLen = 0, hold = false, pl = null, lastSend = 0, hist = [], downT = 0, lastT = 0;
+      const sm = { x: 0, y: 0 };
+      const ring = document.createElement("div"); ring.className = "aimring " + kind + (key === "k" ? " p2" : ""); ring.innerHTML = kind === "atk" ? '<i data-key="' + key + '">' + KNOB_ATK + "</i>" : "<i></i>";
+      touchUI.appendChild(ring);
+      const knob = ring.firstChild;
+      const autoSt = () => (kind === "atk" && pl && pl.ammo <= 0) ? null : { auto: true, kind, hold, len: 0 };   // 押した瞬間：オートエイムの狙い先を予告
+      const hide = () => { ring.style.display = "none"; ring.classList.remove("on", "cancel"); el.classList.remove("down"); window.__aim.st[key] = null; };
+      const upd = e => {
+        ema(sm, e.clientX, e.clientY, e.timeStamp - lastT); lastT = e.timeStamp;   // EMA：指の細かい震えをならす
+        hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY }); while (hist.length > 1 && e.timeStamp - hist[0].t > 260) hist.shift();   // リングバッファ（生の座標の履歴）
+        let dx = sm.x - sx, dy = sm.y - sy; len = Math.hypot(dx, dy);
+        const lim = AIM_R * AIM_FLOAT;
+        if (len > lim) {   // クランプ追従型フローティング：最大半径を大きく超えたら中心がじわっと追従
+          const f = (len - lim) * .25 / len; sx += dx * f; sy += dy * f; ring.style.left = sx + "px"; ring.style.top = sy + "px";
+          dx = sm.x - sx; dy = sm.y - sy; len = Math.hypot(dx, dy);
+        }
+        aimed = aimed ? len > AIM_LEAVE : len > AIM_DEAD_X;   // デッドゾーン（入る10px／抜ける7px）
+        if (aimed) {
+          const raw = Math.atan2(dy, dx);
+          if (!ever) { angS = raw; ever = true; vibe(6); }
+          else { let d = raw - angS; d = Math.atan2(Math.sin(d), Math.cos(d)); angS += d * (.3 + .7 * Math.min(1, (len - AIM_DEAD_X) / 22)); }   // 中心付近は向きを急に変えない
+          ang = angS;
+        }
+        maxLen = Math.max(maxLen, len);
+        const cancel = ever && !aimed;   // 引いたあと中心へ戻した＝キャンセル
+        const k = len ? Math.min(len, AIM_R) / len : 0;
+        knob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
+        ring.classList.toggle("on", aimed); ring.classList.toggle("cancel", cancel);
+        window.__aim.st[key] = aimed ? { ang, len, kind, hold } : (cancel ? { cancel: true, kind } : autoSt());
+        if (hold && kind === "atk" && pl) { const t = Date.now(); setHoldAim(pl, aimed ? ang : null, t - lastSend > 60); if (t - lastSend > 60) lastSend = t; }
+      };
+      function finish(cx, tUp) {
+        if (hold) { tkey("keyup", key); if (kind === "atk") setHoldAim(pl, null, true); hold = false; return; }   // 長押しタイプ：離したら解除
+        if (cx) return;
+        const quick = (tUp - downT) < TAP_MS && maxLen < TAP_PX;   // タップ判定：短時間・小移動ならオートエイム
+        if (!quick && ever && !aimed) { vibe(4); return; }   // キャンセル
+        const useAim = aimed && !quick;
+        let a = ang;
+        if (useAim) {   // リリース補正：指を離す直前の転がりを無視し、REL_BACK ms 前の安定した座標で向きを確定
+          let s0 = null; for (const h of hist) if (tUp - h.t >= REL_BACK) s0 = h;
+          if (s0 && Math.hypot(s0.x - sx, s0.y - sy) > AIM_DEAD_X) a = Math.atan2(s0.y - sy, s0.x - sx);
+        }
+        const A = window.__aim, ok = kind === "atk" ? !!(pl && pl.ammo > 0) : true;
+        const t01 = Math.max(0, Math.min(1, (len - AIM_DEAD_X) / (AIM_R - AIM_DEAD_X)));
+        A.ctx = useAim ? { kind, ang: a, dist: 120 + Math.pow(t01, AIM_CURVE) * 300, n: 0 } : null;   // 引っ張った方向へ（飛距離は非線形）。それ以外はオートエイム
+        try { tkey("keydown", key); tkey("keyup", key); } finally { A.ctx = null; }
+        vibe(ok ? 12 : [8, 40, 8]); el.classList.add("fire"); setTimeout(() => el.classList.remove("fire"), 140);
+        if (!ok) { el.classList.add("nope"); setTimeout(() => el.classList.remove("nope"), 270); }
+      }
+      el.addEventListener("pointerdown", e => {
+        if (id !== null) return;
+        pl = aimPlayer(key); hold = aimHold(kind, pl);
+        if (kind === "skl" && !hold && !skReady(pl)) {   // スキルが溜まっていない：エイムは出さず、ボタンが震える
+          tkey("keydown", key); tkey("keyup", key); el.classList.add("nope"); setTimeout(() => el.classList.remove("nope"), 270); vibe([8, 40, 8]); e.preventDefault(); return;
+        }
+        id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {}
+        el.classList.add("down"); sx = sm.x = e.clientX; sy = sm.y = e.clientY; aimed = false; ever = false; len = 0; maxLen = 0; downT = lastT = e.timeStamp; hist = [{ t: e.timeStamp, x: sx, y: sy }];
+        ring.style.left = sx + "px"; ring.style.top = sy + "px"; ring.style.display = "block"; knob.style.transform = "";
+        if (hold) tkey("keydown", key);   // 長押しタイプは押した瞬間に開始（従来どおり）
+        window.__aim.st[key] = autoSt();
+        e.preventDefault();
+      });
+      el.addEventListener("pointermove", e => { if (e.pointerId === id) upd(e); });
+      const end = (e, cx) => { if (e.pointerId !== id) return; id = null; hide(); finish(cx, e.timeStamp); };
+      el.addEventListener("pointerup", e => end(e, false)); el.addEventListener("pointercancel", e => end(e, true));
+      return { release() { if (id === null) return; id = null; hide(); if (hold) { tkey("keyup", key); if (kind === "atk") setHoldAim(pl, null, true); hold = false; } } };
     }
 
     const touchUI = document.createElement("div");
     touchUI.id = "touchUI";
     touchUI.innerHTML = `
       <div class="tp tp1"><div class="joy" id="joy1"><div class="knob"></div></div>
-        <div class="tbtns"><button class="tbtn atk" data-key="f">攻撃</button><button class="tbtn skl" data-key="g">スキル</button></div></div>
+        <div class="tbtns"><button class="tbtn atk" data-key="f" aria-label="攻撃"><svg class="ring" viewBox="0 0 100 100"></svg><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="tbtn skl" data-key="g" aria-label="スキル"><svg class="ring" viewBox="0 0 100 100"></svg><svg class="ico" viewBox="0 0 24 24"><path d="M13.5 1.5 4.5 13.5h6l-1.5 9 10-13h-6.5z" fill="#fff"/></svg></button></div></div>
       <div class="tp tp2"><div class="joy" id="joy2"><div class="knob"></div></div>
-        <div class="tbtns"><button class="tbtn atk" data-key="k">攻撃</button><button class="tbtn skl" data-key="l">スキル</button></div></div>`;
+        <div class="tbtns"><button class="tbtn atk" data-key="k" aria-label="攻撃"><svg class="ring" viewBox="0 0 100 100"></svg><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="tbtn skl" data-key="l" aria-label="スキル"><svg class="ring" viewBox="0 0 100 100"></svg><svg class="ico" viewBox="0 0 24 24"><path d="M13.5 1.5 4.5 13.5h6l-1.5 9 10-13h-6.5z" fill="#fff"/></svg></button></div></div>`;
     document.body.appendChild(touchUI);
     const rot = document.createElement("div");
     rot.id = "rotateMsg"; rot.innerHTML = "<b>📱↻</b><div>横向きにしてください</div>";
@@ -3536,7 +3701,42 @@ fighterList().forEach(p => {
       makeJoy(document.getElementById("joy1"), { u: "w", d: "s", l: "a", r: "d" }, "p1"),
       makeJoy(document.getElementById("joy2"), { u: "ArrowUp", d: "ArrowDown", l: "ArrowLeft", r: "ArrowRight" }, "p2")
     ];
-    touchUI.querySelectorAll(".tbtn").forEach(makeBtn);
+    const aimBtns = Array.from(touchUI.querySelectorAll(".tbtn")).map(makeBtn);
+    const atkPad = document.createElement("div"); atkPad.className = "atkpad"; atkPad.dataset.key = "f";   // 移動スティックと同じ：右半分のどこを押しても「攻撃」になる
+    touchUI.querySelector(".tp1").insertBefore(atkPad, touchUI.querySelector(".tp1 .tbtns")); aimBtns.push(makeBtn(atkPad));
+
+    /* ver93：攻撃ボタンの残弾リング（ブロスタ風）／スキルボタンのチャージ表示 */
+    (function () {
+      const seg = (cls, len, off) => `<circle class="${cls}" cx="50" cy="50" r="45" pathLength="100" transform="rotate(-90 50 50)" stroke-dasharray="${len} 100" stroke-dashoffset="${off}"/>`;
+      function build(el, n) {
+        const gap = n > 1 ? 2.6 : 0, L = 100 / n - gap; let h = "";
+        for (let k = 0; k < n; k++) h += seg("t", L, -(k * 100 / n + gap / 2));
+        for (let k = 0; k < n; k++) h += seg("f", L, -(k * 100 / n + gap / 2));
+        el.querySelector("svg.ring").innerHTML = h; el._n = n; el._L = L; el._f = Array.from(el.querySelectorAll("circle.f"));
+      }
+      function tick() {
+        const now = Date.now();
+        touchUI.querySelectorAll(".tbtn, .aimring i[data-key]").forEach(el => {
+          const key = el.dataset.key, p = aimPlayer(key); if (!p) return;
+          if (key === "f" || key === "k") {
+            const inf = p.maxAmmo >= 100, n = inf ? 1 : Math.max(1, Math.min(12, p.maxAmmo | 0));
+            if (el._n !== n) build(el, n);
+            const prog = Math.max(0, Math.min(1, (now - (p.lastReload || 0)) / (p.reloadTime || 1000)));
+            el._f.forEach((c, k) => {
+              const full = inf || k < p.ammo, rl = !inf && k === p.ammo && p.ammo < p.maxAmmo;
+              c.setAttribute("stroke-dasharray", (full ? el._L : rl ? el._L * prog : 0) + " 100"); c.setAttribute("class", rl ? "r" : "f");
+            });
+            el.classList.toggle("empty", !inf && p.ammo <= 0);
+          } else {
+            if (el._n !== 1) { el.querySelector("svg.ring").innerHTML = seg("t", 100, 0) + seg("f", 0, 0); el._n = 1; el._f = Array.from(el.querySelectorAll("circle.f")); }
+            const heal = p.charName === "聖なる使者", ready = skReady(p);
+            let fr = heal ? p.skillCharge / 30 : (ready ? 1 : (now - p.skillLastUsed) / p.skillCooldown); fr = isFinite(fr) ? Math.max(0, Math.min(1, fr)) : 0;
+            el._f[0].setAttribute("stroke-dasharray", (fr * 100) + " 100"); el.classList.toggle("ready", ready);
+          }
+        });
+      }
+      setInterval(tick, 90);
+    })();
 
     const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
     function fsSupported() { const e = document.documentElement; return !!(e.requestFullscreen || e.webkitRequestFullscreen); }
@@ -3568,16 +3768,7 @@ fighterList().forEach(p => {
       root.style.setProperty("--u", (h / 100) + "px");
       document.body.classList.toggle("compact", playMode === "mobile" || h < 520);
     }
-    function setPlayMode(m, byUser) {
-      playMode = m === "mobile" ? "mobile" : "pc";
-      document.body.classList.toggle("mobile", playMode === "mobile");
-      document.getElementById("modePC").classList.toggle("on", playMode === "pc");
-      document.getElementById("modeMobile").classList.toggle("on", playMode === "mobile");
-      try { localStorage.setItem("playMode", playMode); } catch (e) {}
-      if (playMode === "mobile") { if (byUser) lockLandscape(); }
-      else { joys.forEach(j => j.release()); unlockFullscreen(); }
-      updateViewport();
-    }
+    function setPlayMode() { document.body.classList.add("mobile"); updateViewport(); }
     window.addEventListener("resize", updateViewport);
     window.addEventListener("orientationchange", updateViewport);
     document.addEventListener("fullscreenchange", updateViewport);
@@ -3585,25 +3776,20 @@ fighterList().forEach(p => {
 
     /* メニュー（ホーム画面）で何かを押したら全画面＋横向き固定。ホームに戻ったら解除 */
     document.addEventListener("click", e => {
-      if (playMode === "mobile" && e.target.closest && e.target.closest("#homeScreen button:not(#modePC):not(#modeMobile)")) lockLandscape();
+      if (playMode === "mobile" && e.target.closest && e.target.closest("#homeScreen button")) lockLandscape();
     }, true);
     let wasHome = true;
     setInterval(() => {
       const ig = !document.getElementById("gameScreen").classList.contains("hidden");
       document.body.classList.toggle("ingame", ig);
       touchUI.classList.toggle("online", !!(typeof onl !== "undefined" && onl.running));
-      if (!ig || playMode !== "mobile") joys.forEach(j => j.release());
+      if (!ig) { joys.forEach(j => j.release()); aimBtns.forEach(b => b.release()); }
       const home = !document.getElementById("homeScreen").classList.contains("hidden");
       if (home && !wasHome && playMode === "mobile") unlockFullscreen();
       wasHome = home;
     }, 150);
 
-    (function () {
-      let saved = "";
-      try { saved = localStorage.getItem("playMode") || ""; } catch (e) {}
-      if (saved !== "pc" && saved !== "mobile") saved = (window.matchMedia && matchMedia("(pointer: coarse)").matches) ? "mobile" : "pc";
-      setPlayMode(saved, false);
-    })();
+    setPlayMode();
   </script>
 
   <script>
@@ -3642,7 +3828,8 @@ const PROF={
 '不死鳥':{range:200,fire:350},
 'ペット＆テイマー':{range:230,fire:300},
 'サンタ':{range:300,fire:420},
-'アーク・フォージ':{range:300,fire:380}};
+'アーク・フォージ':{range:300,fire:380},
+'海鮮塗装屋':{range:230,fire:380}};
 const ai=[{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:-1,pe:null,ev:[0,0]},{dir:[0,0],nf:0,side:1,pe:null,ev:[0,0]}];
 const rect=p=>({x:p.x,y:p.y,w:30,h:30});
 const trapped=p=>collidesWithObstacles(rect(p));
@@ -3782,6 +3969,7 @@ function think(i){
   case'ペット＆テイマー':use=rdy&&me.pets.length>=3&&(me.pets.length>=8||(me.pets.length>=5&&d<340)||(hpLow&&d<260));break;
   case'元素の魔女':use=rdy&&(me.element|0)!==mageWant;break;
   case'サンタ':use=rdy&&d<520;break;
+  case'海鮮塗装屋':use=!!(window.__crabWant&&window.__crabWant(me,en,d));break;
   case'アーク・フォージ':use=rdy&&d<480&&!(window.ARK_DRONES||[]).some(x=>x.o===me);break;}
  if(use)useSkill(me);
  if(nm==='パイハークン'&&me.pieB&&bullets.indexOf(me.pieB)>=0){if(HY(me.pieB.x-ex,me.pieB.y-ey)<75)shootBullet(me,en);return}
@@ -3837,12 +4025,12 @@ function think(i){
     returnToMenu = function () { cpu.on = false; cpuSetUI(); _returnToMenu20(); };
 
     const _skillKey20 = skillKey;
-    skillKey = function (i) { return cpu.on ? (i === 1 ? "G" : "") : _skillKey20(i); };
+    skillKey = function (i) { return ""; };
     const _updateHud20 = updateHud;
     updateHud = function () {
       _updateHud20();
       if (cpu.on) {
-        const c = document.getElementById("controlHelp"), s = "あなた(1P)　移動 WASD ・ 攻撃 F ・ スキル G　　|　　2P は CPU が操作";
+        const c = document.getElementById("controlHelp"), s = "あなた(1P)　2P は CPU が操作";
         if (c.textContent !== s) c.textContent = s;
       }
     };
@@ -5564,43 +5752,12 @@ function think(i){
     window.Settings = (function () {
       const $ = id => document.getElementById(id), TAU = Math.PI * 2;
       const LS = "settings_v1";
-      const KEY_ACTS = [["up", "上へ", "w"], ["down", "下へ", "s"], ["left", "左へ", "a"], ["right", "右へ", "d"], ["atk", "攻撃", "f"], ["skl", "スキル", "g"]];
-      const DEF_KEYS = {}; KEY_ACTS.forEach(a => { DEF_KEYS[a[0]] = a[2]; });
       const DEF_TOUCH = { size: 70, opacity: 100, lefty: false, atk: { x: 91, y: 80 }, skl: { x: 79, y: 63 } };
       let cfg = { keys: null, touch: null, fx: { kill: "std", bullet: {} } };
       try { const j = JSON.parse(localStorage.getItem(LS) || "null"); if (j) cfg = Object.assign(cfg, j); } catch (e) {}
       cfg.fx = cfg.fx || { kill: "std", bullet: {} }; cfg.fx.bullet = cfg.fx.bullet || {};
       const save = () => { try { localStorage.setItem(LS, JSON.stringify(cfg)); } catch (e) {} };
-      const norm = k => k.length === 1 ? k.toLowerCase() : k;
-      const keyName = k => ({ " ": "Space", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" }[k] || (k.length === 1 ? k.toUpperCase() : k));
-      const curKeys = () => Object.assign({}, DEF_KEYS, cfg.keys || {});
 
-      /* ======== キー入力の置き換え ======== */
-      let waiting = null, REV = {}, DEFSET = new Set(Object.values(DEF_KEYS));
-      function rebuild() { REV = {}; const k = curKeys(); Object.keys(k).forEach(a => { REV[k[a]] = a; }); }
-      rebuild();
-      function onKey(e) {
-        if (!e.isTrusted) return;
-        const t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
-        const k = norm(e.key);
-        if (waiting) {   // キー割り当て待ち
-          e.preventDefault(); e.stopImmediatePropagation();
-          if (e.type !== "keydown") return;
-          const act = waiting; waiting = null;
-          if (k !== "Escape") {
-            const ks = curKeys(), old = ks[act], other = Object.keys(ks).find(a => a !== act && ks[a] === k);
-            ks[act] = k; if (other) ks[other] = old;   // 重複したら入れ替え
-            cfg.keys = ks; save(); rebuild();
-          }
-          renderC(); return;
-        }
-        if (!cfg.keys) return;
-        const act = REV[k];
-        if (act) { const d = DEF_KEYS[act]; if (d === k) return; e.stopImmediatePropagation(); e.preventDefault(); document.dispatchEvent(new KeyboardEvent(e.type, { key: d, bubbles: true })); return; }
-        if (DEFSET.has(k)) { e.stopImmediatePropagation(); e.preventDefault(); }   // 割り当てを外れた元のキーは無効
-      }
-      ["keydown", "keyup"].forEach(t => window.addEventListener(t, e => { if (window.__fxPv) { e.stopImmediatePropagation(); e.preventDefault(); } }, true));   // プレビュー中は操作を受け付けない（見るだけ）
-      window.addEventListener("keydown", onKey, true); window.addEventListener("keyup", onKey, true);
 
       /* ======== タッチボタン配置 ======== */
       let tstyle = null;
@@ -5625,15 +5782,10 @@ function think(i){
       function setTouch(p) { cfg.touch = Object.assign(tc(), p); save(); applyTouch(); drawTL(); }
 
       function renderC() {
-        const ks = curKeys(), c = tc();
+        const c = tc();
         $("stPaneC").innerHTML = `
-          <div class="st-sec"><h3>⌨ キーボード（PC）</h3>
-            <div class="st-note">変更したい項目を押してから、割り当てたいキーを押してください（Escでキャンセル）。ほかの項目と重なったときは入れ替わります。矢印キーは常に移動として使えます。</div>
-            <div class="st-keys">${KEY_ACTS.map(a => `<div class="st-key"><span>${a[1]}</span><button data-k="${a[0]}" class="${waiting === a[0] ? "wait" : ""}">${waiting === a[0] ? "キーを押す…" : keyName(ks[a[0]])}</button></div>`).join("")}</div>
-            <button class="st-reset" id="stKeyReset">↺ キー設定を初期に戻す</button>
-          </div>
-          <div class="st-sec"><h3>📱 ボタン配置（モバイル）</h3>
-            <div class="st-note">下の画面イメージで「攻撃」「スキル」ボタンをドラッグして好きな位置に置けます。実際の画面でも同じ位置に表示されます。</div>
+          <div class="st-sec"><h3>📱 ボタン配置</h3>
+            <div class="st-note">攻撃・スキルのボタンは、撃ちたい方向へ引っ張って離すとその方向へ、引っ張らずに押すとオートエイムで発動します。下の画面イメージで「攻撃」「スキル」ボタンをドラッグして好きな位置に置けます。実際の画面でも同じ位置に表示されます。</div>
             <div id="tlPrev"><div class="stk" style="${c.lefty ? "right" : "left"}:0">移動スティック<br>（この範囲のどこでも）</div>
               <div class="tlb" id="tlAtk" data-b="atk">攻撃</div><div class="tlb" id="tlSkl" data-b="skl" style="border-color:#3aa0ff">スキル</div></div>
             <div class="st-row"><span>大きさ</span><input type="range" id="tlSize" min="48" max="110" value="${c.size}"><b id="tlSizeV">${c.size}</b></div>
@@ -5641,8 +5793,6 @@ function think(i){
             <div class="st-row"><label><input type="checkbox" id="tlLefty" ${c.lefty ? "checked" : ""}> スティックを右側にする（左利き向け）</label></div>
             <button class="st-reset" id="stTouchReset">↺ ボタン配置を初期に戻す</button>
           </div>`;
-        $("stPaneC").querySelectorAll(".st-key button").forEach(b => b.onclick = () => { waiting = b.dataset.k; renderC(); });
-        $("stKeyReset").onclick = () => { cfg.keys = null; waiting = null; save(); rebuild(); renderC(); };
         $("stTouchReset").onclick = () => { cfg.touch = null; save(); applyTouch(); renderC(); };
         $("tlSize").oninput = e => { $("tlSizeV").textContent = e.target.value; setTouch({ size: +e.target.value }); };
         $("tlOp").oninput = e => { $("tlOpV").textContent = e.target.value + "%"; setTouch({ opacity: +e.target.value }); };
@@ -6794,7 +6944,37 @@ function think(i){
         }
         c.globalAlpha = 1;
       }
-      const KILL_DRAW = { redlightning: { dur: 1000, draw: redKill }, monochrome: { dur: 1500, draw: monoKill },
+      /* 海鮮塗装屋（達人）：大漁スプラッシュ。カラフルなインクの波しぶき、跳ねるカニ、泡 */
+      function seaKill(c, x, y, age) {
+        const [W, H] = kPre(c), vis = kFade(age, 100, 1700, 300), PAL = ["#ff2d95", "#00e5ff", "#ffe600", "#7cff3a", "#ff7a00", "#b04dff", "#2d6bff"];
+        const R = n => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+        c.globalAlpha = .45 * vis; c.fillStyle = "#021a2e"; c.fillRect(0, 0, W, H);
+        for (let i = 0; i < 8; i++) {   // くねくねしたインクの波しぶき
+          const k = kc((age - i * 70) / 750); if (k <= 0) continue;
+          const col = PAL[i % PAL.length], base = 40 + 230 * kE(k) + R(i) * 40, N = 22;
+          c.globalAlpha = (.9 - (age > 1000 ? kc((age - 1000) / 700) * .9 : 0)) * vis; c.fillStyle = col; c.beginPath();
+          for (let j = 0; j <= N; j++) { const a = j / N * TAU, rr = base * (.78 + .32 * Math.sin(a * 3 + i * 2 + age * .004) + .18 * R(i * 40 + j)); const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * .8; j ? c.lineTo(px, py) : c.moveTo(px, py); }
+          c.closePath(); c.fill();
+        }
+        for (let i = 0; i < 46; i++) {   // 飛び散るしずく
+          const k = kc((age - 60) / 1300), an = R(i + 5) * TAU, sp = 90 + R(i + 9) * 330, g = 420;
+          const px = x + Math.cos(an) * sp * k * 1.1, py = y + Math.sin(an) * sp * k * 1.1 + g * k * k * .55;
+          c.globalAlpha = (1 - k) * vis; c.fillStyle = PAL[i % PAL.length]; c.beginPath(); c.arc(px, py, 3 + R(i) * 7 * (1 - k * .5), 0, TAU); c.fill();
+        }
+        for (let i = 0; i < 9; i++) {   // 跳ね上がるカニ
+          const k = kc((age - 120 - i * 40) / 1250); if (k <= 0 || k >= 1) continue;
+          const an = -Math.PI / 2 + (R(i + 20) - .5) * 2.4, sp = 160 + R(i + 30) * 200, px = x + Math.cos(an) * sp * k, py = y + Math.sin(an) * sp * k + 380 * k * k * .7;
+          c.globalAlpha = (1 - k * k) * vis; if (window.__crabDraw) window.__crabDraw(c, px, py, 1.25, k * 9 * (i % 2 ? 1 : -1), PAL[i % PAL.length], age);
+        }
+        for (let i = 0; i < 16; i++) {   // 泡
+          const k = kc((age - 200 - i * 50) / 1300); if (k <= 0 || k >= 1) continue;
+          const px = x + (R(i + 50) - .5) * 420 + Math.sin(age * .004 + i) * 10, py = y + 60 - 300 * kE(k), rr = 4 + R(i + 60) * 9;
+          c.globalAlpha = (1 - k) * .85 * vis; c.strokeStyle = "#dffaff"; c.lineWidth = 2; c.beginPath(); c.arc(px, py, rr, 0, TAU); c.stroke();
+          c.fillStyle = "rgba(255,255,255,.7)"; c.beginPath(); c.arc(px - rr * .3, py - rr * .3, rr * .22, 0, TAU); c.fill();
+        }
+        c.globalAlpha = 1;
+      }
+      const KILL_DRAW = { seafood: { dur: 2000, draw: seaKill }, redlightning: { dur: 1000, draw: redKill }, monochrome: { dur: 1500, draw: monoKill },
         slot777: { dur: 1500, draw: slotKill }, scope: { dur: 1300, draw: scopeKill }, reaper: { dur: 1500, draw: reaperKill }, phantom: { dur: 1500, draw: phantomKill },
         gadget: { dur: 1400, draw: gadgetKill }, aqua: { dur: 1800, draw: aquaKill },
         orochi: { dur: 2100, draw: orochiKill }, tiger: { dur: 2100, draw: tigerKill }, dragon: { dur: 2100, draw: dragonKill }, santa: { dur: 2200, draw: santaKill }, xmas: { dur: 2300, draw: xmasKill }, gate: { dur: 2300, draw: gateKill }, grave: { dur: 2300, draw: graveKill }, abyss: { dur: 2400, draw: abyssKill }, vortex: { dur: 2000, draw: vortexKill }, thunder: { dur: 1500, draw: thunderKill }, timewarp: { dur: 1900, draw: warpKill }, ambulance: { dur: 2300, draw: ambKill },
@@ -7882,7 +8062,7 @@ function think(i){
       const _uh = updateHud;
       updateHud = function () {
         _uh();
-        if (window.TWOVTWO && !(typeof onl !== "undefined" && onl.running)) { const c = $("controlHelp"), t = "あなた(1P)＋味方CPU 対 CPU2体　移動 WASD ・ 攻撃 F ・ スキル G"; if (c.textContent !== t) c.textContent = t; }
+        if (window.TWOVTWO && !(typeof onl !== "undefined" && onl.running)) { const c = $("controlHelp"), t = "あなた(1P)＋味方CPU 対 CPU2体"; if (c.textContent !== t) c.textContent = t; }
       };
       const _dr = draw;
       draw = function () {
@@ -7995,7 +8175,7 @@ function think(i){
           if (!gameActive || p.hp <= 0 || p.out) { p.shOn = false; return; }
           if (p.shBrk) { if (t >= p.shBrk) { p.shBrk = 0; p.en = 100; } else p.shOn = false; }
           if (stunned(p)) p.shOn = false;
-          const f = opponentOf(p); if (f) p.shA = Math.atan2(f.y + 15 - (p.y + 15), f.x + 15 - (p.x + 15));
+          if (p.__mAim != null) p.shA = p.__mAim; else { const f = opponentOf(p); if (f) p.shA = Math.atan2(f.y + 15 - (p.y + 15), f.x + 15 - (p.x + 15)); }
           if (p.shOn) {
             p.en -= 5 * dt / 1000;
             if (p.en > 0) { absorb(p, bullets); if (p.en > 0 && window.X21) absorb(p, X21.xb); }
@@ -8270,7 +8450,7 @@ function think(i){
             if (n.x < 0 || n.y < 0 || n.x > ARENA_W || n.y > ARENA_H || collidesWithObstacles({ x: n.x - 2, y: n.y - 2, w: 4, h: 4 })) { dead = true; break; }
             for (const f of fl) {
               if (!f || f.hp <= 0 || f.out || teamOf(f) === teamOf(n.from) || f.x < -100) continue;
-              if (Math.hypot(f.x + 15 - n.x, f.y + 15 - n.y) < 20) { f.stunUntil = Math.max(f.stunUntil || 0, t + 1500); f._slp = t + 1500; f._sh = f.hp; if (f.shOn) f.shOn = false; dead = true; explosions.push({ x: n.x, y: n.y, r: 14, life: 8 }); break; }
+              if (Math.hypot(f.x + 15 - n.x, f.y + 15 - n.y) < 20) { f.stunUntil = Math.max(f.stunUntil || 0, t + 3000); f._slp = t + 3000; f._sh = f.hp; if (f.shOn) f.shOn = false; dead = true; explosions.push({ x: n.x, y: n.y, r: 14, life: 8 }); break; }
             }
           }
           if (++n.age > 60) dead = true;
@@ -8292,7 +8472,11 @@ function think(i){
         });
         fl.forEach(p => {   // 眠り：ダメージを受けたら即起床
           if (!p || !(p._slp > t)) { if (p && p._slp) p._slp = 0; return; }
-          if (p.hp < p._sh - .01) { p.stunUntil = 0; p._slp = 0; } else if (p.hp > p._sh) p._sh = p.hp;
+          if (p.hp < p._sh - .01) {   // 眠っている敵が受ける「次の1回」のダメージは2倍（ストームダメージは等倍）。受けたら起床
+            const storm = (t - (p._stormHit || 0) < 80) ? 25 : 0, extra = (p._sh - p.hp) - storm;
+            if (extra > .01) p.hp -= extra;
+            p.stunUntil = 0; p._slp = 0;
+          } else if (p.hp > p._sh) p._sh = p.hp;
         });
         rec.forEach(r => {   // 跳弾：1人目（キャラ or 召喚物）に当たって消えたら、近くの別の敵（キャラ or 召喚物）へ（1回だけ・同じ相手へは戻らない）
           if (bullets.includes(r.b)) return;
@@ -8631,9 +8815,11 @@ function think(i){
       function gameMsg(seat, m) {   // 席ごとの入力（接続元に関係なく席で処理）
         switch (m.t) {
           case "in": if (onl.running) { const k = SK[seat]; keys[k.up] = !!m.u; keys[k.down] = !!m.d; keys[k.left] = !!m.l; keys[k.right] = !!m.r; } return;
-          case "shoot": { const p = PL()[seat]; if (onl.running && gameActive && p && p.hp > 0) shootBullet(p, opponentOf(p)); } return;
-          case "skill": { const p = PL()[seat]; if (onl.running && gameActive && p && p.hp > 0) useSkill(p); } return;
+          case "shoot": { const p = PL()[seat]; if (onl.running && gameActive && p && p.hp > 0) __aimRun(m, "atk", () => shootBullet(p, opponentOf(p))); } return;
+          case "skill": { const p = PL()[seat]; if (onl.running && gameActive && p && p.hp > 0) __aimRun(m, "skl", () => useSkill(p)); } return;
+          case "mAim": { const p = PL()[seat]; if (p) p.__mAim = Number.isFinite(m.a) ? m.a : null; } return;
           case "shootUp": { const p = PL()[seat]; if (p) p.shOn = false; } return;
+          case "skillUp": { const p = PL()[seat]; if (p) p.ckHold = false; } return;
         }
       }
       function swapTeam(seat) {   // 席 seat(1〜3) をもう片方のチームの席と入れ替える
@@ -8646,7 +8832,7 @@ function think(i){
       function exMsg(s, m) {
         const e = onl.ex[s]; if (!m || !m.t || !e) return;
         if (m.t === "swap") { swapTeam(onl.seat[s]); return; }
-        if (m.t === "in" || m.t === "shoot" || m.t === "skill" || m.t === "shootUp") { if (window.TWOVTWO) gameMsg(onl.seat[s], m); return; }
+        if (m.t === "in" || m.t === "shoot" || m.t === "skill" || m.t === "shootUp" || m.t === "skillUp" || m.t === "mAim") { if (window.TWOVTWO) gameMsg(onl.seat[s], m); return; }
         switch (m.t) {
           case "char": e.char = m.v; break;
           case "name": e.name = String(m.v || "ゲスト").slice(0, 16); break;
@@ -8688,7 +8874,7 @@ function think(i){
         if (m && m.t === "roster") { onl.roster = m.r; updateLobby(); return; }
         if (m && m.t === "start2") { if (!onl.isHost) begin2(m); return; }
         if (m && onl.isHost && m.t === "swap") { swapTeam(onl.seat[1]); return; }
-        if (m && onl.isHost && window.TWOVTWO && (m.t === "in" || m.t === "shoot" || m.t === "skill" || m.t === "shootUp")) { gameMsg(onl.seat[1], m); return; }
+        if (m && onl.isHost && window.TWOVTWO && (m.t === "in" || m.t === "shoot" || m.t === "skill" || m.t === "shootUp" || m.t === "skillUp" || m.t === "mAim")) { gameMsg(onl.seat[1], m); return; }
         if (m && onl.isHost && m.t === "shootUp") { if (player2) player2.shOn = false; return; }
         _om(m);
         if (m && onl.isHost && (m.t === "char" || m.t === "name" || m.t === "ready")) tell();
@@ -8934,20 +9120,28 @@ function think(i){
           "壁で跳ねた弾・引っ掻きなどの近接攻撃は反射しない（従来どおり防ぐだけ／貫通攻撃は防げない）",
           "シールドは従来どおり、受けたダメージ分エネルギーが減る",
           "必殺技に周囲ノックバックを追加：敵は吹き飛ばし、味方は中心へ吸い込む（メープル自身は動かない）"
+        ] },
+        "アーク・フォージ": { ver: "ver86", summary: "ドローンを刷新", notes: [
+          "ドローンの見た目を、近未来的な小型の銃型デザインに変更。旋回しながら常に敵の方向を向く",
+          "召喚数を2機から3機に増加",
+          "旋回範囲を外側へ拡大（出現位置は従来どおり）"
+        ] },
+        "エース・キッカー": { ver: "ver86", summary: "麻酔針の強化", notes: [
+          "眠らせる時間を1.5秒から3秒に延長",
+          "眠っている敵が次に受ける1回のダメージが2倍になる（ストームダメージは等倍）"
         ] }
       };
       const st = document.createElement("style");
-      st.textContent = ".rw-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;background:linear-gradient(135deg,#ff9a3c,#ff4f6a);color:#fff;font:bold 10px sans-serif;letter-spacing:.5px;vertical-align:middle;box-shadow:0 0 8px rgba(255,120,60,.7)}" +
-        ".cx-item.rw,.cs-card.rw{box-shadow:0 0 0 2px #ff9a3c,0 0 12px rgba(255,120,60,.6)}" +
-        ".cx-item,.cs-card{position:relative}.rw-corner{position:absolute;top:2px;right:2px;padding:0 5px;border-radius:5px;background:#ff4f6a;color:#fff;font:bold 9px sans-serif;z-index:3}" +
-        ".cd-rework{margin-top:12px;padding:10px 12px;border:2px solid #ff9a3c;border-radius:10px;background:rgba(255,120,60,.12)}.cd-rework h4{margin:0 0 6px;color:#ffb347}.cd-rework ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6}";
+      st.textContent = ".rw-tag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;background:rgba(255,255,255,.1);border:1px solid rgba(190,205,230,.28);color:#aebbd4;font:9px sans-serif;letter-spacing:.3px;vertical-align:middle}" +
+        ".cx-item,.cs-card{position:relative}.rw-corner{position:absolute;top:2px;right:2px;padding:0 4px;border-radius:4px;background:rgba(20,28,44,.72);border:1px solid rgba(190,205,230,.28);color:#aebbd4;font:8px sans-serif;z-index:3;font-style:normal;pointer-events:none}" +
+        ".cd-rework{margin-top:10px;padding:2px 0 2px 10px;border-left:2px solid rgba(190,205,230,.35);color:#aebbd4;font-size:12px}.cd-rework summary{cursor:pointer;opacity:.85;list-style:none}.cd-rework summary::-webkit-details-marker{display:none}.cd-rework ul{margin:6px 0 2px;padding-left:16px;line-height:1.55;opacity:.9}";
       document.head.appendChild(st);
       function mark() {
         document.querySelectorAll(".cx-item,.cs-card").forEach(b => {
           const n = b.dataset.name, on = !!window.REWORK[n];
           b.classList.toggle("rw", on);
           const c = b.querySelector(".rw-corner");
-          if (on && !c) b.insertAdjacentHTML("beforeend", '<i class="rw-corner">REWORK</i>'); else if (!on && c) c.remove();
+          if (on && !c) b.insertAdjacentHTML("beforeend", '<i class="rw-corner">リワーク</i>'); else if (!on && c) c.remove();
         });
       }
       const _sc = selectCodex;
@@ -8957,8 +9151,8 @@ function think(i){
           mark();
           const r = window.REWORK[name], h = document.querySelector("#codexDetail .cd-head");
           if (r && h) {
-            const nm = h.querySelector(".cd-name"); if (nm) nm.insertAdjacentHTML("beforeend", '<span class="rw-tag">REWORK ' + r.ver + '</span>');
-            h.insertAdjacentHTML("afterend", '<div class="cd-rework"><h4>🔧 リワーク変更点（' + r.ver + '）：' + escapeHtml(r.summary) + '</h4><ul>' + r.notes.map(x => "<li>" + escapeHtml(x) + "</li>").join("") + "</ul></div>");
+            const nm = h.querySelector(".cd-name"); if (nm) nm.insertAdjacentHTML("beforeend", '<span class="rw-tag">リワーク ' + r.ver + '</span>');
+            h.insertAdjacentHTML("afterend", '<details class="cd-rework"><summary>変更点（' + r.ver + '）：' + escapeHtml(r.summary) + ' ▾</summary><ul>' + r.notes.map(x => "<li>" + escapeHtml(x) + "</li>").join("") + "</ul></details>");
           }
         } catch (e) { console.warn(e); }
       };
@@ -9731,7 +9925,7 @@ function think(i){
     /* ============================================================
        新キャラ「アーク・フォージ」（プレイヤー用）
        通常攻撃：手のひらのリパルサーから青白いエネルギー弾（10ダメージ）
-       スキル「ドローン・リンク」：小型戦闘ドローンを2機召喚。それぞれ独立したHPを持ち、自分の周囲を旋回。
+       スキル「ドローン・リンク」：小型ガンポッド型ドローンを3機召喚。それぞれ独立したHPを持ち、自分の周囲（やや外側）を旋回しつつ常に敵の方向を向く。
          ・HPは毎秒2ずつ減る（プレイヤーから離れすぎると毎秒4）／HP0で消滅
          ・通常攻撃を撃つと、ドローンも連動して敵へ1発4ダメージの弾を撃つ
          ・壁は貫通せず、ぶつかりそうなら回り込む
@@ -9754,8 +9948,9 @@ function think(i){
         for (let i = DR.length - 1; i >= 0; i--) if (DR[i].o === p) DR.splice(i, 1);   // 使い直すと古い機体は入れ替え
         const pc = cen(p), n = X.droneN, t = now();
         for (let i = 0; i < n; i++) {
-          const ang = i * TAU / n + Math.random() * .3, r = n > 1 ? X.orbitMin + (X.orbitMax - X.orbitMin) * i / (n - 1) : (X.orbitMin + X.orbitMax) / 2;
-          let x = pc.x + Math.cos(ang) * r, y = pc.y + Math.sin(ang) * r;
+          const ang = i * TAU / n + Math.random() * .3, k = n > 1 ? i / (n - 1) : .5;
+          const r = X.orbitMin + (X.orbitMax - X.orbitMin) * k, sr = X.spawnMin + (X.spawnMax - X.spawnMin) * k;   // 旋回半径／湧き位置の半径（湧き位置は従来どおり）
+          let x = pc.x + Math.cos(ang) * sr, y = pc.y + Math.sin(ang) * sr;
           if (!free(x, y)) { x = pc.x; y = pc.y; }
           DR.push({ o: p, x, y, hp: X.droneHp, mx: X.droneHp, ang, dir: i % 2 ? -1 : 1, r, face: ang, lt: t, ft: 0, hf: 0, tr: [] });
         }
@@ -9842,7 +10037,14 @@ function think(i){
           d.far = dist > X.farDist;
           d.hp -= (d.far ? X.decay * X.farMul : X.decay) * dt;   // 離れすぎると減りが速い
           d.tr.push({ x: d.x, y: d.y }); if (d.tr.length > 10) d.tr.shift();
-          if (t - d.ft > 250) d.face = d.ang + d.dir * Math.PI / 2;   // 撃っていない間は進行方向を向く
+          if (t - d.ft > 120) {   // 旋回しながら、常に一番近い敵の方向へ銃口を向ける（敵がいなければ進行方向）
+            const es = (window.targetsOf ? window.targetsOf(d.o) : foes(d.o)).filter(q => q && q.hp > 0 && !q.out && q.x > -100);
+            let bc = null, bd2 = 1e9;
+            es.forEach(q => { const c = cen(q), m = Math.hypot(c.x - d.x, c.y - d.y); if (m < bd2) { bd2 = m; bc = c; } });
+            const want = bc ? Math.atan2(bc.y - d.y, bc.x - d.x) : d.ang + d.dir * Math.PI / 2;
+            let df = want - d.face; df = Math.atan2(Math.sin(df), Math.cos(df));
+            d.face += df * (1 - Math.pow(1 - X.turn, dt * 60));
+          }
         });
         for (let j = bullets.length - 1; j >= 0; j--) {   // ドローンへの被弾（敵の弾）
           const b = bullets[j]; if (!b.from || b.explosive) continue;
@@ -9861,27 +10063,28 @@ function think(i){
       };
 
       /* ---- 描画 ---- */
-      /* ドローンの見た目（添付イメージ）：クリーム色×金の装甲／黒いフチ／青く光る丸いレンズ／翼／青い渦の軌跡 */
-      function body(g, x, y, face, s) {
-        const t = now(), K = "#17121a", CR = "#f3e9d6", GD = "#e0a93a";
+      /* ドローンの見た目：近未来の小型ガンポッド（ガンメタルの装甲／青く光るレール／先端の砲口／後部の推進光）。右(+x)が銃口 */
+      function body(g, x, y, face, s, flash) {
+        const t = now(), K = "#070b16", ED = "#8fe6ff";
         g.save(); g.translate(x, y);
-        g.lineCap = "round"; g.lineWidth = 1.4; g.strokeStyle = "rgba(100,205,255,.9)";   // 回る青い渦
-        for (let i = 0; i < 2; i++) { const a = t * .012 + i * Math.PI; g.beginPath(); g.arc(0, 0, 16 * s, a, a + 1.1); g.stroke(); }
-        g.rotate(face); g.scale(s, s); g.lineJoin = "round"; g.lineWidth = 1.5; g.strokeStyle = K;
-        g.fillStyle = "rgba(90,200,255,.65)"; g.beginPath(); g.ellipse(-15, 0, 4.5, 2.6, 0, 0, TAU); g.fill();   // 推進器の光
-        g.fillStyle = "#2a2430"; g.beginPath(); g.rect(-13, -3, 5, 6); g.fill(); g.stroke();
-        [-1, 1].forEach(sd => {   // 翼
-          g.fillStyle = CR; g.beginPath(); g.moveTo(3, sd * 5); g.lineTo(-6, sd * 15); g.lineTo(-12, sd * 12); g.lineTo(-7, sd * 4); g.closePath(); g.fill(); g.stroke();
-          g.fillStyle = GD; g.beginPath(); g.moveTo(-3, sd * 10); g.lineTo(-6, sd * 15); g.lineTo(-12, sd * 12); g.lineTo(-9, sd * 8); g.closePath(); g.fill(); g.stroke();
-          g.fillStyle = "#5fd8ff"; g.fillRect(-6, sd * 8.2 - 1, 4, 2);   // 青いライン
+        g.lineCap = "round"; g.lineWidth = 1.1; g.strokeStyle = "rgba(110,215,255,.75)";   // 浮遊リング（回る光の弧）
+        for (let i = 0; i < 3; i++) { const a = t * .009 + i * TAU / 3; g.beginPath(); g.arc(0, 0, 15 * s, a, a + .55); g.stroke(); }
+        g.rotate(face); g.scale(s, s); g.lineJoin = "round"; g.lineWidth = 1.2; g.strokeStyle = K;
+        const pg = g.createRadialGradient(-13, 0, 0, -13, 0, 9); pg.addColorStop(0, "rgba(210,248,255,.95)"); pg.addColorStop(.45, "rgba(70,190,255,.6)"); pg.addColorStop(1, "rgba(40,140,255,0)");
+        g.fillStyle = pg; g.beginPath(); g.ellipse(-13, 0, 9, 4.2, 0, 0, TAU); g.fill();   // 後部の推進光
+        [-1, 1].forEach(sd => {   // 左右のスタビライザー
+          g.fillStyle = "#1c2536"; g.beginPath(); g.moveTo(2, sd * 4); g.lineTo(-5, sd * 11.5); g.lineTo(-10, sd * 10.5); g.lineTo(-7, sd * 3.5); g.closePath(); g.fill(); g.stroke();
+          g.strokeStyle = ED; g.lineWidth = .9; g.beginPath(); g.moveTo(-4.5, sd * 10.4); g.lineTo(-8.8, sd * 9.7); g.stroke(); g.strokeStyle = K; g.lineWidth = 1.2;
         });
-        g.fillStyle = CR; g.beginPath(); g.ellipse(0, 0, 11, 8, 0, 0, TAU); g.fill();   // 本体
-        g.fillStyle = GD; g.beginPath(); g.ellipse(0, 0, 11, 8, 0, Math.PI * .5, Math.PI * 1.5); g.closePath(); g.fill();
-        g.beginPath(); g.ellipse(0, 0, 11, 8, 0, 0, TAU); g.stroke();
-        g.fillStyle = GD; g.beginPath(); g.arc(6, 0, 6.2, 0, TAU); g.fill(); g.stroke();   // レンズ
-        g.fillStyle = K; g.beginPath(); g.arc(6, 0, 4.4, 0, TAU); g.fill();
-        const gr = g.createRadialGradient(6, 0, 0, 6, 0, 4); gr.addColorStop(0, "#fff"); gr.addColorStop(.55, "#aef0ff"); gr.addColorStop(1, "#28b4ff");
-        g.shadowColor = "#4cf"; g.shadowBlur = 9; g.fillStyle = gr; g.beginPath(); g.arc(6, 0, 3.5, 0, TAU); g.fill();
+        const bg = g.createLinearGradient(0, -6, 0, 6); bg.addColorStop(0, "#6c7a95"); bg.addColorStop(.5, "#36425a"); bg.addColorStop(1, "#1b2335");
+        g.fillStyle = bg; g.beginPath(); g.moveTo(8, -3.2); g.lineTo(3, -6); g.lineTo(-8, -5); g.lineTo(-11, -2.6); g.lineTo(-11, 2.6); g.lineTo(-8, 5); g.lineTo(3, 6); g.lineTo(8, 3.2); g.closePath(); g.fill(); g.stroke();   // 本体
+        g.fillStyle = "#0e1524"; g.beginPath(); g.rect(7, -1.9, 10, 3.8); g.fill(); g.stroke();   // 銃身
+        g.strokeStyle = ED; g.lineWidth = .9; g.beginPath(); g.moveTo(8, -1); g.lineTo(15.5, -1); g.moveTo(8, 1); g.lineTo(15.5, 1); g.stroke();   // 銃身の光るレール
+        g.fillStyle = "#26324a"; g.beginPath(); g.rect(15, -2.7, 3, 5.4); g.fill(); g.strokeStyle = K; g.lineWidth = 1.1; g.stroke();   // 砲口リング
+        g.fillStyle = ED; g.fillRect(-7, -4.3, 6, 1.1); g.fillRect(-7, 3.2, 6, 1.1);   // 本体の発光ライン
+        g.shadowColor = "#4cf"; g.shadowBlur = 8; g.fillStyle = "#c9f4ff"; g.beginPath(); g.arc(-1, 0, 2.4, 0, TAU); g.fill();   // コア
+        g.fillStyle = "#4fd0ff"; g.beginPath(); g.arc(18.2, 0, flash ? 3.2 : 1.5, 0, TAU); g.fill();   // 砲口の光
+        if (flash) { g.fillStyle = "rgba(220,250,255,.9)"; g.beginPath(); g.arc(18.8, 0, 2, 0, TAU); g.fill(); }
         g.restore();
       }
       window.__arkDroneBody = body;
@@ -9891,7 +10094,7 @@ function think(i){
         RG.forEach(r => { const k = (t - r.t0) / 500; g.globalAlpha = Math.max(0, 1 - k); g.strokeStyle = "#7fd6ff"; g.lineWidth = 3; g.beginPath(); g.arc(r.x, r.y, 14 + 90 * k, 0, TAU); g.stroke(); });
         DR.forEach(d => {
           for (let i = 1; i < d.tr.length; i++) { g.globalAlpha = i / d.tr.length * .55; g.strokeStyle = "#6cc8ff"; g.lineWidth = 2.4 * i / d.tr.length + .4; g.lineCap = "round"; g.beginPath(); g.moveTo(d.tr[i - 1].x, d.tr[i - 1].y); g.lineTo(d.tr[i].x, d.tr[i].y); g.stroke(); }
-          g.globalAlpha = 1; body(g, d.x, d.y, d.face, 1);
+          g.globalAlpha = 1; body(g, d.x, d.y, d.face, 1, t - d.ft < 90);
           if (t - d.hf < 90) { g.globalAlpha = .6; g.fillStyle = "#fff"; g.beginPath(); g.arc(d.x, d.y, 11, 0, TAU); g.fill(); }
           const f = Math.max(0, Math.min(1, d.hp / d.mx)), bw = 22;   // 残りHP
           g.globalAlpha = .85; g.fillStyle = "#0a1a2a"; g.fillRect(d.x - bw / 2 - 1, d.y - 21, bw + 2, 5);
@@ -9966,6 +10169,463 @@ function think(i){
       const run = () => { try { if (window.__phoenixGuard) window.__phoenixGuard(); } catch (e) { console.error("phoenix", e); } };
       const _u = update; update = function () { _u(); run(); };
       const _rd = reapDead; reapDead = function () { run(); _rd(); };
+    })();
+  </script>
+  <script>
+    /* ver87：新キャラ「海鮮塗装屋」（インクを塗り広げ、インクの上をカニになって高速移動するペンキ職人）
+       ・インクは全員共通（誰のインクの上でもカニダッシュ可能）／敵の弾・爆発・敵の足跡で削れる
+       ・数値は先頭の BALANCE["海鮮塗装屋"] と、下の CRAB_X で調整できます */
+    (function () {
+      const NM = "海鮮塗装屋", now = () => Date.now(), TAU = Math.PI * 2;
+      const CRAB_X = { cell: 8, trailStep: 6, trailR: [14, 19], splatR: 34, spawnR: 175, crabSpeed: 1.5, crabReload: 500, burst: 3, spread: .12, burstGap: 60 };
+      const COLS = ["#ff2d95", "#00e5ff", "#ffe600", "#7cff3a", "#ff7a00", "#b04dff", "#2d6bff"];
+      const isC = p => !!p && p.charName === NM;
+      const cen = p => ({ x: p.x + (p.w || 30) / 2, y: p.y + (p.h || 30) / 2 });
+      const anyC = () => { try { return fighterList().some(isC); } catch (e) { return false; } };
+      const CS = CRAB_X.cell;
+      let layer = null, lctx = null, gw = 0, gh = 0, grid = null, gteam = null, prot = null, evId = 0, evs = [], lastGST = null, remoteOn = false, remoteM = null, remoteLast = 0;
+      const tracked = new Map();
+      const guest = () => typeof onl !== "undefined" && onl.running && !onl.isHost;
+      function ensure() {
+        if (typeof canvas === "undefined" || !canvas || typeof ARENA_W === "undefined") return false;
+        if (!layer || layer.width !== ARENA_W || layer.height !== ARENA_H) {
+          layer = document.createElement("canvas"); layer.width = ARENA_W; layer.height = ARENA_H; lctx = layer.getContext("2d", { willReadFrequently: true });
+          gw = Math.ceil(ARENA_W / CS); gh = Math.ceil(ARENA_H / CS); grid = new Uint8Array(gw * gh); gteam = new Uint8Array(gw * gh); prot = new Uint8Array(gw * gh);
+        }
+        return true;
+      }
+      function reset() { if (!ensure()) return; lctx.clearRect(0, 0, layer.width, layer.height); grid.fill(0); gteam.fill(0); prot.fill(0); evs = []; evId = 0; tracked.clear(); }
+      const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+      const cellAt = (x, y) => { const cx = Math.floor(x / CS), cy = Math.floor(y / CS); return (cx < 0 || cy < 0 || cx >= gw || cy >= gh) ? -1 : cy * gw + cx; };
+      const isInk = (x, y) => { if (!grid) return false; const i = cellAt(x, y); return i >= 0 && grid[i] > 0; };
+      const isOwn = (x, y, tm) => { if (!grid) return false; const i = cellAt(x, y); return i >= 0 && grid[i] > 0 && gteam[i] === tm; };   // ver90：自分のチームのインク
+      const isOwnNear = (x, y, tm) => { if (isOwn(x, y, tm)) return true; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (isOwn(x + Math.cos(a) * 10, y + Math.sin(a) * 10, tm)) return true; } return false; };
+      const isInkNear = (x, y) => { if (isInk(x, y)) return true; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (isInk(x + Math.cos(a) * 10, y + Math.sin(a) * 10)) return true; } return false; };   // ver89：足元の周り（半径10px）まで見る
+      window.__crabInk = isInk;
+
+      /* ---- インクの描画（くねくねした不定形のしずく） ---- */
+      function blob(c, x, y, r, rnd) {
+        const n = 9, pts = [];
+        for (let i = 0; i < n; i++) { const a = i / n * TAU + rnd() * .3, rr = r * (.7 + .55 * rnd()); pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
+        c.beginPath(); c.moveTo((pts[n - 1][0] + pts[0][0]) / 2, (pts[n - 1][1] + pts[0][1]) / 2);
+        for (let i = 0; i < n; i++) { const p = pts[i], q = pts[(i + 1) % n]; c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2); }
+        c.closePath();
+      }
+      function mark(x, y, r, team) {
+        const x0 = Math.max(0, Math.floor((x - r) / CS)), x1 = Math.min(gw - 1, Math.floor((x + r) / CS)), y0 = Math.max(0, Math.floor((y - r) / CS)), y1 = Math.min(gh - 1, Math.floor((y + r) / CS));
+        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) if (Math.hypot(cx * CS + CS / 2 - x, cy * CS + CS / 2 - y) <= r) { grid[cy * gw + cx] = 1; gteam[cy * gw + cx] = team; }
+      }
+      function stamp(x, y, r, ci, team, rnd) {
+        const col = COLS[ci % COLS.length];
+        lctx.fillStyle = col; lctx.globalAlpha = 1; blob(lctx, x, y, r, rnd); lctx.fill();
+        lctx.fillStyle = "rgba(255,255,255,.2)"; lctx.beginPath(); lctx.ellipse(x - r * .25, y - r * .3, r * .38, r * .22, -.5, 0, TAU); lctx.fill();   // ツヤ
+      }
+      function erase(x, y, r, team) {
+        const x0 = Math.max(0, Math.floor((x - r) / CS)), x1 = Math.min(gw - 1, Math.floor((x + r) / CS)), y0 = Math.max(0, Math.floor((y - r) / CS)), y1 = Math.min(gh - 1, Math.floor((y + r) / CS));
+        lctx.save(); lctx.globalCompositeOperation = "destination-out"; lctx.fillStyle = "#000";
+        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
+          const i = cy * gw + cx, px = cx * CS + CS / 2, py = cy * CS + CS / 2;
+          if (grid[i] && Math.hypot(px - x, py - y) <= r && (!team || gteam[i] !== team)) { grid[i] = 0; gteam[i] = 0; prot[i] = 1; lctx.beginPath(); lctx.arc(px, py, CS * .78, 0, TAU); lctx.fill(); }
+        }
+        lctx.restore();
+      }
+      function apply(a) {   // a = [id, kind, x, y, r, colorIdx, team, seed]
+        if (!ensure()) return;
+        const [, k, x, y, r, ci, tm, sd] = a, rnd = rng(sd);
+        if (k === 0) stamp(x, y, r, ci, tm, rnd);
+        else if (k === 1) erase(x, y, r, tm);
+        else if (k === 2) {   // 着弾：大きなしぶき＋飛び散る点
+          stamp(x, y, r, ci, tm, rnd);
+          const n = 5 + Math.floor(rnd() * 3);
+          for (let i = 0; i < n; i++) { const an = rnd() * TAU, dd = r * (1.1 + rnd() * 1.1); stamp(x + Math.cos(an) * dd, y + Math.sin(an) * dd, 3 + rnd() * 5.5, ci, tm, rnd); }
+          for (let i = 0; i < 3; i++) { const an = rnd() * TAU; for (let j = 1; j <= 3; j++) stamp(x + Math.cos(an) * r * (.6 + j * .45), y + Math.sin(an) * r * (.6 + j * .45), 6 - j * 1.3, ci, tm, rnd); }
+        } else if (k === 3) {   // 開幕・スポーン地点の塗り（2色を基調に、縁はまばらなしぶき）
+          const c2 = ci;   // ver88：2色目はなし（1色のみ）
+          for (let rr = 0; rr <= r; rr += 13) {
+            const n = rr ? Math.ceil(TAU * rr / 15) : 1;
+            for (let i = 0; i < n; i++) {
+              const an = i / n * TAU + rnd() * .5, d2 = rr + (rnd() - .5) * 10, edge = rr / r;
+              if (edge > .75 && rnd() < (edge - .6) * 1.6) continue;
+              stamp(x + Math.cos(an) * d2, y + Math.sin(an) * d2, (13 + rnd() * 9) * (1 - edge * .35), rnd() < .78 ? ci : c2, tm, rnd);
+            }
+          }
+          for (let i = 0; i < 26; i++) { const an = rnd() * TAU, dd = r * (.9 + rnd() * .3); stamp(x + Math.cos(an) * dd, y + Math.sin(an) * dd, 2.5 + rnd() * 5, rnd() < .7 ? ci : c2, tm, rnd); }
+        }
+        if (k !== 1) { const RR = k === 3 ? r * 1.3 + 20 : k === 2 ? r * 3.4 + 10 : r + 16; regrid(x, y, RR, tm); if (closeGrid(x, y, RR, ci, tm)) regrid(x, y, RR + 24, tm); }   // ver89：描いた絵から判定を作り、近くのインクとつなげる
+      }
+      /* ver89：塗り判定は「実際に描いたインクの絵」から作る（見た目と判定が必ず一致 → インクの外に判定のない輪郭が残らない）。
+         8px のマスに、インクの絵が少しでもかかっていれば「インク」とする */
+      function regrid(x, y, R, team) {
+        const x0 = Math.max(0, Math.floor((x - R) / CS)), x1 = Math.min(gw - 1, Math.floor((x + R) / CS));
+        const y0 = Math.max(0, Math.floor((y - R) / CS)), y1 = Math.min(gh - 1, Math.floor((y + R) / CS));
+        const px = x0 * CS, py = y0 * CS, w = Math.min(layer.width - px, (x1 - x0 + 1) * CS), h = Math.min(layer.height - py, (y1 - y0 + 1) * CS);
+        if (w <= 0 || h <= 0) return;
+        const d = lctx.getImageData(px, py, w, h).data, c1 = rgbCols[teamCol[1] % rgbCols.length], c2 = rgbCols[teamCol[2] % rgbCols.length];
+        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
+          const ax = (cx - x0) * CS, ay = (cy - y0) * CS; let n = 0, v1 = 0, v2 = 0;
+          for (let yy = 0; yy < CS && ay + yy < h; yy++) for (let xx = 0; xx < CS && ax + xx < w; xx++) {
+            const o = ((ay + yy) * w + ax + xx) * 4; if (d[o + 3] <= 40) continue;
+            n++; const e1 = (d[o] - c1[0]) ** 2 + (d[o + 1] - c1[1]) ** 2 + (d[o + 2] - c1[2]) ** 2, e2 = (d[o] - c2[0]) ** 2 + (d[o + 1] - c2[1]) ** 2 + (d[o + 2] - c2[2]) ** 2;
+            if (e1 < e2) v1++; else v2++;
+          }
+          const i = cy * gw + cx;
+          if (n >= 2) { grid[i] = 1; gteam[i] = v1 > v2 ? 1 : v2 > v1 ? 2 : (gteam[i] || team); prot[i] = 0; }   // 絵の色が持ち主：塗り重ねると持ち主が変わる
+          else if (grid[i]) { grid[i] = 0; gteam[i] = 0; }
+        }
+      }
+      /* ver89：インクのすき間を埋めて、近くのインクと「つながった」塗り判定にする（クロージング：5×5 で膨らませてから縮める）。
+         約4マス（32px）までのすき間が埋まり、埋めた所も同じ色で描く。敵に消された所（prot）は埋め戻さない */
+      function closeGrid(x, y, R, ci, team) {
+        const K = 3;   // ver91：7×7で膨らませて縮める → 約6マス（48px）までのすき間をつなぐ
+        const x0 = Math.max(K, Math.floor((x - R) / CS) - 2 * K), x1 = Math.min(gw - 1 - K, Math.floor((x + R) / CS) + 2 * K);
+        const y0 = Math.max(K, Math.floor((y - R) / CS) - 2 * K), y1 = Math.min(gh - 1 - K, Math.floor((y + R) / CS) + 2 * K);
+        if (x1 - x0 < 2 * K + 1 || y1 - y0 < 2 * K + 1) return 0;
+        let filled = 0;
+        const w = x1 - x0 + 1, h = y1 - y0 + 1, tmp = new Uint8Array(w * h);
+        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {   // 膨らませる
+          let on = 0;
+          for (let dy = -K; dy <= K && !on; dy++) for (let dx = -K; dx <= K; dx++) { const j = (cy + dy) * gw + cx + dx; if (grid[j] && gteam[j] === team) { on = 1; break; } }
+          tmp[(cy - y0) * w + (cx - x0)] = on;
+        }
+        lctx.fillStyle = COLS[ci % COLS.length]; lctx.globalAlpha = 1;
+        for (let cy = y0 + K; cy <= y1 - K; cy++) for (let cx = x0 + K; cx <= x1 - K; cx++) {   // 縮める：周り全部がインクなら埋める
+          const i = cy * gw + cx; if (grid[i] || prot[i]) continue;
+          let all = 1;
+          for (let dy = -K; dy <= K && all; dy++) for (let dx = -K; dx <= K; dx++) if (!tmp[(cy - y0 + dy) * w + (cx - x0 + dx)]) { all = 0; break; }
+          if (all) { grid[i] = 1; gteam[i] = team; filled++; lctx.beginPath(); lctx.arc(cx * CS + CS / 2, cy * CS + CS / 2, CS * .78, 0, TAU); lctx.fill(); }
+        }
+        return filled;   // 埋めた数（絵がとなりのマスに少しはみ出すので、呼び出し側でもう一度 regrid して判定と絵を一致させる）
+      }
+      /* ver91：カニの足元判定。前の位置から今の位置までの道のり全部で、足元（半径7px）が「自分のチームのインク」の絵の上にあるか。
+         ひとつでもインク以外（地面・相手のインク・すき間）を踏んでいたら false → カニ解除 */
+      function ownFoot(px, py, x, y, tm) {
+        if (!layer) return false;
+        const R = 7, minx = Math.max(0, Math.floor(Math.min(px, x) - R - 1)), miny = Math.max(0, Math.floor(Math.min(py, y) - R - 1));
+        const w = Math.min(layer.width, Math.ceil(Math.max(px, x) + R + 2)) - minx, h = Math.min(layer.height, Math.ceil(Math.max(py, y) + R + 2)) - miny;
+        if (w <= 0 || h <= 0) return false;
+        const d = lctx.getImageData(minx, miny, w, h).data, own = rgbCols[teamCol[tm] % rgbCols.length], oth = rgbCols[teamCol[3 - tm] % rgbCols.length];
+        const ok = (X, Y) => {
+          const ix = Math.round(X) - minx, iy = Math.round(Y) - miny; if (ix < 0 || iy < 0 || ix >= w || iy >= h) return false;
+          const o = (iy * w + ix) * 4; if (d[o + 3] < 200) return false;
+          return (d[o] - own[0]) ** 2 + (d[o + 1] - own[1]) ** 2 + (d[o + 2] - own[2]) ** 2 <= (d[o] - oth[0]) ** 2 + (d[o + 1] - oth[1]) ** 2 + (d[o + 2] - oth[2]) ** 2;
+        };
+        const n = Math.max(1, Math.ceil(Math.hypot(x - px, y - py) / 3));
+        for (let k = 0; k <= n; k++) {
+          const cx = px + (x - px) * k / n, cy = py + (y - py) * k / n;
+          if (!ok(cx, cy)) return false;
+          for (let a = 0; a < 8; a++) if (!ok(cx + Math.cos(a * Math.PI / 4) * R, cy + Math.sin(a * Math.PI / 4) * R)) return false;
+        }
+        return true;
+      }
+      window.__crabLayer = () => ({ layer, grid, gw, gh, CS });   // 確認用（見た目と判定の一致チェック）
+      function emit(k, x, y, r, ci, tm) {
+        const a = [++evId, k, Math.round(x), Math.round(y), Math.round(r * 10) / 10, ci | 0, tm | 0, Math.floor(Math.random() * 4294967295)];
+        apply(a); evs.push({ a, at: now() });
+      }
+      /* ver90：インクの色はチームごと（試合ごとにランダム・相手とは必ず別の色）。味方とは共通、相手のインクには潜れない */
+      const rgbOf = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+      const rgbCols = COLS.map(rgbOf);
+      let teamCol = [0, 0, 1];   // [未使用, チーム1の色, チーム2の色]（COLS の番号）
+      function pickCols() {
+        const a = Math.floor(Math.random() * COLS.length), A = rgbCols[a], ok = [];
+        rgbCols.forEach((B, i) => { if (i !== a && Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]) > 200) ok.push(i); });   // 似た色は避ける
+        teamCol = [0, a, ok[Math.floor(Math.random() * ok.length)]];
+      }
+
+      /* ---- 通常攻撃：3連バーストのインク弾 ---- */
+      const _sb = shootBullet;
+      shootBullet = function (s, t) {
+        if (!isC(s)) return _sb(s, t);
+        if (!gameActive || s.hp <= 0 || s.out || s.ammo <= 0 || s.crab || (s.stunUntil || 0) > now()) return;
+        const c = cen(s), tx = t.x + (t.w || 30) / 2 - c.x, ty = t.y + (t.h || 30) / 2 - c.y, m = Math.hypot(tx, ty) || 1, base = Math.atan2(ty, tx);
+        s.ammo -= 1; s.lastReload = now();
+        for (let i = 0; i < CRAB_X.burst; i++) setTimeout(() => {
+          if (!gameActive || s.hp <= 0 || s.out) return;
+          const a = base + (Math.random() * 2 - 1) * CRAB_X.spread, cc = cen(s), sp = s.bulletSpeed * (s.bulletSpeedBoost || 1);
+          bullets.push({ x: cc.x + Math.cos(a) * 14, y: cc.y + Math.sin(a) * 14, r: s.bulletRadius, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, from: s, damage: s.damage, lifeTime: 0, maxLifeTime: s.bulletLifeTimeMax, ink: 1, ic: teamCol[teamOf(s) + 1], bulletPassThroughObstacles: !!s.bulletPassThroughObstacles });
+        }, i * CRAB_X.burstGap);
+      };
+
+      /* ---- スキル：カニダッシュ（長押し） ---- */
+      function clearStatus(p) { ["stunUntil", "slowUntil", "xstun", "_slp"].forEach(k => { if (p[k]) p[k] = 0; }); }
+      const _us = useSkill;
+      useSkill = function (p) {
+        if (!isC(p)) return _us(p);
+        const tm = now();
+        if (!gameActive || p.hp <= 0 || p.out) return;
+        if (p.crab) { p.ckHold = true; return; }
+        if (tm - p.skillLastUsed < p.skillCooldown) return;
+        const c = cen(p); if (!ownFoot(c.x, c.y, c.x, c.y, teamOf(p) + 1)) return;   // 足元が全部、自分のチームのインクの上のときだけ
+        p.crab = true; p.ckHold = true; p._cp = { x: c.x, y: c.y }; clearStatus(p);
+      };
+      function exitCrab(p) { p.crab = false; p.ckHold = false; p.skillLastUsed = now(); }
+      const _ku = keyUpHandler;
+      keyUpHandler = function (e) { _ku(e); if (e.key === "g" && isC(player1)) player1.ckHold = false; if (e.key === "l" && isC(player2)) player2.ckHold = false; };
+      const _okU = onlineKeyUp;
+      onlineKeyUp = function (e) {
+        _okU(e);
+        if (normKey(e) !== "g" || !onl.running) return;
+        if (onl.isHost) { if (player1) player1.ckHold = false; } else sendMsg({ t: "skillUp" });
+      };
+      window.addEventListener("blur", () => { try { fighterList().forEach(p => { if (isC(p)) p.ckHold = false; }); } catch (e) {} });
+      const _mp = movePlayer;
+      movePlayer = function (p, u, d, l, r) {
+        if (isC(p) && p.crab) { const b = p.speed; p.speed = b * CRAB_X.crabSpeed; try { _mp(p, u, d, l, r); } finally { p.speed = b; } } else _mp(p, u, d, l, r);
+      };
+      const _hr = handleReload;
+      handleReload = function (p) {
+        if (isC(p) && p.crab) { const b = p.reloadTime; p.reloadTime = CRAB_X.crabReload; try { _hr(p); } finally { p.reloadTime = b; } } else _hr(p);
+      };
+      /* CPU：インクの上で弾切れ・遠いときにカニになり、弾が溜まって近づいたら戻る */
+      window.__crabWant = (me, en, d) => { const c = cen(me); return !me.crab && ownFoot(c.x, c.y, c.x, c.y, teamOf(me) + 1) && (me.ammo <= 0 || d > 240 || (me.stunUntil || 0) > now()); };
+      const isCpu = p => typeof cpuMode !== "undefined" && cpuMode && p !== player1;
+
+      /* ---- 毎フレーム（ホスト／ひとり用） ---- */
+      function tick() {
+        if (!ensure()) return;
+        if (gameStartTime !== lastGST) {
+          lastGST = gameStartTime; reset(); pickCols();
+          fighterList().forEach(p => { if (isC(p)) { const c = cen(p); emit(3, c.x, c.y, CRAB_X.spawnR, teamCol[teamOf(p) + 1], teamOf(p) + 1); } });
+        }
+        const t = now(), fl = fighterList(), cur = new Set();
+        bullets.forEach(b => {
+          if (b.ink) {   // 軌道に、くねくねしたインクを塗る
+            cur.add(b); const tm = b.from ? teamOf(b.from) + 1 : 1;
+            let m = tracked.get(b); if (!m) { m = { px: b.x, py: b.y, ph: Math.random() * 6, c: b.ic | 0, t: tm }; tracked.set(b, m); }
+            const dx = b.x - m.px, dy = b.y - m.py, dist = Math.hypot(dx, dy);
+            if (dist >= CRAB_X.trailStep) {
+              const n = Math.min(4, Math.floor(dist / CRAB_X.trailStep)), ux = dx / dist, uy = dy / dist;
+              for (let i = 1; i <= n; i++) {
+                const x = m.px + ux * CRAB_X.trailStep * i, y = m.py + uy * CRAB_X.trailStep * i;
+                m.ph += .55 + Math.random() * .3; const off = Math.sin(m.ph) * 3.6 + (Math.random() - .5) * 2.2;
+                emit(0, x - uy * off, y + ux * off, CRAB_X.trailR[0] + Math.random() * (CRAB_X.trailR[1] - CRAB_X.trailR[0]), m.c, m.t);
+                if (Math.random() < .2) { const sd = (Math.random() < .5 ? -1 : 1) * (10 + Math.random() * 7); emit(0, x - uy * sd, y + ux * sd, 2 + Math.random() * 2.5, m.c, m.t); }
+              }
+              m.px += ux * CRAB_X.trailStep * n; m.py += uy * CRAB_X.trailStep * n;
+            }
+            m.x = b.x; m.y = b.y;
+          } else if (b.from && isInk(b.x, b.y)) {   // 敵の弾が通ると広く消える
+            const tm = teamOf(b.from) + 1;
+            if (!b._ie || Math.hypot(b.x - b._ie[0], b.y - b._ie[1]) > 7) { b._ie = [b.x, b.y]; emit(1, b.x, b.y, (b.r || 5) + 11 + (b.explosive ? 20 : 0), 0, tm); }
+          }
+        });
+        tracked.forEach((m, b) => { if (!cur.has(b)) { tracked.delete(b); if (m.x != null && m.x > 0 && m.y > 0 && m.x < ARENA_W && m.y < ARENA_H) emit(2, m.x, m.y, CRAB_X.splatR + Math.random() * 6, m.c, m.t); } });
+        explosions.forEach(e => { if (!e._ink) { e._ink = 1; if (isInk(e.x, e.y) || Math.random() < 1) emit(1, e.x, e.y, (e.r || 20) * 1.5 + 10, 0, 0); } });   // 爆発は一気に消す
+        fl.forEach(p => {
+          if (!p || p.hp <= 0 || p.out) { if (p && p.crab) exitCrab(p); return; }
+          const c = cen(p);
+          if (isC(p) && p.crab) {
+            if (isCpu(p)) { const en = opponentOf(p); if (en && ((p.ammo >= 2 && Math.hypot(en.x - p.x, en.y - p.y) < 250) || p.ammo >= p.maxAmmo)) p.ckHold = false; }
+            const pc0 = p._cp || c; p._cp = { x: c.x, y: c.y };
+            if (!p.ckHold || !ownFoot(pc0.x, pc0.y, c.x, c.y, teamOf(p) + 1)) exitCrab(p);   // ver91：足が少しでもインク（自分のチーム）からはみ出したら即解除
+            return;
+          }
+          if (isInk(c.x, c.y) && gteam[cellAt(c.x, c.y)] !== teamOf(p) + 1 && t - (p._ife || 0) > 90) { p._ife = t; emit(1, c.x, c.y + 6, 13, 0, teamOf(p) + 1); }   // 敵の足跡で削れる
+        });
+        const lim = t - 1500; while (evs.length && evs[0].at < lim) evs.shift();
+      }
+      const _up = update;
+      update = function () {
+        _up();
+        if (window.__introOn || !gameActive) return;
+        if (anyC() || evs.length) { try { tick(); } catch (e) { console.error("crab", e); } }
+      };
+
+      /* ---- 描画 ---- */
+      function crab(c, x, y, sc, a, col, t, lift) {   // 小さなカニ
+        c.save(); c.translate(x, y); c.rotate(a); c.scale(sc, sc); c.lineJoin = "round"; c.lineCap = "round";
+        const K = "#2a0f12", leg = Math.sin(t / 55);
+        c.strokeStyle = K; c.lineWidth = 2.2;
+        for (let i = -1; i <= 1; i++) [-1, 1].forEach(sd => { const w = Math.sin(t / 55 + i * 1.7 + sd) * 2.2; c.beginPath(); c.moveTo(i * 4, sd * 5); c.lineTo(i * 5 + w, sd * 11); c.lineTo(i * 5 + w * 1.4 - 2, sd * 14); c.stroke(); });
+        [-1, 1].forEach(sd => {   // ハサミ
+          c.beginPath(); c.moveTo(6, sd * 5); c.lineTo(12, sd * 8 + leg * sd); c.stroke();
+          c.fillStyle = "#ff4d3a"; c.beginPath(); c.arc(14, sd * 9 + leg * sd, 4.3, 0, TAU); c.fill(); c.stroke();
+          c.strokeStyle = K; c.beginPath(); c.moveTo(14, sd * 9 + leg * sd); c.lineTo(18.5, sd * 7.5 + leg * sd); c.stroke();
+        });
+        c.fillStyle = "#ff5a3c"; c.beginPath(); c.ellipse(0, 0, 10, 8, 0, 0, TAU); c.fill(); c.stroke();
+        c.fillStyle = col; c.globalAlpha = .75; c.beginPath(); c.ellipse(-1, 0, 6, 4.5, 0, 0, TAU); c.fill(); c.globalAlpha = 1;
+        [-1, 1].forEach(sd => { c.strokeStyle = K; c.beginPath(); c.moveTo(6, sd * 3); c.lineTo(8, sd * 5.2); c.stroke(); c.fillStyle = "#fff"; c.beginPath(); c.arc(8.4, sd * 5.4, 2.4, 0, TAU); c.fill(); c.stroke(); c.fillStyle = K; c.beginPath(); c.arc(9.2, sd * 5.4, 1, 0, TAU); c.fill(); });
+        c.restore();
+      }
+      window.__crabDraw = crab;
+      function drawInk() {
+        if (!layer || !(anyC() || remoteOn)) return;
+        ctx.save(); ctx.globalAlpha = .94; ctx.drawImage(layer, 0, 0); ctx.restore();
+      }
+      const _dpd = drawPads;
+      drawPads = function () { try { drawInk(); } catch (e) { console.error("crab ink", e); } return _dpd.apply(this, arguments); };
+      const _db = drawBullets;
+      drawBullets = function () {
+        _db.apply(this, arguments);
+        try { bullets.forEach(b => { if (!b.ink) return; ctx.save(); ctx.shadowColor = COLS[(b.ic | 0) % COLS.length]; ctx.shadowBlur = 10; ctx.fillStyle = COLS[(b.ic | 0) % COLS.length]; ctx.beginPath(); ctx.arc(b.x, b.y, (b.r || 5) + 1.5, 0, TAU); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = "rgba(255,255,255,.65)"; ctx.beginPath(); ctx.arc(b.x - 1.5, b.y - 1.7, (b.r || 5) * .35, 0, TAU); ctx.fill(); ctx.restore(); }); } catch (e) {}
+      };
+      const _dpl = drawPlayer;
+      drawPlayer = function (p) {
+        if (!(isC(p) && p.crab)) return _dpl(p);
+        const c = cen(p), foe = opponentOf(p), t = now(), idx = teamOf(p) + 1, T = TEAM[idx];
+        ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(c.x, c.y + 10, 13, 4.5, 0, 0, TAU); ctx.fill();
+        const a = foe ? Math.atan2(foe.y - p.y, foe.x - p.x) : 0;
+        crab(ctx, c.x, c.y, 1.05, a, COLS[teamCol[idx] % COLS.length], t);
+        ctx.strokeStyle = T.main; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(c.x, c.y, 17, 0, TAU); ctx.globalAlpha = .55; ctx.stroke(); ctx.globalAlpha = 1;
+        const bw = 38, bx = c.x - bw / 2, by = p.y - 16, ratio = Math.max(0, Math.min(1, p.hp / (p.maxHp || 100)));
+        ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.fillRect(bx - 1, by - 1, bw + 2, 7);
+        ctx.fillStyle = ratio > .5 ? "#4dff9b" : ratio > .25 ? "#ffc53d" : "#ff4d5e"; ctx.fillRect(bx, by, bw * ratio, 5);
+        const n = p.maxAmmo, gap = 2, pw = (bw - (n - 1) * gap) / n; for (let i = 0; i < n; i++) { ctx.fillStyle = i < p.ammo ? "#7df3ff" : "rgba(255,255,255,.2)"; ctx.fillRect(bx + i * (pw + gap), by + 8, pw, 3); }
+      };
+
+      /* ---- オンライン同期（インクは「出来事」を送って、ゲスト側でも同じ形に塗る） ---- */
+      const _bs = buildSnap;
+      buildSnap = function () {
+        const s = _bs(), t = now();
+        s.cr = fighterList().map(p => isC(p) ? (p.crab ? 1 : 0) : -1);
+        if (anyC() || evs.length) s.ik = { m: lastGST, c: teamCol, e: evs.filter(e => t - e.at < 350).map(e => e.a) };
+        return s;
+      };
+      const _as = applySnap;
+      applySnap = function (s) {
+        _as(s);
+        if (s.cr) fighterList().forEach((p, i) => { if (isC(p)) p.crab = s.cr[i] === 1; });
+        if (s.ik) {
+          remoteOn = true;
+          if (!ensure()) return;
+          if (s.ik.m !== remoteM) { remoteM = s.ik.m; remoteLast = 0; reset(); }
+          if (s.ik.c) teamCol = s.ik.c;
+          s.ik.e.forEach(a => { if (a[0] > remoteLast) { remoteLast = a[0]; apply(a); } });
+        }
+      };
+    })();
+  </script>
+  <script>
+    /* ============================================================
+       ver92：エイム操作の本体
+       ・攻撃：引っ張った方向を「狙う相手」にして撃つ（キャラ固有の攻撃もそのまま動く）
+       ・スキル：発動中だけ「いちばん近い敵」を引っ張った方向の点に置き換える（距離は引っ張りの長さ）
+       ・エイム線：引っ張っている間、自分から狙う方向へ線を表示
+       ============================================================ */
+    (function () {
+      const A = window.__aim; if (!A) return;
+      const cen = p => ({ x: p.x + (p.w || 30) / 2, y: p.y + (p.h || 30) / 2 });
+      const edge = (c, a) => {   // その方向にあるアリーナの端までの距離
+        const ux = Math.cos(a), uy = Math.sin(a), m = 12; let t = 1e9;
+        if (ux > 1e-6) t = Math.min(t, (ARENA_W - m - c.x) / ux); else if (ux < -1e-6) t = Math.min(t, (m - c.x) / ux);
+        if (uy > 1e-6) t = Math.min(t, (ARENA_H - m - c.y) / uy); else if (uy < -1e-6) t = Math.min(t, (m - c.y) / uy);
+        return Math.max(40, t);
+      };
+      const mk = (p, a, d) => {   // 狙いの点に置く「見えない標的」（毎回新しく作る）
+        const c = cen(p), dd = Math.max(40, Math.min(d, edge(c, a)));
+        return { x: c.x + Math.cos(a) * dd - 15, y: c.y + Math.sin(a) * dd - 15, w: 30, h: 30, hp: 100, maxHp: 100, out: false, charName: "", team: (typeof teamOf === "function" ? teamOf(p) : 0) ^ 1, __aim: 1 };
+      };
+      const _sb = shootBullet;
+      shootBullet = function (s, t) {
+        const c = A.ctx;
+        if (c && c.kind === "atk" && !c.n && s) { c.n = 1; t = mk(s, c.ang, 1e4); }
+        return _sb(s, t);
+      };
+      let SK = null;
+      const _op = window.opponentOf;
+      window.opponentOf = function (p) { if (SK && p === SK.p) return mk(p, SK.ang, SK.dist); return _op(p); };
+      const _us = useSkill;
+      useSkill = function (p) {
+        const c = A.ctx;
+        if (c && c.kind === "skl" && !c.n && p) { c.n = 1; const prev = SK; SK = { p, ang: c.ang, dist: c.dist }; try { return _us(p); } finally { SK = prev; } }
+        return _us(p);
+      };
+
+      /* ---- エイム線：実際の当たり判定の形を半透明の白で表示（自分にだけ見える） ---- */
+      function ray(c, a, L, pass) {   // 壁で止まる長さ
+        const ux = Math.cos(a), uy = Math.sin(a); let d = 0;
+        while (d < L) {
+          const x = c.x + ux * d, y = c.y + uy * d;
+          if (x < 0 || y < 0 || x > ARENA_W || y > ARENA_H) break;
+          if (!pass && collidesWithObstacles({ x: x - 2, y: y - 2, w: 4, h: 4 })) break;
+          d += 5;
+        }
+        return Math.min(d, L);
+      }
+      const rngOf = p => Math.min(4000, (p.bulletSpeed || 6) * (p.bulletLifeTimeMax || 1000));
+      const LN = (w, len, pass, a) => ({ k: "line", w, len, pass: !!pass, a: a || 0 });       // 細長い長方形（弾の太さ×飛距離）
+      const MULTI = (w, len, pass, offs) => offs.map(o => LN(w, len, pass, o));
+      const DEFATK = p => LN(2 * (p.bulletRadius || 5), rngOf(p), p.bulletPassThroughObstacles);
+      const alive = b => !!b && bullets.indexOf(b) >= 0;
+      /* キャラごとの形。atk/skl が null ＝エイムできない（線を出さない）。未指定の攻撃は「弾の太さの長方形」、未指定のスキルはエイムなし */
+      const SHAPES = {
+        "スナイパー太郎": { atk: p => LN(2 * p.bulletRadius + 10, rngOf(p), 0) },          // 2発（上下に5ずれ）
+        "白い死神": { skl: p => DEFATK(p) },
+        "ガジェットボット": { atk: p => LN(2 * p.bulletRadius, rngOf(p), 1) },              // 壁を貫通
+        "アクアファイター": { skl: () => ({ k: "box", side: 30, dist: 50 }) },              // 狙った方向50先に壁を置く
+        "ツインブラザーズ": { atk: p => p.mode === "S" ? { k: "sector", R: 123, half: .23 } : [LN(12, 1000, 0), { k: "endcircle", r: 50 }] },   // Sモード＝近距離のショットガン／Hモード＝爆発弾
+        "ジャンパー": { skl: () => MULTI(16, 4000, 1, [-.2, 0, .2]) },                      // 3方向の貫通弾
+        "ボマー": { atk: null },                                                            // その場で爆発（向きなし）
+        "ブーメランボーイ": { atk: p => LN(12, (p.bulletSpeed || 7) * 35, 1) },             // 行きは35フレーム分・壁貫通
+        "ジョーカー": { atk: p => MULTI(10, rngOf(p), 0, [-.15, 0, .15]) },                 // 3方向
+        "既視感のあるGAY": { atk: () => ({ k: "taper", w0: 50, w1: 20, len: 267 }), skl: () => LN(80, 4000, 1) },   // 弾は先細り／ハート衝撃波は壁を貫通
+        "パイハークン": { atk: p => alive(p.pieB) ? null : [LN(20, 300, 0), { k: "endcircle", r: 198, soft: 1 }] },   // 大玉＋破裂の届く範囲（2回目の押下は破裂なので線なし）
+        "怪獣王": { atk: p => p.kc ? null : { k: "sector", R: 105, half: 1.05 }, skl: p => p.kc ? null : LN(20, 1200, 1) },   // 扇形の薙ぎ払い／熱線（チャージ開始時に向きが決まる）
+        "不死鳥": { atk: p => LN(8, (p.bulletSpeed || 6.5) * 65, 0) },
+        "ペット＆テイマー": { atk: () => LN(14, 320, 0) },
+        "メープル": { atk: () => ({ k: "sector", R: 46, half: Math.PI / 3 }) },             // シールドの向き（前方120度）
+        "上裸の鳥頭": { atk: p => (alive(p.bB) && !p.bB.light) ? null : LN(16, 624, 0) },   // 2回目の押下は方向転換なので線なし
+        "エース・キッカー": { skl: () => LN(40, 900, 0) },                                  // 麻酔針
+        "サンタ": { atk: null },                                                            // プレゼントは範囲内にランダム
+        "海鮮塗装屋": { atk: () => ({ k: "wedge", half: .12 }) }                            // 3連のインク弾（ばらつき）
+      };
+      function shapesOf(p, kind) {
+        const cfg = SHAPES[p.charName] || {}; let f = cfg[kind];
+        if (f === undefined) f = kind === "atk" ? DEFATK : null;
+        if (!f) return null;
+        const r = f(p); if (!r) return null;
+        return Array.isArray(r) ? r : [r];
+      }
+      function drawAim() {
+        const g = ctx;
+        for (const key in A.st) {
+          const s = A.st[key]; if (!s || s.cancel) continue;
+          const p = aimPlayer(key); if (!p || p.hp <= 0 || p.x < -100) continue;
+          const sh = shapesOf(p, s.kind), c = cen(p); let ang = s.ang, tg = null;
+          if (s.auto) {   // 押した瞬間：オートエイムで飛ぶ先を予告
+            const o = opponentOf(p); tg = o ? (window.aimTarget ? aimTarget(p, o) : o) : null;
+            if (!tg) continue;
+            ang = Math.atan2(tg.y + (tg.h || 30) / 2 - c.y, tg.x + (tg.w || 30) / 2 - c.x);
+          }
+          const col = s.kind === "skl" ? "255,214,64" : "255,255,255", k = s.auto ? .72 : 1;
+          if (sh) {
+            let end = null;
+            g.save(); g.lineJoin = "round"; g.lineWidth = 1.2; g.strokeStyle = `rgba(${col},${.5 * k})`; g.fillStyle = `rgba(${col},${.14 * k})`;
+            const grad = L => { const gr = g.createLinearGradient(0, 0, L, 0); gr.addColorStop(0, `rgba(${col},${.3 * k})`); gr.addColorStop(1, `rgba(${col},${.06 * k})`); return gr; };
+            sh.forEach(o => {
+              if (o.k === "line") {
+                const a = ang + o.a, L = ray(c, a, o.len, o.pass), w = Math.max(12, o.w);
+                g.save(); g.translate(c.x, c.y); g.rotate(a); g.fillStyle = grad(L); g.beginPath(); g.rect(0, -w / 2, L, w); g.fill(); g.restore();
+                if (!o.a) end = { x: c.x + Math.cos(a) * L, y: c.y + Math.sin(a) * L };
+              } else if (o.k === "taper") {
+                const L = ray(c, ang, o.len, false);
+                g.save(); g.translate(c.x, c.y); g.rotate(ang); g.fillStyle = grad(L); g.beginPath(); g.moveTo(0, -o.w0 / 2); g.lineTo(L, -o.w1 / 2); g.lineTo(L, o.w1 / 2); g.lineTo(0, o.w0 / 2); g.closePath(); g.fill(); g.restore();
+              } else if (o.k === "sector") {
+                g.beginPath(); g.moveTo(c.x, c.y); g.arc(c.x, c.y, o.R, ang - o.half, ang + o.half); g.closePath(); g.fill();
+              } else if (o.k === "wedge") {
+                const L = ray(c, ang, 4000, false);
+                g.beginPath(); g.moveTo(c.x, c.y); g.lineTo(c.x + Math.cos(ang - o.half) * L, c.y + Math.sin(ang - o.half) * L); g.lineTo(c.x + Math.cos(ang + o.half) * L, c.y + Math.sin(ang + o.half) * L); g.closePath(); g.fill();
+              } else if (o.k === "box") {
+                g.save(); g.translate(c.x + Math.cos(ang) * o.dist, c.y + Math.sin(ang) * o.dist); g.rotate(ang); g.beginPath(); g.rect(-o.side / 2, -o.side / 2, o.side, o.side); g.fill(); g.restore();
+              }
+            });
+            sh.forEach(o => {   // 爆発・破裂など、着弾点を中心にした範囲
+              if (o.k === "endcircle" && end) { g.save(); if (o.soft) g.globalAlpha = .6; g.beginPath(); g.arc(end.x, end.y, o.r, 0, Math.PI * 2); g.fill(); g.restore(); }
+            });
+            g.restore();
+          }
+          if (tg && (sh || s.kind === "atk")) {   // オートエイムの標的リング（赤）
+            const tx = tg.x + (tg.w || 30) / 2, ty = tg.y + (tg.h || 30) / 2;
+            g.save(); g.strokeStyle = "rgba(255,72,72,.9)"; g.lineWidth = 2.5; g.setLineDash([7, 5]); g.lineDashOffset = -Date.now() / 40;
+            g.beginPath(); g.arc(tx, ty, 23 + Math.sin(Date.now() / 140) * 1.5, 0, Math.PI * 2); g.stroke(); g.restore();
+          }
+        }
+      }
+      const _dr = draw;
+      draw = function () {
+        _dr();
+        try { if (ctx && gameActive) for (const k in A.st) if (A.st[k]) { drawAim(); break; } } catch (e) { console.error("aim", e); }
+      };
     })();
   </script>
 </body>
