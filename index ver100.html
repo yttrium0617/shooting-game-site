@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -458,6 +459,7 @@
     #touchUI .aimring.on { border-color: rgba(255,255,255,.9); background: rgba(255,255,255,.12); }
     #touchUI .aimring.skl { border-color: rgba(255,214,64,.6); background: rgba(255,214,64,.07); }
     #touchUI .aimring.skl.on { border-color: #ffd640; background: rgba(255,214,64,.14); }
+    #touchUI .aimring.cz::before { content: ""; position: absolute; left: 50%; top: 50%; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; border: 2px dashed rgba(255,120,120,.6); pointer-events: none; }   /* ver96：キャンセル範囲の目安 */
     #touchUI .aimring.cancel { border-color: #ff5252; background: rgba(255,60,60,.16); }
     #touchUI .aimring.cancel::after { content: "✕"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #ff6b6b; font: 800 34px sans-serif; }
     #touchUI .aimring i { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(255,255,255,.85); border: 3px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,.35); }
@@ -747,10 +749,10 @@
         extraDmg: 5                                                                 // 弱点「限られた時間」：被ダメージごとの追加ダメージ
       },
       ark: {   // アーク・フォージ（ドローン・リンク）
-        droneN: 3, droneHp: 16, decay: 2, farDist: 215, farMul: 2,       // 召喚数／ドローン1機の初期HP／毎秒のHP減少／この距離(px)以上離れると／減少が何倍になるか
+        droneN: 3, droneHp: 16, decay: 0, farDist: 215, farDecay: 4,     // 召喚数（＝同時に出せる上限）／ドローン1機の初期HP／近くにいる時の毎秒のHP減少（0＝減らない）／この距離(px)以上離れると／離れている時の毎秒のHP減少
         spawnMin: 65, spawnMax: 85,                                          // 召喚直後の出現位置の半径(px)（ここから旋回軌道へ移動する）
         orbitMin: 120, orbitMax: 150, orbitSpeed: 2.4, follow: .1, maxSpeed: 6, turn: .25,   // 旋回半径の最小・最大(px)／旋回の速さ(ラジアン/秒)／追従のなめらかさ(小さいほど遅れる)／最高速度／敵への向き直りの速さ
-        droneDmg: 4, droneBulletSpeed: 7, droneBulletR: 4                // ドローンの弾：ダメージ／速さ／大きさ
+        droneDmg: 6, droneBulletSpeed: 7, droneBulletR: 4                // ドローンの弾：ダメージ／速さ／大きさ
       },
       mage: { manaMax: 300, manaStart: 150, manaRegen: 10, cost: [10, 25, 25], dmg: [20, 20, 15], speed: [11, 7.5, 10], delay: [700, 1100, 1300] }
     };
@@ -3327,7 +3329,7 @@ fighterList().forEach(p => {
         hudState.p1 = H1; hudState.p2 = H2; hudState.mx = [-1, -1];
         hudSetPlayer(1, H1); hudSetPlayer(2, H2);
         const online = typeof onl !== "undefined" && onl.running;
-        $("controlHelp").textContent = "移動：左スティック　攻撃：画面右半分のどこからでも引っ張ってエイム　スキル：ボタンを引っ張ってエイム（押すだけでオートエイム／引いて中心に戻すとキャンセル）";
+        $("controlHelp").textContent = "移動：左スティック　攻撃：画面右半分のどこからでも引っ張ってエイム　スキル：ボタンを引っ張ってエイム（押すだけでオートエイム／引いて中心付近に戻すとキャンセル）";
         const label = (MAP_DEFS[selectedMap] ? selectedMap + " / " + MAP_DEFS[selectedMap].tag : selectedMap);
         $("gameInfo").textContent = label;
       }
@@ -3544,9 +3546,9 @@ fighterList().forEach(p => {
     function makeJoy(el, keyMap, slot) {
       const knob = el.querySelector(".knob"), st = { u: 0, d: 0, l: 0, r: 0 };
       const base = document.createElement("div"); base.className = "jbase"; el.appendChild(base); base.appendChild(knob);
-      let id = null, cx = 0, cy = 0;
+      let id = null, cx = 0, cy = 0, cap = false, on = false;
       const set = (k, v) => { if (st[k] !== v) { st[k] = v; tkey(v ? "keydown" : "keyup", keyMap[k]); } };
-      const reset = () => { id = null; touchAnalog[slot].x = 0; touchAnalog[slot].y = 0; knob.style.transform = ""; base.style.display = "none"; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
+      const reset = () => { id = null; cap = false; on = false; touchAnalog[slot].x = 0; touchAnalog[slot].y = 0; knob.style.transform = ""; base.style.display = "none"; ["u", "d", "l", "r"].forEach(k => set(k, 0)); };
       const sm = { x: 0, y: 0 }; let lt = 0;
       const upd = e => {
         const R = 62; ema(sm, e.clientX, e.clientY, e.timeStamp - lt); lt = e.timeStamp;
@@ -3557,16 +3559,25 @@ fighterList().forEach(p => {
         }
         const c = Math.min(m, R);
         knob.style.transform = `translate(${dx / m * c * .6}px, ${dy / m * c * .6}px)`;
-        const on = m > R * JOY_DEAD, a = m * .38;
-        const mag = on ? Math.pow(Math.min(1, (m - R * JOY_DEAD) / (R * (JOY_FULL - JOY_DEAD))), JOY_CURVE) : 0;   // 少し倒す＝ゆっくり精密／大きく倒す＝素早く
+        on = on ? m > R * JOY_LEAVE : m > R * JOY_DEAD;   // ヒステリシス：動き出す距離 > 止まる距離（境目でカクつかない）
+        const a = m * .38;
+        const ramp = on ? Math.min(1, Math.max(0, (m - R * JOY_DEAD) / (R * (JOY_FULL - JOY_DEAD)))) : 0;
+        const mag = on ? JOY_MIN + (1 - JOY_MIN) * Math.pow(ramp, JOY_CURVE) : 0;   // 動き出し＝半分の速さ、そこから全速まで
         touchAnalog[slot].x = on ? dx / m * mag : 0; touchAnalog[slot].y = on ? dy / m * mag : 0;
         set("l", on && dx < -a ? 1 : 0); set("r", on && dx > a ? 1 : 0);
         set("u", on && dy < -a ? 1 : 0); set("d", on && dy > a ? 1 : 0);
       };
-      el.addEventListener("pointerdown", e => { if (id !== null) return; id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} cx = e.clientX; cy = e.clientY; sm.x = cx; sm.y = cy; lt = e.timeStamp; base.style.left = cx + "px"; base.style.top = cy + "px"; base.style.display = "block"; upd(e); e.preventDefault(); });
+      const stale = () => id !== null && cap && !!el.hasPointerCapture && !el.hasPointerCapture(id);   // 指が離れたのにupが届かなかった（固まり防止）
+      el.addEventListener("pointerdown", e => {
+        if (id !== null) { if (stale()) reset(); else return; }
+        id = e.pointerId; cap = false; try { el.setPointerCapture(id); cap = !!el.hasPointerCapture(id); } catch (x) {}
+        cx = e.clientX; cy = e.clientY; sm.x = cx; sm.y = cy; lt = e.timeStamp; on = false; base.style.left = cx + "px"; base.style.top = cy + "px"; base.style.display = "block"; upd(e); e.preventDefault();
+      });
       el.addEventListener("pointermove", e => { if (e.pointerId === id) upd(e); });
       const end = e => { if (e.pointerId === id) reset(); };
-      el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+      el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); el.addEventListener("lostpointercapture", end);
+      window.addEventListener("pointerup", end, true); window.addEventListener("pointercancel", end, true);   // 要素の外で離れた場合の取りこぼし防止
+      window.addEventListener("blur", reset); window.addEventListener("pagehide", reset); document.addEventListener("visibilitychange", () => { if (document.hidden) reset(); });
       return { release() { if (id !== null) reset(); } };
     }
     /* ============================================================
@@ -3601,12 +3612,14 @@ fighterList().forEach(p => {
       try { if (send && typeof onl !== "undefined" && onl.running && !onl.isHost) sendMsg({ t: "mAim", a: a }); } catch (e) {}
     }
     /* ver94：操作のなめらかさ（調整値） */
-    const AIM_DEAD_X = 10, AIM_LEAVE = 7;     // デッドゾーン：エイムに入る距離／抜ける距離(px)（ヒステリシスで境目のバタつきを防ぐ）
+    const AIM_CANCEL_IN = 40, AIM_CANCEL_OUT = 54, AIM_ARM = 44;   // ver96：キャンセル範囲（中心からの距離px）。一度AIM_ARM以上引っ張ったあと、AIM_CANCEL_IN未満まで戻すとキャンセル（AIM_CANCEL_OUT以上でキャンセル解除＝ヒステリシス）。旧版は中心の約11pxしかなかった
+    const AIM_DEAD_X = 16, AIM_LEAVE = 11;    // デッドゾーン：エイムに入る距離／抜ける距離(px)（ヒステリシスで境目のバタつきを防ぐ）。ver95：10→16（タップ時の指の転がりで勝手に手動エイムにならないように）
     const AIM_FLOAT = 1.25, JOY_FLOAT = 1.3;  // クランプ追従型フローティング：最大半径の何倍を超えたら中心が追従するか
-    const TAP_MS = 220, TAP_PX = 26;          // タップ判定：この時間(ms)以内かつこの移動量(px)以内ならオートエイム
-    const REL_BACK = 35;                      // リリース補正：指を離す何ms前の座標で向きを確定するか
-    const JOY_DEAD = .1, JOY_FULL = .65;     // 移動スティック：デッドゾーン（半径の割合）／全速になる倒し具合（旧 .3／.8）
-    const JOY_CURVE = 1.3, AIM_CURVE = 1.4;   // 非線形カーブ：移動スティックの倒し具合／スキルの飛距離の指数（1で直線）
+    const TAP_MS = 260, TAP_PX = 30, TAP_SLIP = 16;   // タップ判定：この時間(ms)以内ならTAP_PX、長押しでもTAP_SLIP(px)未満しか動いていなければオートエイム（指の転がり対策）
+    const REL_HOLD = 70, REL_FLICK = 45;      // リリース補正：構えて止まっていた位置を採用するために、指が離れ始める前とみなす時間(ms)／フリックで離したときに遡る時間(ms)
+    const JOY_DEAD = .11, JOY_LEAVE = .07, JOY_FULL = .5;   // 移動スティック：動き出す距離／止まる距離（半径の割合・ヒステリシス）／全速になる倒し具合
+    const JOY_MIN = .5, JOY_CURVE = 1;                    // ver95：動き出した瞬間から半分の速さ（少し倒すだけで確実に動く）→全速まで直線。旧版は約15pxで17%しか進まず「動かない」ように感じた
+    const AIM_CURVE = 1.4;                                // スキルの飛距離の指数（1で直線）
     const KNOB_ATK = '<svg class="ring" viewBox="0 0 100 100"></svg><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>';   // 指の位置に出る攻撃ボタン（残弾リング付き）
     /* 指数移動平均（EMA）：ゆっくり動かすときは強くならし、素早く動かすときは遅れない（速度適応） */
     const ema = (o, x, y, dt) => {
@@ -3618,16 +3631,16 @@ fighterList().forEach(p => {
     const skReady = p => { try { return !!p && isSkillReady(p, Date.now()); } catch (e) { return true; } };
     function makeBtn(el) {
       const key = el.dataset.key, kind = (key === "f" || key === "k") ? "atk" : "skl";
-      let id = null, sx = 0, sy = 0, aimed = false, ever = false, ang = 0, angS = 0, len = 0, maxLen = 0, hold = false, pl = null, lastSend = 0, hist = [], downT = 0, lastT = 0;
+      let id = null, sx = 0, sy = 0, aimed = false, ever = false, armed = false, cz = false, ang = 0, angS = 0, len = 0, maxLen = 0, hold = false, pl = null, lastSend = 0, hist = [], downT = 0, lastT = 0, cap = false;
       const sm = { x: 0, y: 0 };
       const ring = document.createElement("div"); ring.className = "aimring " + kind + (key === "k" ? " p2" : ""); ring.innerHTML = kind === "atk" ? '<i data-key="' + key + '">' + KNOB_ATK + "</i>" : "<i></i>";
       touchUI.appendChild(ring);
       const knob = ring.firstChild;
       const autoSt = () => (kind === "atk" && pl && pl.ammo <= 0) ? null : { auto: true, kind, hold, len: 0 };   // 押した瞬間：オートエイムの狙い先を予告
-      const hide = () => { ring.style.display = "none"; ring.classList.remove("on", "cancel"); el.classList.remove("down"); window.__aim.st[key] = null; };
+      const hide = () => { ring.style.display = "none"; ring.classList.remove("on", "cancel", "cz"); el.classList.remove("down"); window.__aim.st[key] = null; };
       const upd = e => {
         ema(sm, e.clientX, e.clientY, e.timeStamp - lastT); lastT = e.timeStamp;   // EMA：指の細かい震えをならす
-        hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY }); while (hist.length > 1 && e.timeStamp - hist[0].t > 260) hist.shift();   // リングバッファ（生の座標の履歴）
+        hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY }); while (hist.length > 1 && e.timeStamp - hist[0].t > 420) hist.shift();   // リングバッファ（生の座標の履歴）
         let dx = sm.x - sx, dy = sm.y - sy; len = Math.hypot(dx, dy);
         const lim = AIM_R * AIM_FLOAT;
         if (len > lim) {   // クランプ追従型フローティング：最大半径を大きく超えたら中心がじわっと追従
@@ -3642,39 +3655,49 @@ fighterList().forEach(p => {
           ang = angS;
         }
         maxLen = Math.max(maxLen, len);
-        const cancel = ever && !aimed;   // 引いたあと中心へ戻した＝キャンセル
+        if (len > AIM_ARM) armed = true;   // ver96：十分に引っ張った
+        cz = (!hold && armed) ? (cz ? len < AIM_CANCEL_OUT : len < AIM_CANCEL_IN) : (ever && !aimed);   // 引いたあと中心付近（広めの範囲）へ戻した＝キャンセル（長押しタイプは従来どおり）
+        const cancel = cz;
         const k = len ? Math.min(len, AIM_R) / len : 0;
         knob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
-        ring.classList.toggle("on", aimed); ring.classList.toggle("cancel", cancel);
-        window.__aim.st[key] = aimed ? { ang, len, kind, hold } : (cancel ? { cancel: true, kind } : autoSt());
+        ring.classList.toggle("on", aimed); ring.classList.toggle("cancel", cancel); ring.classList.toggle("cz", armed && !hold);
+        window.__aim.st[key] = cancel ? { cancel: true, kind } : (aimed ? { ang, len, kind, hold } : autoSt());
         if (hold && kind === "atk" && pl) { const t = Date.now(); setHoldAim(pl, aimed ? ang : null, t - lastSend > 60); if (t - lastSend > 60) lastSend = t; }
       };
       function finish(cx, tUp) {
         if (hold) { tkey("keyup", key); if (kind === "atk") setHoldAim(pl, null, true); hold = false; return; }   // 長押しタイプ：離したら解除
         if (cx) return;
-        const quick = (tUp - downT) < TAP_MS && maxLen < TAP_PX;   // タップ判定：短時間・小移動ならオートエイム
-        if (!quick && ever && !aimed) { vibe(4); return; }   // キャンセル
+        const quick = (tUp - downT) < TAP_MS ? maxLen < TAP_PX : maxLen < TAP_SLIP;   // タップ判定：短時間なら小移動、長押しでもほとんど動いていなければオートエイム（指の転がりを手動エイムと誤認しない）
+        if (!quick && cz) { vibe(4); return; }   // キャンセル（ver96：中心付近の広い範囲で離したらキャンセル）
         const useAim = aimed && !quick;
-        let a = ang;
-        if (useAim) {   // リリース補正：指を離す直前の転がりを無視し、REL_BACK ms 前の安定した座標で向きを確定
-          let s0 = null; for (const h of hist) if (tUp - h.t >= REL_BACK) s0 = h;
-          if (s0 && Math.hypot(s0.x - sx, s0.y - sy) > AIM_DEAD_X) a = Math.atan2(s0.y - sy, s0.x - sx);
+        let a = ang, L = len;
+        if (useAim) {   // リリース補正：指が離れる瞬間の転がり（最後の数十ms）を無視する
+          let p0 = null;
+          const old = hist.filter(h => tUp - h.t >= REL_HOLD);   // 離す前のサンプル
+          if (old.length) {   // ①構えて止まっていたなら、その位置（直近200msの平均）をそのまま採用
+            const last = old[old.length - 1], win = old.filter(h => last.t - h.t <= 200);
+            let mx = 0, my = 0; win.forEach(h => { mx += h.x; my += h.y; }); mx /= win.length; my /= win.length;
+            if (Math.max.apply(null, win.map(h => Math.hypot(h.x - mx, h.y - my))) < 9) p0 = { x: mx, y: my };
+          }
+          if (!p0) { let s0 = null; for (const h of hist) if (tUp - h.t >= REL_FLICK) s0 = h; p0 = s0; }   // ②動かしながら離した（フリック）：少し前の座標
+          if (p0) { const dd = Math.hypot(p0.x - sx, p0.y - sy); if (dd > AIM_DEAD_X) { a = Math.atan2(p0.y - sy, p0.x - sx); L = dd; } }
         }
         const A = window.__aim, ok = kind === "atk" ? !!(pl && pl.ammo > 0) : true;
-        const t01 = Math.max(0, Math.min(1, (len - AIM_DEAD_X) / (AIM_R - AIM_DEAD_X)));
+        const t01 = Math.max(0, Math.min(1, (L - AIM_DEAD_X) / (AIM_R - AIM_DEAD_X)));
         A.ctx = useAim ? { kind, ang: a, dist: 120 + Math.pow(t01, AIM_CURVE) * 300, n: 0 } : null;   // 引っ張った方向へ（飛距離は非線形）。それ以外はオートエイム
         try { tkey("keydown", key); tkey("keyup", key); } finally { A.ctx = null; }
         vibe(ok ? 12 : [8, 40, 8]); el.classList.add("fire"); setTimeout(() => el.classList.remove("fire"), 140);
         if (!ok) { el.classList.add("nope"); setTimeout(() => el.classList.remove("nope"), 270); }
       }
+      const stale = () => id !== null && cap && !!el.hasPointerCapture && !el.hasPointerCapture(id);   // upが届かず固まった状態
       el.addEventListener("pointerdown", e => {
-        if (id !== null) return;
+        if (id !== null) { if (stale()) { id = null; hide(); if (hold) { tkey("keyup", key); if (kind === "atk") setHoldAim(pl, null, true); hold = false; } } else return; }
         pl = aimPlayer(key); hold = aimHold(kind, pl);
         if (kind === "skl" && !hold && !skReady(pl)) {   // スキルが溜まっていない：エイムは出さず、ボタンが震える
           tkey("keydown", key); tkey("keyup", key); el.classList.add("nope"); setTimeout(() => el.classList.remove("nope"), 270); vibe([8, 40, 8]); e.preventDefault(); return;
         }
-        id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {}
-        el.classList.add("down"); sx = sm.x = e.clientX; sy = sm.y = e.clientY; aimed = false; ever = false; len = 0; maxLen = 0; downT = lastT = e.timeStamp; hist = [{ t: e.timeStamp, x: sx, y: sy }];
+        id = e.pointerId; cap = false; try { el.setPointerCapture(id); cap = !!el.hasPointerCapture(id); } catch (x) {}
+        el.classList.add("down"); sx = sm.x = e.clientX; sy = sm.y = e.clientY; aimed = false; ever = false; armed = false; cz = false; len = 0; maxLen = 0; downT = lastT = e.timeStamp; hist = [{ t: e.timeStamp, x: sx, y: sy }];
         ring.style.left = sx + "px"; ring.style.top = sy + "px"; ring.style.display = "block"; knob.style.transform = "";
         if (hold) tkey("keydown", key);   // 長押しタイプは押した瞬間に開始（従来どおり）
         window.__aim.st[key] = autoSt();
@@ -3682,8 +3705,11 @@ fighterList().forEach(p => {
       });
       el.addEventListener("pointermove", e => { if (e.pointerId === id) upd(e); });
       const end = (e, cx) => { if (e.pointerId !== id) return; id = null; hide(); finish(cx, e.timeStamp); };
-      el.addEventListener("pointerup", e => end(e, false)); el.addEventListener("pointercancel", e => end(e, true));
-      return { release() { if (id === null) return; id = null; hide(); if (hold) { tkey("keyup", key); if (kind === "atk") setHoldAim(pl, null, true); hold = false; } } };
+      el.addEventListener("pointerup", e => end(e, false)); el.addEventListener("pointercancel", e => end(e, true)); el.addEventListener("lostpointercapture", e => end(e, true));
+      window.addEventListener("pointerup", e => end(e, false), true); window.addEventListener("pointercancel", e => end(e, true), true);   // 要素の外で離れた場合の取りこぼし防止
+      const drop = () => { if (id === null) return; id = null; hide(); if (hold) { tkey("keyup", key); if (kind === "atk") setHoldAim(pl, null, true); hold = false; } };
+      window.addEventListener("blur", drop); window.addEventListener("pagehide", drop); document.addEventListener("visibilitychange", () => { if (document.hidden) drop(); });
+      return { release: drop };
     }
 
     const touchUI = document.createElement("div");
@@ -5460,7 +5486,12 @@ function think(i){
           if (pips.dataset.pt !== h) { pips.dataset.pt = h; pips.className = "pips"; pips.innerHTML = h; }
         });
       };
-      const near = (s, t) => { // 最も近い敵プレイヤー／召喚物（ペット・タレット）を狙う
+      /* ★★ メモ：召喚物とオートエイム（今後の新キャラ・修正でも必ず守ること）★★
+         基本、「召喚物」（ペット・タレット・雪だるま・ドローンなど、キャラが出す敵として当たる存在）は、
+         オートエイムの標的になる。つまり、プレイヤーより召喚物のほうが近ければ、オートエイムは召喚物に吸われる。
+         新しい召喚物を足すときは、下の near() に、その召喚物を chk(...) で追加すること（忘れると狙われない）。
+         現在の対象：ペット／タレット／サンタ戦の雪だるま／プレイ用サンタの雪だるま／アーク・フォージのドローン */
+      const near = (s, t) => { // 最も近い敵プレイヤー／召喚物（ペット・タレット・雪だるま・ドローン）を狙う
         const e = foe(s); if (t !== e) return t;
         const cx = s.x + 15, cy = s.y + 15; let best = t, bd = Math.hypot(e.x + 15 - cx, e.y + 15 - cy);
         const chk = (x, y, o) => { const d = Math.hypot(x - cx, y - cy); if (d < bd) { bd = d; best = o || { x: x - 15, y: y - 15, w: 30, h: 30 }; } };
@@ -5468,6 +5499,7 @@ function think(i){
         turrets.forEach(u => { if (teamOf(u.owner) !== teamOf(s)) chk(u.x, u.y, turretProxy(u)); });
         (window.SANTA_SNOWS || []).forEach(m => { if (m.hp > 0 && s !== window.SANTA_BOSS) chk(m.x + 13, m.y + 13, { x: m.x - 2, y: m.y - 2, w: 30, h: 30, hp: m.hp }); });   // サンタ戦：雪だるま
         (window.PSN || []).forEach(m => { if (m.hp > 0 && m.o && teamOf(m.o) !== teamOf(s)) chk(m.x + 13, m.y + 13, { x: m.x - 2, y: m.y - 2, w: 30, h: 30, hp: m.hp }); });   // プレイ用サンタの雪だるま
+        (window.ARK_DRONES || []).forEach(m => { if (m.hp > 0 && m.o && teamOf(m.o) !== teamOf(s)) chk(m.x, m.y, { x: m.x - 15, y: m.y - 15, w: 30, h: 30, hp: m.hp }); });   // ver96：アーク・フォージのドローン
         return best;
       };
       window.aimTarget = near;   // エイム矢印・魔法陣・演出が、実際に撃つ相手（ペット含む）を向くように
@@ -9124,7 +9156,12 @@ function think(i){
         "アーク・フォージ": { ver: "ver86", summary: "ドローンを刷新", notes: [
           "ドローンの見た目を、近未来的な小型の銃型デザインに変更。旋回しながら常に敵の方向を向く",
           "召喚数を2機から3機に増加",
-          "旋回範囲を外側へ拡大（出現位置は従来どおり）"
+          "旋回範囲を外側へ拡大（出現位置は従来どおり）",
+          "【ver96】ドローンの弾のダメージを4→6に増加",
+          "【ver96】ドローンのHPは、アーク・フォージの近くにいる間は減らない（離れすぎた時だけ減る）",
+          "【ver96】ドローンは同時に3機まで。スキルを使い直すと、いる機体は壊れて新しい3機に入れ替わる",
+          "【ver96】ドローンは、自分の狙いの方向に関係なく、ドローンから一番近い敵を撃つ",
+          "【ver96】ドローンは召喚物扱い：敵のオートエイムはドローンにも吸われる"
         ] },
         "エース・キッカー": { ver: "ver86", summary: "麻酔針の強化", notes: [
           "眠らせる時間を1.5秒から3秒に延長",
@@ -9926,8 +9963,10 @@ function think(i){
        新キャラ「アーク・フォージ」（プレイヤー用）
        通常攻撃：手のひらのリパルサーから青白いエネルギー弾（10ダメージ）
        スキル「ドローン・リンク」：小型ガンポッド型ドローンを3機召喚。それぞれ独立したHPを持ち、自分の周囲（やや外側）を旋回しつつ常に敵の方向を向く。
-         ・HPは毎秒2ずつ減る（プレイヤーから離れすぎると毎秒4）／HP0で消滅
-         ・通常攻撃を撃つと、ドローンも連動して敵へ1発4ダメージの弾を撃つ
+         ・HPはアーク・フォージの近くにいる間は減らない（離れすぎると毎秒4ずつ減る）／HP0で消滅
+         ・同時に出せるのは3機まで。スキルを使い直すと、いる機体は壊れて新しい3機に入れ替わる
+         ・通常攻撃を撃つと、ドローンも連動して、ドローンから一番近い敵へ1発6ダメージの弾を撃つ
+         ・ドローンは召喚物扱い：敵のオートエイムはドローンにも吸われる（下の「召喚物とオートエイム」のメモ参照）
          ・壁は貫通せず、ぶつかりそうなら回り込む
        ※ 数値は先頭の BALANCE["アーク・フォージ"] と BALANCE_X.ark で調整できます（召喚数・HP・減少速度・旋回距離・攻撃力など）
        ============================================================ */
@@ -9945,7 +9984,7 @@ function think(i){
 
       /* ---- スキル：ドローン・リンク ---- */
       function summon(p) {
-        for (let i = DR.length - 1; i >= 0; i--) if (DR[i].o === p) DR.splice(i, 1);   // 使い直すと古い機体は入れ替え
+        for (let i = DR.length - 1; i >= 0; i--) if (DR[i].o === p) { explosions.push({ x: DR[i].x, y: DR[i].y, r: 26, life: 10 }); DR.splice(i, 1); }   // ver96：上限3機。既にいる機体は壊れて、新しい3機に入れ替わる
         const pc = cen(p), n = X.droneN, t = now();
         for (let i = 0; i < n; i++) {
           const ang = i * TAU / n + Math.random() * .3, k = n > 1 ? i / (n - 1) : .5;
@@ -9965,17 +10004,22 @@ function think(i){
         if (summon(p)) p.skillLastUsed = tm;
       };
 
+      /* 敵になりうる全存在の中心点（キャラ＋ペット・タレット等の召喚物＋敵のドローン） */
+      const enemyPts = o => {
+        const a = (window.targetsOf ? window.targetsOf(o) : foes(o)).filter(q => q && q.hp > 0 && !q.out && q.x > -100).map(cen);
+        DR.forEach(e => { if (e.hp > 0 && teamOf(e.o) !== teamOf(o)) a.push({ x: e.x, y: e.y }); });
+        return a;
+      };
       /* ---- 通常攻撃に連動してドローンが撃つ ---- */
       function droneFire(p, b0) {
         const mine = DR.filter(d => d.o === p && d.hp > 0); if (!mine.length) return;
         const sp = Math.hypot(b0.vx, b0.vy) || 1, ux = b0.vx / sp, uy = b0.vy / sp, t = now();
-        const ents = (window.targetsOf ? window.targetsOf(p) : foes(p)).filter(q => q && q.hp > 0 && !q.out && q.x > -100);   // キャラ＋ペット等の召喚物
+        const ents = enemyPts(p);   // キャラ＋ペット等の召喚物＋敵ドローン
         mine.forEach(d => {
           let best = null, bd = 1e9;
-          ents.forEach(q => {   // 自分の狙いの方向（約35度以内）にいる、ドローンから一番近い敵へ
-            const c = cen(q), vx = c.x - d.x, vy = c.y - d.y, m = Math.hypot(vx, vy) || 1;
-            if ((vx * ux + vy * uy) / m < .82) return;
-            if (m < bd) { bd = m; best = { x: c.x, y: c.y }; }
+          ents.forEach(c => {   // ver96：自分の狙いの方向に関係なく、ドローンから一番近い敵へ
+            const m = Math.hypot(c.x - d.x, c.y - d.y);
+            if (m < bd) { bd = m; best = c; }
           });
           let ax = ux, ay = uy;   // 該当なしなら、自分と同じ方向へ
           if (best) { const vx = best.x - d.x, vy = best.y - d.y, m = Math.hypot(vx, vy) || 1; ax = vx / m; ay = vy / m; }
@@ -10035,12 +10079,12 @@ function think(i){
           });
           const dist = Math.hypot(d.x - pc.x, d.y - pc.y);
           d.far = dist > X.farDist;
-          d.hp -= (d.far ? X.decay * X.farMul : X.decay) * dt;   // 離れすぎると減りが速い
+          d.hp -= (d.far ? X.farDecay : X.decay) * dt;   // ver96：アーク・フォージの近くにいる間はHPが減らない。離れすぎた時だけ減る
           d.tr.push({ x: d.x, y: d.y }); if (d.tr.length > 10) d.tr.shift();
           if (t - d.ft > 120) {   // 旋回しながら、常に一番近い敵の方向へ銃口を向ける（敵がいなければ進行方向）
-            const es = (window.targetsOf ? window.targetsOf(d.o) : foes(d.o)).filter(q => q && q.hp > 0 && !q.out && q.x > -100);
+            const es = enemyPts(d.o);
             let bc = null, bd2 = 1e9;
-            es.forEach(q => { const c = cen(q), m = Math.hypot(c.x - d.x, c.y - d.y); if (m < bd2) { bd2 = m; bc = c; } });
+            es.forEach(c => { const m = Math.hypot(c.x - d.x, c.y - d.y); if (m < bd2) { bd2 = m; bc = c; } });
             const want = bc ? Math.atan2(bc.y - d.y, bc.x - d.x) : d.ang + d.dir * Math.PI / 2;
             let df = want - d.face; df = Math.atan2(Math.sin(df), Math.cos(df));
             d.face += df * (1 - Math.pow(1 - X.turn, dt * 60));
@@ -10630,3 +10674,4 @@ function think(i){
   </script>
 </body>
 </html>
+</body></html>
