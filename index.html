@@ -702,13 +702,56 @@
          speed ..... 移動速度            damage ..... 通常攻撃のダメージ
          maxAmmo ... 最大弾数            reload ..... リロード時間(ms)
          shots ..... 1回で撃つ弾数        bulletSpeed  弾の速さ
-         bulletLife  弾の寿命(フレーム/ms相当・キャラにより異なる)
+         bulletLife  （ver107以降は未使用。弾は射程表 RANGE_TIER の距離で消えます）
          bulletRadius 弾の大きさ         pass ....... 壁貫通(true/false)
          skillCd ... スキルのクールタイム(ms)。Infinity＝時間では回復しない
          ※ キャラ固有の特殊な数値（GAYの距離減衰、魔女の属性ダメージ等）は
            下の BALANCE_X にまとめています。
          ※ ブーメランボーイは行き・帰りの両方で damage が1回ずつ入ります。
        ============================================================ */
+    /* ============================================================
+       ■ 射程表（ver107：弾が飛べる「距離(px)」で管理。弾の寿命(bulletLife)では消えなくなりました）
+         マップは 800×400。GAY（短射程の長め）＝267px＝マップ縦の約2/3 を基準にしています。
+         ここの数字を書き換えるだけで、弾の射程・CPUの射撃距離・エイム線がまとめて変わります。
+         ・RANGE_TIER ........ 階級ごとの射程(px)。中射程(長)と中射程(短)は表記上どちらも「中射程」
+         ・RANGE_OF_CHAR ..... キャラごとの階級
+         ・RANGE_X ........... 状態で変わるキャラ／変化後の弾／召喚物の弾（階級名か数値で指定）
+       ============================================================ */
+    const RANGE_TIER = { ultra: 1000, long: 600, midL: 460, midS: 360, short: 267 };
+    const RANGE_OF_CHAR = {
+      "白い死神": "ultra",
+      "スナイパー太郎": "long", "ジャンパー": "long", "海鮮塗装屋": "long",
+      "怪盗レッド": "midL", "ガジェットボット": "midL", "アクアファイター": "midL", "聖なる使者": "midL", "ジョーカー": "midL",
+      "元素の魔女": "midL", "エース・キッカー": "midL", "アーク・フォージ": "midL",
+      "ブーメランボーイ": "midS", "サンダーマウス": "midS", "パイハークン": "midS", "ペット＆テイマー": "midS", "上裸の鳥頭": "midS", "サンタ": "midS",
+      "既視感のあるGAY": "short", "ボマー": "short", "怪獣王": "short", "メープル": "short"
+      /* ツインブラザーズ（H/S）と不死鳥（通常/HP1）は状態で変わるので RANGE_X 側 */
+    };
+    const RANGE_X = {
+      twinH: "midS", twinS: "short",            // ツインブラザーズ：Hモード（爆発弾）／Sモード（ショットガン）
+      phoenixNormal: "midS", phoenixHP1: "midL", // 不死鳥：通常／HP1（強化弾）
+      summon: "midS",                            // 召喚物（タレット・ドローン・雪だるま等）が撃つ弾
+      birdLight: 300,                            // 上裸の鳥頭：光の弾に変化したあと（変化前は階級どおり）
+      pikaShard: 200,                            // サンダーマウス：分裂した小さい弾（分裂するのは本体が射程の80%飛んだ地点）
+      pieShard: 200,                             // パイハークン：破裂した破片
+      ricochet: 320                              // エース・キッカー：跳弾
+    };
+    const rangePx = k => typeof k === "number" ? k : (RANGE_TIER[k] || RANGE_TIER.midS);
+    function rangeOfPlayer(p) {   // キャラ（状態込み）の通常攻撃の射程(px)
+      const n = p && p.charName;
+      if (n === "ツインブラザーズ") return rangePx(p.mode === "S" ? RANGE_X.twinS : RANGE_X.twinH);
+      if (n === "不死鳥") return rangePx(p.hp <= 1.001 ? RANGE_X.phoenixHP1 : RANGE_X.phoenixNormal);
+      return rangePx(RANGE_OF_CHAR[n] || RANGE_X.summon);
+    }
+    function rangeOfBullet(b) {   // 弾ごとの射程（撃った時点で決まる）
+      if (b.ph) return rangePx(b.ph === 2 ? RANGE_X.phoenixHP1 : RANGE_X.phoenixNormal);
+      const n = b.from && b.from.charName;
+      if (n === "ツインブラザーズ") return rangePx(b.explosive ? RANGE_X.twinH : RANGE_X.twinS);
+      if (n && RANGE_OF_CHAR[n]) return rangePx(RANGE_OF_CHAR[n]);
+      return rangePx(RANGE_X.summon);
+    }
+    window.aiFireCap = (p, f) => { const n = p.charName; return (n === "ボマー" || n === "怪獣王" || n === "メープル") ? f : Math.min(f, rangeOfPlayer(p) + 25); };   // CPUは射程の外から撃たない
+
     const BALANCE_DEFAULT = { hp: 100, speed: 3, damage: 10, maxAmmo: 3, reload: 1500, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 15000 };
     const BALANCE = {
       "スナイパー太郎": { hp: 100, speed: 3, damage: 8, maxAmmo: 4, reload: 1100, shots: 2, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 15000 },
@@ -738,9 +781,9 @@
     };
     /* キャラ固有の数値 */
     const BALANCE_X = {
-      gay: { dmgNear: 23, dmgFar: 15, radiusStart: 25, radiusEnd: 10, range: 267, near: 40, cdPerHp: 100 },
+      gay: { dmgNear: 23, dmgFar: 15, radiusStart: 25, radiusEnd: 10, range: RANGE_TIER.short, near: 40, cdPerHp: 100 },
       santa: {   // サンタ（プレイヤー用）
-        giftDelay: 800, giftDmg: 8, giftStun: 200, giftRadius: 38, giftWall: 6, giftRange: 380,   // プレゼント：落下までの時間(ms)／ダメージ／スタン(ms)／当たり範囲／壁へのダメージ／届く距離（届かない時は範囲内のどこかにランダムで落ちる）
+        giftDelay: 800, giftDmg: 8, giftStun: 200, giftRadius: 38, giftWall: 6, giftRange: RANGE_TIER.midS,   // プレゼント：落下までの時間(ms)／ダメージ／スタン(ms)／当たり範囲／壁へのダメージ／届く距離（届かない時は範囲内のどこかにランダムで落ちる）
         sockDmg: 15, sockSpeed: 5.6,                                                // 靴下
         deerDmg: 20, deerWeight: 0.7,                                                // トナカイ：ダメージ／出やすさ（スキル抽選の重み。他は靴下3・雪だるま1.5・ダッシュ1.5）
         snowHp: 10, snowDmg: 5, snowMax: 2, snowSummon: 2,                          // 雪だるま：HP／雪玉ダメージ／同時最大数／1回の召喚数
@@ -1780,6 +1823,8 @@ if (shooter.charName === "ツインブラザーズ") {
         const b = bullets[i];
         b.x += b.vx * BULLET_SPEED_MUL; b.y += b.vy * BULLET_SPEED_MUL;   // ver107：弾速倍率
         b.lifeTime += BULLET_SPEED_MUL;
+        if (b.rng == null) b.rng = rangeOfBullet(b);   // ver107：射程（距離）で管理
+        b.trav = (b.trav || 0) + Math.hypot(b.vx, b.vy) * BULLET_SPEED_MUL;   // 飛んだ距離
         warpBullet(b);
         if (b.mario) {
   // 弾が進むにつれて大きく＆速くなる
@@ -1796,7 +1841,7 @@ if (shooter.charName === "ツインブラザーズ") {
         if (b.isBoomerang) {
   if (b.goingOut) {
     // 前進して一定距離で戻り開始
-    if (b.lifeTime > 35) { // 好きな距離で調整
+    if (b.trav >= b.rng) { // ver107：行きの距離＝射程
       b.goingOut = false;
     }
   } else {
@@ -1824,7 +1869,7 @@ if (shooter.charName === "ツインブラザーズ") {
           bullets.splice(i, 1);
           continue;
         }
-        if (b.pikaMain && b.lifeTime > b.maxLifeTime * 0.8) {
+        if (b.pikaMain && b.trav > b.rng * 0.8) {
   // 分裂発動
   for (let j = 0; j < 6; j++) {
     const angle = j * (Math.PI / 3);
@@ -1837,8 +1882,8 @@ if (shooter.charName === "ツインブラザーズ") {
       from: b.from,
       damage: 5,
       lifeTime: 0,
-      maxLifeTime: 800
-    });
+      maxLifeTime: 800, rng: rangePx(RANGE_X.pikaShard)
+});
   }
   // 分裂したら元弾削除
   bullets.splice(i, 1);
@@ -1847,7 +1892,7 @@ if (shooter.charName === "ツインブラザーズ") {
 }
 
 
-        if (b.lifeTime > b.maxLifeTime) {
+        if (!b.isBoomerang && b.trav >= b.rng) {
           if (b.explosive) explode(b);
           bullets.splice(i, 1);
           continue;
@@ -1972,7 +2017,7 @@ fighterList().forEach(p => {
       const dx = target.x + target.w/2 - turret.x;
       const dy = target.y + target.h/2 - turret.y;
       const mag = Math.sqrt(dx*dx+dy*dy);
-      bullets.push({ x: turret.x, y: turret.y, r: 5, vx: dx/mag*6, vy: dy/mag*6, from: turret.owner, damage: 5, lifeTime: 0, maxLifeTime: 1000, hasReflected: false });
+      bullets.push({ x: turret.x, y: turret.y, r: 5, vx: dx/mag*6, vy: dy/mag*6, from: turret.owner, damage: 5, lifeTime: 0, maxLifeTime: 1000, rng: rangePx(RANGE_X.summon), hasReflected: false });
     }
 
     function circleHitRect(circle, rect) {
@@ -3903,7 +3948,7 @@ function think(i){
  const hpLow=me.hp<45,lead=me.hp-en.hp,pass=!!P.pass;
  if(nm==='上裸の鳥頭'||nm==='エース・キッカー')me._ai=NOW();
  if(nm==='メープル'){window.__mapleThink&&window.__mapleThink(me,en,K,i,mx,my,ex,ey,d,rdy);return}
- let range=P.range,fire=P.fire,chase=P.chase||.04,expoW=pass?8:5;
+ let range=P.range,fire=(window.aiFireCap?aiFireCap(me,P.fire):P.fire),chase=P.chase||.04,expoW=pass?8:5;
  let sh=null,shW=0,petKeep=0,hold=false,hug=null,thOK=false,mageWant=0;
  // --- キャラ別の戦略 ---
  if(nm==='ツインブラザーズ'){range=twin?75:300;fire=twin?105:750;if(twin)chase=.1}
@@ -4295,6 +4340,8 @@ function think(i){
         for (let i = xb.length - 1; i >= 0; i--) {
           const b = xb[i], target = hitFoe(b);
           b.x += b.vx * BULLET_SPEED_MUL; b.y += b.vy * BULLET_SPEED_MUL; b.age += BULLET_SPEED_MUL;   // ver107：弾速倍率
+        if (b.rng == null) b.rng = b.from ? rangeOfPlayer(b.from) : Infinity;
+        b.trav = (b.trav || 0) + Math.hypot(b.vx, b.vy) * BULLET_SPEED_MUL;
           warpBullet(b);
           if (b.type === "gay") {
             const d = Math.hypot(b.x - b.sx, b.y - b.sy);
@@ -4303,7 +4350,7 @@ function think(i){
             b.r = GAY_R0 + (GAY_R1 - GAY_R0) * k;
             b.dmg = Math.round(GAY_D0 + (GAY_D1 - GAY_D0) * k); b.damage = b.dmg;
           }
-          if (b.type === "wave" && b.age > 160) { xb.splice(i, 1); continue; }
+          if (b.trav >= b.rng) { xb.splice(i, 1); continue; }   // ver107：射程（距離）
           if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) { xb.splice(i, 1); continue; }
           if (circleHitRect(b, target)) {
             if (b.type === "wave") target.stunUntil = Math.max(target.stunUntil || 0, Date.now() + STUN_MS);
@@ -4969,7 +5016,7 @@ function think(i){
       const PIE = "パイハークン", stunned = p => (p.stunUntil || 0) > Date.now();
       function burst(s, x, y) { // 破裂：24発の小球
         s.pieB = null;
-        for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; bullets.push({ x, y, r: 3, vx: Math.cos(a) * 9, vy: Math.sin(a) * 9, from: s, damage: 6, lifeTime: 0, maxLifeTime: 22 }); }
+        for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; bullets.push({ x, y, r: 3, vx: Math.cos(a) * 9, vy: Math.sin(a) * 9, from: s, damage: 6, lifeTime: 0, maxLifeTime: 22, rng: rangePx(RANGE_X.pieShard) }); }
         explosions.push({ x, y, r: 24, life: 8 });
       }
       const _cp = createPlayer;
@@ -5542,7 +5589,7 @@ function think(i){
         if (!gameActive) return;
         const q = turretTarget(u), tx = q.x, ty = q.y;
         const dx = tx - u.x, dy = ty - u.y, mag = Math.hypot(dx, dy) || 1;
-        bullets.push({ x: u.x, y: u.y, r: 5, vx: dx / mag * 6, vy: dy / mag * 6, from: u.owner, damage: 5, lifeTime: 0, maxLifeTime: 1000, hasReflected: false });
+        bullets.push({ x: u.x, y: u.y, r: 5, vx: dx / mag * 6, vy: dy / mag * 6, from: u.owner, damage: 5, lifeTime: 0, maxLifeTime: 1000, rng: rangePx(RANGE_X.summon), hasReflected: false });
       };
       const _bs = buildSnap;
       buildSnap = function () {
@@ -8217,7 +8264,7 @@ function think(i){
             const o = b.from, v0 = Math.hypot(b.vx || 0, b.vy || 0) || 6;
             let ax = -(b.vx || 0), ay = -(b.vy || 0);
             if (o && o.hp > 0 && !o.out && isFinite(o.x)) { ax = o.x + 15 - b.x; ay = o.y + 15 - b.y; }
-            const m = Math.hypot(ax, ay) || 1, nb = Object.assign({}, b, { from: p, vx: ax / m * v0, vy: ay / m * v0, lifeTime: 0, mrf: 1, hasReflected: false });
+            const m = Math.hypot(ax, ay) || 1, nb = Object.assign({}, b, { from: p, vx: ax / m * v0, vy: ay / m * v0, lifeTime: 0, trav: 0, mrf: 1, hasReflected: false });
             if (b.damage != null) nb.damage = Math.max(RMIN, b.damage * RF); if (b.dmg != null) nb.dmg = Math.max(RMIN, b.dmg * RF); if (b.damage == null && b.dmg == null) nb.damage = RMIN;
             nb.x = b.x + nb.vx * BULLET_SPEED_MUL; nb.y = b.y + nb.vy * BULLET_SPEED_MUL;
             arr.push(nb); explosions.push({ x: b.x, y: b.y, r: 12, life: 6 });
@@ -8420,7 +8467,7 @@ function think(i){
             const b = s.bB; if (b.light) return;
             const f = opponentOf(s); if (!f) return;
             const [ux, uy] = unit(b, { x: f.x + 15, y: f.y + 15 });
-            b.vx = ux * 11; b.vy = uy * 11; b.damage = 8; b.light = 1; b.r = 5; b.lifeTime = 0; b.maxLifeTime = 70;
+            b.vx = ux * 11; b.vy = uy * 11; b.damage = 8; b.light = 1; b.r = 5; b.lifeTime = 0; b.maxLifeTime = 70; b.trav = 0; b.rng = rangePx(RANGE_X.birdLight);   // ver107：光の弾は変化後の射程
             lines.push({ x1: b.x, y1: b.y, x2: b.x, y2: b.y, k: 1, until: now() + 220 });
             return;
           }
@@ -8512,7 +8559,7 @@ function think(i){
               if (Math.hypot(f.x + 15 - n.x, f.y + 15 - n.y) < 20) { f.stunUntil = Math.max(f.stunUntil || 0, t + 3000); f._slp = t + 3000; f._sh = f.hp; if (f.shOn) f.shOn = false; dead = true; explosions.push({ x: n.x, y: n.y, r: 14, life: 8 }); break; }
             }
           }
-          if ((n.age += BULLET_SPEED_MUL) > 60) dead = true;
+          n.trav = (n.trav || 0) + Math.hypot(n.vx, n.vy) * BULLET_SPEED_MUL; if (n.trav >= rangeOfPlayer(n.from)) dead = true;   // ver107：射程（距離）
           if (dead) needles.splice(i, 1);
         }
         // 跳弾の判定用に、このフレーム前の状態を記録
@@ -8554,7 +8601,7 @@ function think(i){
           if (!c) return;
           const ax = a.x, ay = a.y;
           const [ux, uy] = unit({ x: ax, y: ay }, { x: c.cx, y: c.cy });
-          bullets.push({ x: ax + ux * 26, y: ay + uy * 26, r: 6, vx: ux * 8, vy: uy * 8, from: own, damage: 8, lifeTime: 0, maxLifeTime: 50, bn: 1, ace: 1 });
+          bullets.push({ x: ax + ux * 26, y: ay + uy * 26, r: 6, vx: ux * 8, vy: uy * 8, from: own, damage: 8, lifeTime: 0, maxLifeTime: 50, rng: rangePx(RANGE_X.ricochet), bn: 1, ace: 1 });
           lines.push({ x1: ax, y1: ay, x2: c.cx, y2: c.cy, k: 0, until: t + 320 });
           explosions.push({ x: ax, y: ay, r: 16, life: 8 });
         });
@@ -9294,7 +9341,7 @@ function think(i){
       }
       function shoot(sc, pc, pv) {
         const L = LV[B.lv], d = Math.hypot(pc.x - sc.x, pc.y - sc.y), tt = d / (2.8 * BULLET_SPEED_MUL), ax = pc.x + pv.vx * tt * .7, ay = pc.y + pv.vy * tt * .7, a = Math.atan2(ay - sc.y, ax - sc.x);
-        (L.tri ? [-.3, 0, .3] : [0]).forEach(o => bullets.push({ x: sc.x, y: sc.y, r: 7, vx: Math.cos(a + o) * 2.8, vy: Math.sin(a + o) * 2.8, from: boss(), damage: L.atk, lifeTime: 0, maxLifeTime: 340, sock: 1 }));
+        (L.tri ? [-.3, 0, .3] : [0]).forEach(o => bullets.push({ x: sc.x, y: sc.y, r: 7, vx: Math.cos(a + o) * 2.8, vy: Math.sin(a + o) * 2.8, from: boss(), damage: L.atk, lifeTime: 0, maxLifeTime: 340, rng: rangePx(RANGE_X.summon), sock: 1 }));
       }
       function callDeer(sc, H, t) {   // トナカイ：一番近い敵だけに（人数が増えても数は増えない）
         const L = LV[B.lv];
@@ -9435,7 +9482,7 @@ function think(i){
           const vx = (dx / d * f + sx) * 0.84, vy = (dy / d * f + sy) * 0.84;
           if (!collidesWithObstacles({ x: m.x + vx, y: m.y, w: 26, h: 26 }) && inArena(m.x + vx, m.y, 4)) m.x += vx; else m.st = -m.st;
           if (!collidesWithObstacles({ x: m.x, y: m.y + vy, w: 26, h: 26 }) && inArena(m.x, m.y + vy, 4)) m.y += vy; else m.st = -m.st;
-          if (t >= m.nx && clear({ x: cx, y: cy }, pc, 4)) { m.nx = t + 3000 + Math.random() * 1500; bullets.push({ x: cx, y: cy, r: 4, vx: dx / d * 2.5, vy: dy / d * 2.5, from: s, damage: 5, lifeTime: 0, maxLifeTime: 340, snowball: 1 }); }
+          if (t >= m.nx && clear({ x: cx, y: cy }, pc, 4)) { m.nx = t + 3000 + Math.random() * 1500; bullets.push({ x: cx, y: cy, r: 4, vx: dx / d * 2.5, vy: dy / d * 2.5, from: s, damage: 5, lifeTime: 0, maxLifeTime: 340, rng: rangePx(RANGE_X.summon), snowball: 1 }); }
         });
         rings = rings.filter(r => t - r.t0 < 600);
       }
@@ -9934,7 +9981,7 @@ function think(i){
           const vx = (dx / d * f + sx) * 1.4, vy = (dy / d * f + sy) * 1.4;
           if (!collidesWithObstacles({ x: m.x + vx, y: m.y, w: 26, h: 26 }) && inArena(m.x + vx, m.y, 4)) m.x += vx; else m.st = -m.st;
           if (!collidesWithObstacles({ x: m.x, y: m.y + vy, w: 26, h: 26 }) && inArena(m.x, m.y + vy, 4)) m.y += vy; else m.st = -m.st;
-          if (t >= m.nx && clear({ x: cx, y: cy }, pc, 4)) { m.nx = t + 3000 + Math.random() * 1500; bullets.push({ x: cx, y: cy, r: 4, vx: dx / d * 5, vy: dy / d * 5, from: m.o, damage: X.snowDmg, lifeTime: 0, maxLifeTime: 170, psnow: 1 }); }
+          if (t >= m.nx && clear({ x: cx, y: cy }, pc, 4)) { m.nx = t + 3000 + Math.random() * 1500; bullets.push({ x: cx, y: cy, r: 4, vx: dx / d * 5, vy: dy / d * 5, from: m.o, damage: X.snowDmg, lifeTime: 0, maxLifeTime: 170, rng: rangePx(RANGE_X.summon), psnow: 1 }); }
         });
         for (let i = SR.length - 1; i >= 0; i--) if (t - SR[i].t0 >= 600) SR.splice(i, 1);
       }
@@ -10054,7 +10101,7 @@ function think(i){
           });
           let ax = ux, ay = uy;   // 該当なしなら、自分と同じ方向へ
           if (best) { const vx = best.x - d.x, vy = best.y - d.y, m = Math.hypot(vx, vy) || 1; ax = vx / m; ay = vy / m; }
-          bullets.push({ x: d.x + ax * 12, y: d.y + ay * 12, r: X.droneBulletR, vx: ax * X.droneBulletSpeed, vy: ay * X.droneBulletSpeed, from: p, damage: X.droneDmg, lifeTime: 0, maxLifeTime: p.bulletLifeTimeMax || 1000, ark: 1, adrone: 1 });
+          bullets.push({ x: d.x + ax * 12, y: d.y + ay * 12, r: X.droneBulletR, vx: ax * X.droneBulletSpeed, vy: ay * X.droneBulletSpeed, from: p, damage: X.droneDmg, lifeTime: 0, maxLifeTime: p.bulletLifeTimeMax || 1000, rng: rangePx(RANGE_X.summon), ark: 1, adrone: 1 });
           d.face = Math.atan2(ay, ax); d.ft = t;
         });
       }
@@ -10608,7 +10655,7 @@ function think(i){
         }
         return Math.min(d, L);
       }
-      const rngOf = p => Math.min(4000, (p.bulletSpeed || 6) * (p.bulletLifeTimeMax || 1000));
+      const rngOf = p => rangeOfPlayer(p);   // ver107：射程表の距離
       const LN = (w, len, pass, a) => ({ k: "line", w, len, pass: !!pass, a: a || 0 });       // 細長い長方形（弾の太さ×飛距離）
       const MULTI = (w, len, pass, offs) => offs.map(o => LN(w, len, pass, o));
       const DEFATK = p => LN(2 * (p.bulletRadius || 5), rngOf(p), p.bulletPassThroughObstacles);
@@ -10619,21 +10666,21 @@ function think(i){
         "白い死神": { skl: p => DEFATK(p) },
         "ガジェットボット": { atk: p => LN(2 * p.bulletRadius, rngOf(p), 1) },              // 壁を貫通
         "アクアファイター": { skl: () => ({ k: "box", side: 30, dist: 50 }) },              // 狙った方向50先に壁を置く
-        "ツインブラザーズ": { atk: p => p.mode === "S" ? { k: "sector", R: 123, half: .23 } : [LN(12, 1000, 0), { k: "endcircle", r: 50 }] },   // Sモード＝近距離のショットガン／Hモード＝爆発弾
-        "ジャンパー": { skl: () => MULTI(16, 4000, 1, [-.2, 0, .2]) },                      // 3方向の貫通弾
+        "ツインブラザーズ": { atk: p => p.mode === "S" ? { k: "sector", R: rngOf(p), half: .23 } : [LN(12, rngOf(p), 0), { k: "endcircle", r: 50 }] },   // Sモード＝近距離のショットガン／Hモード＝爆発弾
+        "ジャンパー": { skl: p => MULTI(16, rngOf(p), 1, [-.2, 0, .2]) },                      // 3方向の貫通弾
         "ボマー": { atk: null },                                                            // その場で爆発（向きなし）
-        "ブーメランボーイ": { atk: p => LN(12, (p.bulletSpeed || 7) * 35, 1) },             // 行きは35フレーム分・壁貫通
+        "ブーメランボーイ": { atk: p => LN(12, rngOf(p), 1) },             // 行きは35フレーム分・壁貫通
         "ジョーカー": { atk: p => MULTI(10, rngOf(p), 0, [-.15, 0, .15]) },                 // 3方向
-        "既視感のあるGAY": { atk: () => ({ k: "taper", w0: 50, w1: 20, len: 267 }), skl: () => LN(80, 4000, 1) },   // 弾は先細り／ハート衝撃波は壁を貫通
-        "パイハークン": { atk: p => alive(p.pieB) ? null : [LN(20, 300, 0), { k: "endcircle", r: 198, soft: 1 }] },   // 大玉＋破裂の届く範囲（2回目の押下は破裂なので線なし）
+        "既視感のあるGAY": { atk: p => ({ k: "taper", w0: 50, w1: 20, len: rngOf(p) }), skl: p => LN(80, rngOf(p), 1) },   // 弾は先細り／ハート衝撃波は壁を貫通
+        "パイハークン": { atk: p => alive(p.pieB) ? null : [LN(20, rngOf(p), 0), { k: "endcircle", r: rangePx(RANGE_X.pieShard), soft: 1 }] },   // 大玉＋破裂の届く範囲（2回目の押下は破裂なので線なし）
         "怪獣王": { atk: p => p.kc ? null : { k: "sector", R: 105, half: 1.05 }, skl: p => p.kc ? null : LN(20, 1200, 1) },   // 扇形の薙ぎ払い／熱線（チャージ開始時に向きが決まる）
-        "不死鳥": { atk: p => LN(8, (p.bulletSpeed || 6.5) * 65, 0) },
-        "ペット＆テイマー": { atk: () => LN(14, 320, 0) },
+        "不死鳥": { atk: p => LN(8, rngOf(p), 0) },
+        "ペット＆テイマー": { atk: p => LN(14, rngOf(p), 0) },
         "メープル": { atk: () => ({ k: "sector", R: 46, half: Math.PI / 3 }) },             // シールドの向き（前方120度）
-        "上裸の鳥頭": { atk: p => (alive(p.bB) && !p.bB.light) ? null : LN(16, 624, 0) },   // 2回目の押下は方向転換なので線なし
-        "エース・キッカー": { skl: () => LN(40, 900, 0) },                                  // 麻酔針
+        "上裸の鳥頭": { atk: p => (alive(p.bB) && !p.bB.light) ? null : LN(16, rngOf(p), 0) },   // 2回目の押下は方向転換なので線なし
+        "エース・キッカー": { skl: p => LN(40, rngOf(p), 0) },                                  // 麻酔針
         "サンタ": { atk: null },                                                            // プレゼントは範囲内にランダム
-        "海鮮塗装屋": { atk: () => ({ k: "wedge", half: .12 }) }                            // 3連のインク弾（ばらつき）
+        "海鮮塗装屋": { atk: p => ({ k: "wedge", half: .12, len: rngOf(p) }) }                            // 3連のインク弾（ばらつき）
       };
       function shapesOf(p, kind) {
         const cfg = SHAPES[p.charName] || {}; let f = cfg[kind];
@@ -10669,7 +10716,7 @@ function think(i){
               } else if (o.k === "sector") {
                 g.beginPath(); g.moveTo(c.x, c.y); g.arc(c.x, c.y, o.R, ang - o.half, ang + o.half); g.closePath(); g.fill();
               } else if (o.k === "wedge") {
-                const L = ray(c, ang, 4000, false);
+                const L = ray(c, ang, o.len || 4000, false);
                 g.beginPath(); g.moveTo(c.x, c.y); g.lineTo(c.x + Math.cos(ang - o.half) * L, c.y + Math.sin(ang - o.half) * L); g.lineTo(c.x + Math.cos(ang + o.half) * L, c.y + Math.sin(ang + o.half) * L); g.closePath(); g.fill();
               } else if (o.k === "box") {
                 g.save(); g.translate(c.x + Math.cos(ang) * o.dist, c.y + Math.sin(ang) * o.dist); g.rotate(ang); g.beginPath(); g.rect(-o.side / 2, -o.side / 2, o.side, o.side); g.fill(); g.restore();
