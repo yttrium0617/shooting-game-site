@@ -1727,16 +1727,20 @@ if (shooter.charName === "ツインブラザーズ") {
       }
     }
 
+    /* ver106：移動速度の全体倍率（0.5＝半分）。もともと遅い下のキャラは対象外。数字・リストを変えるだけで調整できます */
+    const SPEED_MUL = 0.5, SPEED_EXEMPT = ["白い死神", "怪獣王"];
+    function speedMul(p) { return (p && SPEED_EXEMPT.indexOf(p.charName) < 0) ? SPEED_MUL : 1; }
     function movePlayer(player, up, down, left, right) {
       if (player.out) return;
       let vx = 0, vy = 0;
-      if (keys[up]) vy -= player.speed;
-      if (keys[down]) vy += player.speed;
-      if (keys[left]) vx -= player.speed;
-      if (keys[right]) vx += player.speed;
+      const SP = player.speed * speedMul(player);
+      if (keys[up]) vy -= SP;
+      if (keys[down]) vy += SP;
+      if (keys[left]) vx -= SP;
+      if (keys[right]) vx += SP;
       // モバイルのスティック：倒した方向・倒し具合どおりに動く（オフライン時のみ）
       const an = player.__an ? player.__an : (player === player1 ? touchAnalog.p1 : player === player2 ? touchAnalog.p2 : null);   // ver105：オンラインのゲスト（ホストから見た相手）はゲストが送ったアナログ値
-      if (an && (an.x || an.y)) { vx = an.x * player.speed; vy = an.y * player.speed; }
+      if (an && (an.x || an.y)) { vx = an.x * SP; vy = an.y * SP; }
       // 軸ごとに判定：壁に当たっても壁に沿って滑れる
       const nx = Math.max(0, Math.min(ARENA_W - player.w, player.x + vx));
       if (!collidesWithObstacles({ x: nx, y: player.y, w: player.w, h: player.h })) player.x = nx;
@@ -2280,7 +2284,7 @@ fighterList().forEach(p => {
       const p = createPlayer(0, 0, "", name); // ゲーム本体と同じ設定値を取得
       const shots = p.bulletsPerShot || 1;
       return {
-        hp: p.hp, speed: p.speed,
+        hp: p.hp, speed: p.speed * speedMul({ charName: name }),
         dmg: p.damage, shots, power: p.damage * shots,
         ammo: p.maxAmmo, reload: p.reloadTime / 1000,
         skillCt: isFinite(p.skillCooldown) ? p.skillCooldown / 1000 : Infinity
@@ -3651,11 +3655,7 @@ fighterList().forEach(p => {
         ema(sm, e.clientX, e.clientY, e.timeStamp - lastT); lastT = e.timeStamp;   // EMA：指の細かい震えをならす
         hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY }); while (hist.length > 1 && e.timeStamp - hist[0].t > 420) hist.shift();   // リングバッファ（生の座標の履歴）
         let dx = sm.x - sx, dy = sm.y - sy; len = Math.hypot(dx, dy);
-        const lim = AIM_R * AIM_FLOAT;
-        if (len > lim) {   // クランプ追従型フローティング：最大半径を大きく超えたら中心がじわっと追従
-          const f = (len - lim) * .25 / len; sx += dx * f; sy += dy * f; ring.style.left = sx + "px"; ring.style.top = sy + "px";
-          dx = sm.x - sx; dy = sm.y - sy; len = Math.hypot(dx, dy);
-        }
+        // ver106：エイム中は、最初に指を置いた位置が中心のまま動かない（以前は大きく引っ張ると中心が指に追従していた）
         aimed = aimed ? len > AIM_LEAVE : len > AIM_DEAD_X;   // デッドゾーン（入る10px／抜ける7px）
         if (aimed) {
           const raw = Math.atan2(dy, dx);
