@@ -1728,9 +1728,9 @@ if (shooter.charName === "ツインブラザーズ") {
     }
 
     /* ver106：移動速度の全体倍率（0.5＝半分）。もともと遅い下のキャラは対象外。数字・リストを変えるだけで調整できます */
-    const SPEED_MUL = 0.5, SPEED_EXEMPT = ["白い死神", "怪獣王"];
+    const SPEED_MUL = 0.6, SPEED_EXEMPT = ["白い死神", "怪獣王"];
     /* ver107：弾速の全体倍率（0.5＝半分）。弾の「寿命・曲がるタイミング・大きくなる速さ」は元の時間感覚のまま、進む速さだけが変わります（＝射程は変わらず、飛ぶのに倍の時間がかかる）。数字を変えるだけで調整できます（1で元の速さ） */
-    const BULLET_SPEED_MUL = 0.5;
+    const BULLET_SPEED_MUL = 0.75;
     function speedMul(p) { return (p && SPEED_EXEMPT.indexOf(p.charName) < 0) ? SPEED_MUL : 1; }
     function movePlayer(player, up, down, left, right) {
       if (player.out) return;
@@ -9416,7 +9416,7 @@ function think(i){
             if (t < o.t0 + 800 && tg) { const c = cen(tg), v = vel(tg); o.ang = Math.atan2(c.y + (o.lead ? v.vy * 14 : 0) - o.y, c.x + (o.lead ? v.vx * 14 : 0) - o.x); }
             if (t >= o.t0 + 1000) o.go = true; else return;
           }
-          o.x += Math.cos(o.ang) * 6.5; o.y += Math.sin(o.ang) * 6.5;
+          o.x += Math.cos(o.ang) * 7.8; o.y += Math.sin(o.ang) * 7.8;
           obstacles.filter(w => w.brk && circleHitRect({ x: o.x, y: o.y, r: 24 }, w)).forEach(w => damageWall(w, 99));
           const ex = Math.cos(o.ang) * 45, ey = Math.sin(o.ang) * 45, ax = o.x - ex, ay = o.y - ey, bx = o.x + ex, by = o.y + ey, vx = bx - ax, vy = by - ay;
           H.forEach(p => { if (o.hits.has(p)) return; const pc = cen(p), u = Math.max(0, Math.min(1, ((pc.x - ax) * vx + (pc.y - ay) * vy) / (vx * vx + vy * vy)));
@@ -9432,7 +9432,7 @@ function think(i){
         snows.forEach(m => {   // 雪だるま：距離を保って低頻度で雪玉（一番近い相手へ）
           const cx = m.x + 13, cy = m.y + 13, tg = H.slice().sort((a, b) => Math.hypot(cen(a).x - cx, cen(a).y - cy) - Math.hypot(cen(b).x - cx, cen(b).y - cy))[0]; if (!tg) return;
           const pc = cen(tg), dx = pc.x - cx, dy = pc.y - cy, d = Math.hypot(dx, dy) || 1, f = d > 240 ? 1 : d < 150 ? -1 : 0, sx = -dy / d * m.st * .6, sy = dx / d * m.st * .6;
-          const vx = (dx / d * f + sx) * 0.7, vy = (dy / d * f + sy) * 0.7;
+          const vx = (dx / d * f + sx) * 0.84, vy = (dy / d * f + sy) * 0.84;
           if (!collidesWithObstacles({ x: m.x + vx, y: m.y, w: 26, h: 26 }) && inArena(m.x + vx, m.y, 4)) m.x += vx; else m.st = -m.st;
           if (!collidesWithObstacles({ x: m.x, y: m.y + vy, w: 26, h: 26 }) && inArena(m.x, m.y + vy, 4)) m.y += vy; else m.st = -m.st;
           if (t >= m.nx && clear({ x: cx, y: cy }, pc, 4)) { m.nx = t + 3000 + Math.random() * 1500; bullets.push({ x: cx, y: cy, r: 4, vx: dx / d * 2.5, vy: dy / d * 2.5, from: s, damage: 5, lifeTime: 0, maxLifeTime: 340, snowball: 1 }); }
