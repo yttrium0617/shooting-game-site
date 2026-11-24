@@ -10238,150 +10238,125 @@ function think(i){
        ・数値は先頭の BALANCE["海鮮塗装屋"] と、下の CRAB_X で調整できます */
     (function () {
       const NM = "海鮮塗装屋", now = () => Date.now(), TAU = Math.PI * 2;
-      const CRAB_X = { cell: 8, trailStep: 6, trailR: [14, 19], splatR: 34, spawnR: 175, crabSpeed: 1.5, crabReload: 500, burst: 3, spread: .12, burstGap: 60 };
+      const CRAB_X = { cell: 8, trailStep: 8, trailR: [14, 19], splatR: 34, spawnR: 175, crabSpeed: 1.5, crabReload: 500, burst: 3, spread: .12, burstGap: 60 };
       const COLS = ["#ff2d95", "#00e5ff", "#ffe600", "#7cff3a", "#ff7a00", "#b04dff", "#2d6bff"];
       const isC = p => !!p && p.charName === NM;
       const cen = p => ({ x: p.x + (p.w || 30) / 2, y: p.y + (p.h || 30) / 2 });
       const anyC = () => { try { return fighterList().some(isC); } catch (e) { return false; } };
       const CS = CRAB_X.cell;
-      let layer = null, lctx = null, gw = 0, gh = 0, grid = null, gteam = null, prot = null, evId = 0, evs = [], lastGST = null, remoteOn = false, remoteM = null, remoteLast = 0, pend = [];
+      /* ver102：インクを軽量化。持つのは「マスの表（cell：0=なし／1=チーム1／2=チーム2）」だけ。見た目はその表から描く。
+         ・絵の読み出し・塗りの再計算・すき間埋めをやめた（重さの原因だった）
+         ・しずくの形はマス番号だけで決まる → 全員の画面で同じ形。取りこぼしても、ホストが配る全体の状態で必ず直る */
+      let layer = null, lctx = null, gw = 0, gh = 0, cell = null, evId = 0, lastGST = null, remoteOn = false, remoteM = null, remoteLast = 0, pend = [], dirty = false, lastFull = 0;
       const tracked = new Map();
-      const guest = () => typeof onl !== "undefined" && onl.running && !onl.isHost;
+      const isHost = () => typeof onl !== "undefined" && onl.running && onl.isHost;
+      const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+      const hsh = i => { let t = Math.imul(i + 1, 0x9E3779B1); t ^= t >>> 15; t = Math.imul(t, 0x85EBCA6B); t ^= t >>> 13; return (t >>> 0) / 4294967296; };   // マス番号 → 0〜1（いつも同じ値）
+      const cellAt = (x, y) => { const cx = Math.floor(x / CS), cy = Math.floor(y / CS); return (cx < 0 || cy < 0 || cx >= gw || cy >= gh) ? -1 : cy * gw + cx; };
+      const teamAt = (x, y) => { if (!cell) return 0; const i = cellAt(x, y); return i < 0 ? 0 : (cell[i] | 0); };
+      const isInk = (x, y) => teamAt(x, y) > 0;
       function ensure() {
         if (typeof canvas === "undefined" || !canvas || typeof ARENA_W === "undefined") return false;
-        if (!layer || layer.width !== ARENA_W || layer.height !== ARENA_H) {
-          layer = document.createElement("canvas"); layer.width = ARENA_W; layer.height = ARENA_H; lctx = layer.getContext("2d", { willReadFrequently: true });
-          gw = Math.ceil(ARENA_W / CS); gh = Math.ceil(ARENA_H / CS); grid = new Uint8Array(gw * gh); gteam = new Uint8Array(gw * gh); prot = new Uint8Array(gw * gh);
+        if (!layer || layer.width !== ARENA_W || layer.height !== ARENA_H) {   // サイズが変わっても、今あるインクは引き継いで描き直す
+          const oc = cell, ow = gw, oh = gh;
+          layer = document.createElement("canvas"); layer.width = ARENA_W; layer.height = ARENA_H; lctx = layer.getContext("2d");
+          gw = Math.ceil(ARENA_W / CS); gh = Math.ceil(ARENA_H / CS); cell = new Uint8Array(gw * gh);
+          if (oc) {
+            const idx = [[], [], []];
+            for (let cy = 0; cy < Math.min(oh, gh); cy++) for (let cx = 0; cx < Math.min(ow, gw); cx++) { const v = oc[cy * ow + cx]; if (v) { cell[cy * gw + cx] = v; idx[v].push(cy * gw + cx); } }
+            drawCells(idx[1], 1); drawCells(idx[2], 2);
+          }
         }
         return true;
       }
-      function reset() { if (!ensure()) return; lctx.clearRect(0, 0, layer.width, layer.height); grid.fill(0); gteam.fill(0); prot.fill(0); evs = []; evId = 0; pend = []; tracked.clear(); }
-      const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
-      const cellAt = (x, y) => { const cx = Math.floor(x / CS), cy = Math.floor(y / CS); return (cx < 0 || cy < 0 || cx >= gw || cy >= gh) ? -1 : cy * gw + cx; };
-      const isInk = (x, y) => { if (!grid) return false; const i = cellAt(x, y); return i >= 0 && grid[i] > 0; };
-      const isOwn = (x, y, tm) => { if (!grid) return false; const i = cellAt(x, y); return i >= 0 && grid[i] > 0 && gteam[i] === tm; };   // ver90：自分のチームのインク
-      const isOwnNear = (x, y, tm) => { if (isOwn(x, y, tm)) return true; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (isOwn(x + Math.cos(a) * 10, y + Math.sin(a) * 10, tm)) return true; } return false; };
-      const isInkNear = (x, y) => { if (isInk(x, y)) return true; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (isInk(x + Math.cos(a) * 10, y + Math.sin(a) * 10)) return true; } return false; };   // ver89：足元の周り（半径10px）まで見る
-      window.__crabInk = isInk;
+      function reset() { if (!ensure()) return; lctx.clearRect(0, 0, layer.width, layer.height); cell.fill(0); evId = 0; pend = []; tracked.clear(); dirty = false; lastFull = 0; }
 
-      /* ---- インクの描画（くねくねした不定形のしずく） ---- */
-      function blob(c, x, y, r, rnd) {
-        const n = 9, pts = [];
-        for (let i = 0; i < n; i++) { const a = i / n * TAU + rnd() * .3, rr = r * (.7 + .55 * rnd()); pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
-        c.beginPath(); c.moveTo((pts[n - 1][0] + pts[0][0]) / 2, (pts[n - 1][1] + pts[0][1]) / 2);
-        for (let i = 0; i < n; i++) { const p = pts[i], q = pts[(i + 1) % n]; c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2); }
-        c.closePath();
+      /* ---- 描画：マスごとに小さなしずくを描く（形はマス番号で決まる） ---- */
+      const cellPath = (c, i, k) => { const x = (i % gw) * CS + CS / 2 + (hsh(i) - .5) * 2.6, y = ((i / gw) | 0) * CS + CS / 2 + (hsh(i + 7919) - .5) * 2.6, r = CS * (.72 + .3 * hsh(i + 104729)) * k; c.moveTo(x + r, y); c.arc(x, y, r, 0, TAU); };
+      function drawCells(idx, tm) {
+        if (!idx.length) return;
+        lctx.fillStyle = COLS[teamCol[tm] % COLS.length]; lctx.beginPath(); for (const i of idx) cellPath(lctx, i, 1); lctx.fill();
+        let g = 0; lctx.fillStyle = "rgba(255,255,255,.2)"; lctx.beginPath();   // ツヤ（ときどき）
+        for (const i of idx) if (hsh(i + 31337) > .82) { const x = (i % gw) * CS + CS / 2 - 1.5, y = ((i / gw) | 0) * CS + CS / 2 - 2; lctx.moveTo(x + 2.4, y); lctx.ellipse(x, y, 2.4, 1.4, -.5, 0, TAU); g = 1; }
+        if (g) lctx.fill();
       }
-      function mark(x, y, r, team) {
-        const x0 = Math.max(0, Math.floor((x - r) / CS)), x1 = Math.min(gw - 1, Math.floor((x + r) / CS)), y0 = Math.max(0, Math.floor((y - r) / CS)), y1 = Math.min(gh - 1, Math.floor((y + r) / CS));
-        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) if (Math.hypot(cx * CS + CS / 2 - x, cy * CS + CS / 2 - y) <= r) { grid[cy * gw + cx] = 1; gteam[cy * gw + cx] = team; }
+      function wipeCells(idx) {
+        if (!idx.length) return;
+        lctx.save(); lctx.globalCompositeOperation = "destination-out"; lctx.fillStyle = "#000"; lctx.beginPath(); for (const i of idx) cellPath(lctx, i, 1.1); lctx.fill(); lctx.restore();
       }
-      function stamp(x, y, r, ci, team, rnd) {
-        const col = COLS[ci % COLS.length];
-        lctx.fillStyle = col; lctx.globalAlpha = 1; blob(lctx, x, y, r, rnd); lctx.fill();
-        lctx.fillStyle = "rgba(255,255,255,.2)"; lctx.beginPath(); lctx.ellipse(x - r * .25, y - r * .3, r * .38, r * .22, -.5, 0, TAU); lctx.fill();   // ツヤ
-      }
-      function erase(x, y, r, team) {
-        const x0 = Math.max(0, Math.floor((x - r) / CS)), x1 = Math.min(gw - 1, Math.floor((x + r) / CS)), y0 = Math.max(0, Math.floor((y - r) / CS)), y1 = Math.min(gh - 1, Math.floor((y + r) / CS));
-        lctx.save(); lctx.globalCompositeOperation = "destination-out"; lctx.fillStyle = "#000";
+      /* ---- 塗る／消す（変えたマスの数を返す） ---- */
+      function paint(x, y, r, tm) {
+        if (tm !== 1 && tm !== 2) return 0;
+        const x0 = Math.max(0, Math.floor((x - r) / CS)), x1 = Math.min(gw - 1, Math.floor((x + r) / CS)), y0 = Math.max(0, Math.floor((y - r) / CS)), y1 = Math.min(gh - 1, Math.floor((y + r) / CS)), i0 = r < CS ? cellAt(x, y) : -1, add = [];
         for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-          const i = cy * gw + cx, px = cx * CS + CS / 2, py = cy * CS + CS / 2;
-          if (grid[i] && Math.hypot(px - x, py - y) <= r && (!team || gteam[i] !== team)) { grid[i] = 0; gteam[i] = 0; prot[i] = 1; lctx.beginPath(); lctx.arc(px, py, CS * .78, 0, TAU); lctx.fill(); }
+          const i = cy * gw + cx;
+          if (cell[i] !== tm && (i === i0 || Math.hypot(cx * CS + CS / 2 - x, cy * CS + CS / 2 - y) <= r * (.85 + .3 * hsh(i + 31)))) { cell[i] = tm; add.push(i); }
         }
-        lctx.restore();
+        if (add.length) { drawCells(add, tm); dirty = true; }
+        return add.length;
       }
-      function apply(a) {   // a = [id, kind, x, y, r, colorIdx, team, seed]
-        if (!ensure()) return;
-        const [, k, x, y, r, ci, tm, sd] = a, rnd = rng(sd);
-        if (k === 0) stamp(x, y, r, ci, tm, rnd);
-        else if (k === 1) erase(x, y, r, tm);
-        else if (k === 2) {   // 着弾：大きなしぶき＋飛び散る点
-          stamp(x, y, r, ci, tm, rnd);
-          const n = 5 + Math.floor(rnd() * 3);
-          for (let i = 0; i < n; i++) { const an = rnd() * TAU, dd = r * (1.1 + rnd() * 1.1); stamp(x + Math.cos(an) * dd, y + Math.sin(an) * dd, 3 + rnd() * 5.5, ci, tm, rnd); }
-          for (let i = 0; i < 3; i++) { const an = rnd() * TAU; for (let j = 1; j <= 3; j++) stamp(x + Math.cos(an) * r * (.6 + j * .45), y + Math.sin(an) * r * (.6 + j * .45), 6 - j * 1.3, ci, tm, rnd); }
-        } else if (k === 3) {   // 開幕・スポーン地点の塗り（2色を基調に、縁はまばらなしぶき）
-          const c2 = ci;   // ver88：2色目はなし（1色のみ）
+      function erase(x, y, r, tm) {   // tm=0：全部消す／tm=1,2：その「相手」のインクだけ消す
+        const x0 = Math.max(0, Math.floor((x - r) / CS)), x1 = Math.min(gw - 1, Math.floor((x + r) / CS)), y0 = Math.max(0, Math.floor((y - r) / CS)), y1 = Math.min(gh - 1, Math.floor((y + r) / CS)), del = [];
+        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
+          const i = cy * gw + cx;
+          if (cell[i] && (!tm || cell[i] !== tm) && Math.hypot(cx * CS + CS / 2 - x, cy * CS + CS / 2 - y) <= r) { cell[i] = 0; del.push(i); }
+        }
+        if (del.length) { wipeCells(del); dirty = true; }
+        return del.length;
+      }
+      function apply(a) {   // a = [id, kind, x, y, r, colorIdx, team, seed]　0=ひと塗り／1=消す／2=着弾のしぶき／3=開幕の塗り
+        if (!ensure()) return 0;
+        const [, k, x, y, r, , tm, sd] = a, rnd = rng(sd);
+        if (k === 1) return erase(x, y, r, tm);
+        let n = paint(x, y, r, tm);
+        if (k === 2) {
+          const m = 5 + Math.floor(rnd() * 3);
+          for (let i = 0; i < m; i++) { const an = rnd() * TAU, dd = r * (1.1 + rnd() * 1.1); n += paint(x + Math.cos(an) * dd, y + Math.sin(an) * dd, 3 + rnd() * 5.5, tm); }
+          for (let i = 0; i < 3; i++) { const an = rnd() * TAU; for (let j = 1; j <= 3; j++) n += paint(x + Math.cos(an) * r * (.6 + j * .45), y + Math.sin(an) * r * (.6 + j * .45), 6 - j * 1.3, tm); }
+        } else if (k === 3) {
           for (let rr = 0; rr <= r; rr += 13) {
-            const n = rr ? Math.ceil(TAU * rr / 15) : 1;
-            for (let i = 0; i < n; i++) {
-              const an = i / n * TAU + rnd() * .5, d2 = rr + (rnd() - .5) * 10, edge = rr / r;
+            const m = rr ? Math.ceil(TAU * rr / 15) : 1;
+            for (let i = 0; i < m; i++) {
+              const an = i / m * TAU + rnd() * .5, d2 = rr + (rnd() - .5) * 10, edge = rr / r;
               if (edge > .75 && rnd() < (edge - .6) * 1.6) continue;
-              stamp(x + Math.cos(an) * d2, y + Math.sin(an) * d2, (13 + rnd() * 9) * (1 - edge * .35), rnd() < .78 ? ci : c2, tm, rnd);
+              n += paint(x + Math.cos(an) * d2, y + Math.sin(an) * d2, (13 + rnd() * 9) * (1 - edge * .35), tm);
             }
           }
-          for (let i = 0; i < 26; i++) { const an = rnd() * TAU, dd = r * (.9 + rnd() * .3); stamp(x + Math.cos(an) * dd, y + Math.sin(an) * dd, 2.5 + rnd() * 5, rnd() < .7 ? ci : c2, tm, rnd); }
+          for (let i = 0; i < 26; i++) { const an = rnd() * TAU, dd = r * (.9 + rnd() * .3); n += paint(x + Math.cos(an) * dd, y + Math.sin(an) * dd, 2.5 + rnd() * 5, tm); }
         }
-        if (k !== 1) { const RR = k === 3 ? r * 1.3 + 20 : k === 2 ? r * 3.4 + 10 : r + 16; regrid(x, y, RR, tm); if (closeGrid(x, y, RR, ci, tm)) regrid(x, y, RR + 24, tm); }   // ver89：描いた絵から判定を作り、近くのインクとつなげる
+        return n;
       }
-      /* ver89：塗り判定は「実際に描いたインクの絵」から作る（見た目と判定が必ず一致 → インクの外に判定のない輪郭が残らない）。
-         8px のマスに、インクの絵が少しでもかかっていれば「インク」とする */
-      function regrid(x, y, R, team) {
-        const x0 = Math.max(0, Math.floor((x - R) / CS)), x1 = Math.min(gw - 1, Math.floor((x + R) / CS));
-        const y0 = Math.max(0, Math.floor((y - R) / CS)), y1 = Math.min(gh - 1, Math.floor((y + R) / CS));
-        const px = x0 * CS, py = y0 * CS, w = Math.min(layer.width - px, (x1 - x0 + 1) * CS), h = Math.min(layer.height - py, (y1 - y0 + 1) * CS);
-        if (w <= 0 || h <= 0) return;
-        const d = lctx.getImageData(px, py, w, h).data, c1 = rgbCols[teamCol[1] % rgbCols.length], c2 = rgbCols[teamCol[2] % rgbCols.length];
-        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-          const ax = (cx - x0) * CS, ay = (cy - y0) * CS; let n = 0, v1 = 0, v2 = 0;
-          for (let yy = 0; yy < CS && ay + yy < h; yy++) for (let xx = 0; xx < CS && ax + xx < w; xx++) {
-            const o = ((ay + yy) * w + ax + xx) * 4; if (d[o + 3] <= 40) continue;
-            n++; const e1 = (d[o] - c1[0]) ** 2 + (d[o + 1] - c1[1]) ** 2 + (d[o + 2] - c1[2]) ** 2, e2 = (d[o] - c2[0]) ** 2 + (d[o + 1] - c2[1]) ** 2 + (d[o + 2] - c2[2]) ** 2;
-            if (e1 < e2) v1++; else v2++;
-          }
-          const i = cy * gw + cx;
-          if (n >= 2) { grid[i] = 1; gteam[i] = v1 > v2 ? 1 : v2 > v1 ? 2 : (gteam[i] || team); prot[i] = 0; }   // 絵の色が持ち主：塗り重ねると持ち主が変わる
-          else if (grid[i]) { grid[i] = 0; gteam[i] = 0; }
-        }
-      }
-      /* ver89：インクのすき間を埋めて、近くのインクと「つながった」塗り判定にする（クロージング：5×5 で膨らませてから縮める）。
-         約4マス（32px）までのすき間が埋まり、埋めた所も同じ色で描く。敵に消された所（prot）は埋め戻さない */
-      function closeGrid(x, y, R, ci, team) {
-        const K = 3;   // ver91：7×7で膨らませて縮める → 約6マス（48px）までのすき間をつなぐ
-        const x0 = Math.max(K, Math.floor((x - R) / CS) - 2 * K), x1 = Math.min(gw - 1 - K, Math.floor((x + R) / CS) + 2 * K);
-        const y0 = Math.max(K, Math.floor((y - R) / CS) - 2 * K), y1 = Math.min(gh - 1 - K, Math.floor((y + R) / CS) + 2 * K);
-        if (x1 - x0 < 2 * K + 1 || y1 - y0 < 2 * K + 1) return 0;
-        let filled = 0;
-        const w = x1 - x0 + 1, h = y1 - y0 + 1, tmp = new Uint8Array(w * h);
-        for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {   // 膨らませる
-          let on = 0;
-          for (let dy = -K; dy <= K && !on; dy++) for (let dx = -K; dx <= K; dx++) { const j = (cy + dy) * gw + cx + dx; if (grid[j] && gteam[j] === team) { on = 1; break; } }
-          tmp[(cy - y0) * w + (cx - x0)] = on;
-        }
-        lctx.fillStyle = COLS[ci % COLS.length]; lctx.globalAlpha = 1;
-        for (let cy = y0 + K; cy <= y1 - K; cy++) for (let cx = x0 + K; cx <= x1 - K; cx++) {   // 縮める：周り全部がインクなら埋める
-          const i = cy * gw + cx; if (grid[i] || prot[i]) continue;
-          let all = 1;
-          for (let dy = -K; dy <= K && all; dy++) for (let dx = -K; dx <= K; dx++) if (!tmp[(cy - y0 + dy) * w + (cx - x0 + dx)]) { all = 0; break; }
-          if (all) { grid[i] = 1; gteam[i] = team; filled++; lctx.beginPath(); lctx.arc(cx * CS + CS / 2, cy * CS + CS / 2, CS * .78, 0, TAU); lctx.fill(); }
-        }
-        return filled;   // 埋めた数（絵がとなりのマスに少しはみ出すので、呼び出し側でもう一度 regrid して判定と絵を一致させる）
-      }
-      /* ver91：カニの足元判定。前の位置から今の位置までの道のり全部で、足元（半径7px）が「自分のチームのインク」の絵の上にあるか。
-         ひとつでもインク以外（地面・相手のインク・すき間）を踏んでいたら false → カニ解除 */
+      /* カニの足元判定：前の位置から今の位置までの道のり全部で、足元（半径7px）が「自分のチームのインク」のマスの上にあるか */
       function ownFoot(px, py, x, y, tm) {
-        if (!layer) return false;
-        const R = 7, minx = Math.max(0, Math.floor(Math.min(px, x) - R - 1)), miny = Math.max(0, Math.floor(Math.min(py, y) - R - 1));
-        const w = Math.min(layer.width, Math.ceil(Math.max(px, x) + R + 2)) - minx, h = Math.min(layer.height, Math.ceil(Math.max(py, y) + R + 2)) - miny;
-        if (w <= 0 || h <= 0) return false;
-        const d = lctx.getImageData(minx, miny, w, h).data, own = rgbCols[teamCol[tm] % rgbCols.length], oth = rgbCols[teamCol[3 - tm] % rgbCols.length];
-        const ok = (X, Y) => {
-          const ix = Math.round(X) - minx, iy = Math.round(Y) - miny; if (ix < 0 || iy < 0 || ix >= w || iy >= h) return false;
-          const o = (iy * w + ix) * 4; if (d[o + 3] < 200) return false;
-          return (d[o] - own[0]) ** 2 + (d[o + 1] - own[1]) ** 2 + (d[o + 2] - own[2]) ** 2 <= (d[o] - oth[0]) ** 2 + (d[o + 1] - oth[1]) ** 2 + (d[o + 2] - oth[2]) ** 2;
-        };
-        const n = Math.max(1, Math.ceil(Math.hypot(x - px, y - py) / 3));
+        if (!cell) return false;
+        const R = 7, n = Math.max(1, Math.ceil(Math.hypot(x - px, y - py) / 4));
         for (let k = 0; k <= n; k++) {
           const cx = px + (x - px) * k / n, cy = py + (y - py) * k / n;
-          if (!ok(cx, cy)) return false;
-          for (let a = 0; a < 8; a++) if (!ok(cx + Math.cos(a * Math.PI / 4) * R, cy + Math.sin(a * Math.PI / 4) * R)) return false;
+          if (teamAt(cx, cy) !== tm) return false;
+          for (let a = 0; a < 8; a++) if (teamAt(cx + Math.cos(a * Math.PI / 4) * R, cy + Math.sin(a * Math.PI / 4) * R) !== tm) return false;
         }
         return true;
       }
-      window.__crabLayer = () => ({ layer, grid, gw, gh, CS });   // 確認用（見た目と判定の一致チェック）
-      function emit(k, x, y, r, ci, tm) {
+      window.__crabLayer = () => ({ layer, grid: cell, gw, gh, CS });   // 確認用
+      function emit(k, x, y, r, ci, tm) {   // 変わったときだけ、ゲストへ送る出来事に積む
         const a = [++evId, k, Math.round(x), Math.round(y), Math.round(r * 10) / 10, ci | 0, tm | 0, Math.floor(Math.random() * 4294967295)];
-        apply(a); evs.push({ a, at: now() }); if (typeof onl !== "undefined" && onl.running && onl.isHost) pend.push(a);
+        if (apply(a) && isHost()) pend.push(a);
+      }
+      /* 全体の状態（マスの表）を、同じ値が続く所をまとめた形にして配る／受け取る */
+      function encode() { const f = []; let v = cell[0], n = 0; for (let i = 0; i < cell.length; i++) { if (cell[i] === v) n++; else { f.push(v, n); v = cell[i]; n = 1; } } f.push(v, n); return f; }
+      function applyFull(ik) {
+        const w = ik.w | 0, f = ik.f; if (!f || !w) return;
+        const add = [[], [], []], del = []; let pos = 0;
+        for (let j = 0; j + 1 < f.length; j += 2) {
+          const v = f[j] | 0, n = f[j + 1] | 0;
+          for (let q = 0; q < n; q++, pos++) {
+            const cx = pos % w, cy = (pos / w) | 0; if (cx >= gw || cy >= gh) continue;
+            const i = cy * gw + cx; if (cell[i] === v) continue;
+            cell[i] = v; if (v === 1 || v === 2) add[v].push(i); else del.push(i);
+          }
+        }
+        wipeCells(del); drawCells(add[1], 1); drawCells(add[2], 2);
+        remoteLast = Math.max(remoteLast, ik.n | 0);
       }
       /* ver90：インクの色はチームごと（試合ごとにランダム・相手とは必ず別の色）。味方とは共通、相手のインクには潜れない */
       const rgbOf = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -10481,15 +10456,15 @@ function think(i){
             if (!p.ckHold || !ownFoot(pc0.x, pc0.y, c.x, c.y, teamOf(p) + 1)) exitCrab(p);   // ver91：足が少しでもインク（自分のチーム）からはみ出したら即解除
             return;
           }
-          if (isInk(c.x, c.y) && gteam[cellAt(c.x, c.y)] !== teamOf(p) + 1 && t - (p._ife || 0) > 90) { p._ife = t; emit(1, c.x, c.y + 6, 13, 0, teamOf(p) + 1); }   // 敵の足跡で削れる
+          if (isInk(c.x, c.y) && teamAt(c.x, c.y) !== teamOf(p) + 1 && t - (p._ife || 0) > 90) { p._ife = t; emit(1, c.x, c.y + 6, 13, 0, teamOf(p) + 1); }   // 敵の足跡で削れる
         });
-        const lim = t - 1500; while (evs.length && evs[0].at < lim) evs.shift();
+        
       }
       const _up = update;
       update = function () {
         _up();
         if (window.__introOn || !gameActive) return;
-        if (anyC() || evs.length) { try { tick(); } catch (e) { console.error("crab", e); } }
+        if (anyC() || tracked.size) { try { tick(); } catch (e) { console.error("crab", e); } }
       };
 
       /* ---- 描画 ---- */
@@ -10534,28 +10509,33 @@ function think(i){
         const n = p.maxAmmo, gap = 2, pw = (bw - (n - 1) * gap) / n; for (let i = 0; i < n; i++) { ctx.fillStyle = i < p.ammo ? "#7df3ff" : "rgba(255,255,255,.2)"; ctx.fillRect(bx + i * (pw + gap), by + 8, pw, 3); }
       };
 
-      function applyIk(ik) {   // ゲスト：ホストのインクの出来事を、同じ形で塗る（番号で重複を防ぐ）
+      function applyIk(ik) {   // ゲスト：ホストのインクの出来事（＋ときどき全体の状態）を受け取る
+        if (!ik) return;
         remoteOn = true;
         if (!ensure()) return;
         if (ik.m !== remoteM) { remoteM = ik.m; remoteLast = 0; reset(); }
         if (ik.c) teamCol = ik.c;
-        ik.e.forEach(a => { if (a[0] > remoteLast) { remoteLast = a[0]; apply(a); } });
+        if (ik.e) ik.e.forEach(a => { if (a[0] > remoteLast) { remoteLast = a[0]; apply(a); } });
+        if (ik.f) applyFull(ik);
       }
       window.__crabInk = applyIk;
-      /* ---- オンライン同期（インクは「出来事」を送って、ゲスト側でも同じ形に塗る） ---- */
+      /* ---- オンライン同期：出来事は「インク専用メッセージ」で送り、ときどき全体の状態も送る（スナップショットには載せない＝軽い） ---- */
       const _bs = buildSnap;
       buildSnap = function () {
-        const s = _bs(), t = now();
-        if (pend.length) { try { sendMsg({ t: "ink", ik: { m: lastGST, c: teamCol, e: pend } }); } catch (e) { } pend = []; }   // ver101：状態配信は混むと捨てられるため、インクの出来事は通常メッセージでも送る
+        const s = _bs(), t = now(), full = !!cell && ((dirty && t - lastFull > 1000) || (anyC() && t - lastFull > 5000));
+        if (pend.length || full) {
+          const ik = { m: lastGST, c: teamCol, e: pend };
+          if (full) { ik.f = encode(); ik.w = gw; ik.n = evId; dirty = false; lastFull = t; }
+          try { sendMsg({ t: "ink", ik: ik }); } catch (e) { }
+          pend = [];
+        }
         s.cr = fighterList().map(p => isC(p) ? (p.crab ? 1 : 0) : -1);
-        if (anyC() || evs.length) s.ik = { m: lastGST, c: teamCol, e: evs.filter(e => t - e.at < 350).map(e => e.a) };
         return s;
       };
       const _as = applySnap;
       applySnap = function (s) {
         _as(s);
-        if (s.cr) fighterList().forEach((p, i) => { if (isC(p)) p.crab = s.cr[i] === 1; });
-        if (s.ik) applyIk(s.ik);
+        if (s.cr) { fighterList().forEach((p, i) => { if (isC(p)) p.crab = s.cr[i] === 1; }); remoteOn = s.cr.some(v => v >= 0); }
       };
     })();
   </script>
