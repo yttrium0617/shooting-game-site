@@ -733,7 +733,7 @@
       "上裸の鳥頭": { hp: 90, speed: 3.5, damage: 20, maxAmmo: 1, reload: 1000, shots: 1, bulletSpeed: 2.4, bulletLife: 1000, bulletRadius: 8, pass: false, skillCd: 16000 },
       "エース・キッカー": { hp: 95, speed: 3.2, damage: 14, maxAmmo: 3, reload: 1600, shots: 1, bulletSpeed: 8, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 18000 },
       "サンタ": { hp: 100, speed: 3, damage: 15, maxAmmo: 2, reload: 1500, shots: 3, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 7, pass: false, skillCd: 1500 },   // shots＝プレゼント3個／skillCd＝スキルのクールタイム
-      "海鮮塗装屋": { hp: 105, speed: 3.2, damage: 7, maxAmmo: 3, reload: 1400, shots: 3, bulletSpeed: 8.5, bulletLife: 850, bulletRadius: 5, pass: false, skillCd: 6000 },   // shots＝1回に撃つ弾数(3連バースト)／reload＝カニ中は0.5秒／skillCd＝カニダッシュ解除後のクールタイム
+      "海鮮塗装屋": { hp: 105, speed: 3.2, damage: 7, maxAmmo: 3, reload: 1400, shots: 3, bulletSpeed: 8.5, bulletLife: 850, bulletRadius: 5, pass: false, skillCd: 6000 },   // shots＝1回に撃つ弾数(3連バースト)／reload＝インクの上のカニ中は0.5秒／skillCd＝カニダッシュ解除後のクールタイム
       "アーク・フォージ": { hp: 100, speed: 3, damage: 10, maxAmmo: 5, reload: 1200, shots: 1, bulletSpeed: 7, bulletLife: 1000, bulletRadius: 6, pass: false, skillCd: 20000 },   // skillCd＝ドローン・リンクのクールタイム(ms)
     };
     /* キャラ固有の数値 */
@@ -811,7 +811,7 @@ let lastPoisonTick = 0;
       "エース・キッカー": { img: "images/acekicker.png", quest: null, tag: "敵2人を跳弾で同時に狙う名探偵。シールド貫通の麻酔針で眠らせる", info: { title: "名探偵アタッカー", intro: "天才的な頭脳と特製ガジェットで戦場を推理する若き探偵。死角からの一撃と精密な麻酔弾で、どんな強敵も鮮やかに無力化する。", attack: "スニーカーからエネルギーボール（14ダメージ）を蹴り出す。1人目に当たると、近く（中距離）にいる別の敵へ自動で跳弾し、8ダメージ。跳弾は1発につき1回だけで、同じ敵には戻らない。弾数3・リロード1.6秒。", skill: "腕時計型ガジェットから麻酔針を高速で1発。シールド貫通で、命中した敵を3秒眠らせる（ダメージを受けると即起床）。眠っている敵が次に受ける1回のダメージは2倍（ストームダメージは等倍）。クールタイム18秒。", tips: "眠った敵への最初の一撃は2倍ダメージ。ただし近くにいるもう1人へ通常攻撃を当てると、跳弾が眠った敵に当たって起こしてしまう。撃つ順番に注意。" } }
     };
     NEW_CHARS["サンタ"] = { img: "images/santa.png", quest: "xmas_allchar", tag: "降るプレゼントとランダム技で攻める完結型。ただし被ダメージ+5", info: { title: "完結型のオールラウンダー", intro: "日付を間違えてしまったようだ！夜が明ける前に決着をつけたいらしい。", attack: "敵の頭上にプレゼントボックスを3つ落とす（そこそこ広い範囲に届き、遠すぎる時は範囲内のどこかにランダムで落ちる）。着地すると15ダメージ＋0.2秒スタン。弾数2・リロード1.5秒。", skill: "「プレゼントをあげよう！」クールタイム1.5秒の連打OKなスキルで、次のうちどれかがランダムに起こる。「靴下」…15ダメージの弾を撃ち、スローの軌跡を残す／「トナカイ」…左右にトナカイを呼び、壁を貫いて突進（20ダメージ・出にくい）／「雪だるま」…雪玉を撃つ雪だるまを召喚（HP30・ダメージ5・最大2体）／「ノックバック」…周りの敵を吹き飛ばす／「サンタダッシュ」…進行方向へダッシュ。敵との距離や壁の有無で出やすい技が変わり、近いとノックバック、壁越しだとトナカイが出やすい。弱点「限られた時間」：ダメージを受けるたびに追加で+5ダメージ。", tips: "スキルのクールタイムが短いので、2種類目の通常攻撃だと思ってバシバシ使うべし！とにかく使え。" } };   // ★画像は images/santa.png
-    NEW_CHARS["海鮮塗装屋"] = { img: "images/seafood.png", quest: null, tag: "インクで戦場を塗り広げ、カニになってインクの上を高速移動するペンキ職人", info: { title: "戦場を塗り替えるペンキ職人", intro: "特製のブキで地面を広く塗りたくる、海からやってきた塗装のプロフェッショナル。インクの上をカニの姿で素早く移動＆リロードし、さらに状態異常もすべて洗い流して戦場を駆け回る。", attack: "少し角度のブレる3発のインク弾をタタタンと連射（1発7ダメージ・最大3回＝計9発）。弾の軌道と着弾点に、くねくねしたインクを広く塗り残す。インク自体に減速やダメージはない。敵の弾・爆発が触れた場所のインクは広く消え、敵がインクの上を歩くと足跡に合わせて削れる。弾数3・リロード1.4秒（カニ中は0.5秒）。", skill: "「カニダッシュ」（長押し）：自分のチームのインクの上でスキルボタンを押している間だけ小さなカニに変身してインクに潜る。変身の瞬間にすべての状態異常を解除し、潜っている間は移動速度1.5倍・リロード0.5秒。ボタンを離す／足が少しでもインクからはみ出す／足元のインクが消されると人型に戻り、6秒のクールタイム。カニ中は通常攻撃ができず、無敵でもない（当たり判定は人型と同じ）。", tips: "試合開始時とリスポーン地点の周辺（半径約175）が最初から塗られているので、開幕すぐカニダッシュで有利なポジションへ。前線にも塗り広げて、弾の補充と状態異常の解除に使おう。インクの色はチームごとに試合ごとランダムで、相手とは別の色。近くのインクはつながって塗られる。つながっていない所は泳げず、足が少しでもインクの外に出るとカニは解除される。潜れるのは自分のチーム（味方と共通）のインクだけで、相手のインクには潜れない。相手のインクは塗り重ねると自分のインクにできる。" } };
+    NEW_CHARS["海鮮塗装屋"] = { img: "images/seafood.png", quest: null, tag: "インクで戦場を塗り広げ、カニになってインクの上を高速移動するペンキ職人", info: { title: "戦場を塗り替えるペンキ職人", intro: "特製のブキで地面を広く塗りたくる、海からやってきた塗装のプロフェッショナル。インクの上をカニの姿で素早く移動＆リロードし、さらに状態異常もすべて洗い流して戦場を駆け回る。", attack: "少し角度のブレる3発のインク弾をタタタンと連射（1発7ダメージ・最大3回＝計9発）。弾の軌道と着弾点に、くねくねしたインクを広く塗り残す。インク自体に減速やダメージはない。敵の弾・爆発が触れた場所のインクは広く消え、敵がインクの上を歩くと足跡に合わせて削れる。弾数3・リロード1.4秒（インクの上のカニ中は0.5秒）。", skill: "「カニダッシュ」（長押し）：スキルボタンを押している間だけ小さなカニに変身する（インクの上でなくてもOK）。変身の瞬間にすべての状態異常を解除し、自分のチームのインクの上にいる間は移動速度1.5倍・リロード0.5秒。ボタンを離すと人型に戻り、6秒のクールタイム。カニ中は通常攻撃ができず、無敵でもない（当たり判定は人型と同じ）。", tips: "試合開始時とリスポーン地点の周辺（半径約175）が最初から塗られているので、開幕すぐカニダッシュで有利なポジションへ。前線にも塗り広げて、弾の補充と状態異常の解除に使おう。インクの色はチームごとに試合ごとランダムで、相手とは別の色。近くのインクはつながって塗られる。カニはインクの外でも変身できるが、速くなるのは自分のチーム（味方と共通）のインクの上にいる間だけ。相手のインクの上では速くならない。相手のインクは塗り重ねると自分のインクにできる。" } };
     NEW_CHARS["アーク・フォージ"] = { img: "images/arkforge.png", quest: null, tag: "高性能アーマーと自律型ドローンを操り、圧倒的な火力で敵を制圧する！", info: { title: "最新鋭パワードスーツの開発者", intro: "最先端技術を結集した高性能アーマーを身にまとい、手のひらから放つエネルギー兵器で戦う天才技術者。自律型の戦闘ドローンを従え、複数方向から敵を攻撃する。", attack: "手のひらの発射口から、リパルサーのような青白いエネルギー弾（10ダメージ）を撃つ。まっすぐ飛ぶだけで追加効果はない。弾数5・リロード1.2秒。", skill: "「ドローン・リンク」：小型の銃型ドローンを3機召喚し、自分のやや外側を旋回させる。ドローンは常に敵の方向を向き、それぞれ独立したHP（16）を持ち、毎秒2ずつ減る（自分から離れすぎると毎秒4）。HPが0になると消滅。通常攻撃に連動して、ドローンも敵へ1発4ダメージの弾を撃つ。ドローンも弾も壁は貫通せず、敵の弾で壊される。クールタイム20秒。", tips: "ドローンが活動している間に積極的に攻撃しよう。ドローンが自分から離れすぎると活動時間が短くなるので、適切な距離を保って戦うのが大事。" } };
     const QUESTS = [
       { id: "login",    title: "ログインする", desc: "Googleアカウントでのログインがおすすめです（メールアドレスでもOK）。", goal: 1, event: "login", mode: "set", auto: true, reward: { char: "メープル" } },
@@ -1735,8 +1735,8 @@ if (shooter.charName === "ツインブラザーズ") {
       if (keys[left]) vx -= player.speed;
       if (keys[right]) vx += player.speed;
       // モバイルのスティック：倒した方向・倒し具合どおりに動く（オフライン時のみ）
-      const an = player === player1 ? touchAnalog.p1 : player === player2 ? touchAnalog.p2 : null;
-      if (an && (an.x || an.y) && !(typeof onl !== "undefined" && onl.running)) { vx = an.x * player.speed; vy = an.y * player.speed; }
+      const an = player.__an ? player.__an : (player === player1 ? touchAnalog.p1 : player === player2 ? touchAnalog.p2 : null);   // ver105：オンラインのゲスト（ホストから見た相手）はゲストが送ったアナログ値
+      if (an && (an.x || an.y)) { vx = an.x * player.speed; vy = an.y * player.speed; }
       // 軸ごとに判定：壁に当たっても壁に沿って滑れる
       const nx = Math.max(0, Math.min(ARENA_W - player.w, player.x + vx));
       if (!collidesWithObstacles({ x: nx, y: player.y, w: player.w, h: player.h })) player.x = nx;
@@ -2562,6 +2562,7 @@ fighterList().forEach(p => {
           if (onl.isHost && onl.running) {
             keys["ArrowUp"] = !!m.u; keys["ArrowDown"] = !!m.d;
             keys["ArrowLeft"] = !!m.l; keys["ArrowRight"] = !!m.r;
+            if (player2) player2.__an = __anFrom(m);   // ver105：ゲストのアナログ移動
           }
           break;
         case "shoot": if (onl.isHost && onl.running && gameActive && player2.hp > 0) __aimRun(m, "atk", () => shootBullet(player2, opponentOf(player2))); break;
@@ -2732,16 +2733,22 @@ fighterList().forEach(p => {
     const DIR_KEYS = { w: "u", ArrowUp: "u", s: "d", ArrowDown: "d", a: "l", ArrowLeft: "l", d: "r", ArrowRight: "r" };
     function normKey(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key; }
 
+    window.__anFrom = m => {   // 受け取ったアナログ値を安全な形にする（長さは最大1）
+      let x = +m.ax, y = +m.ay; if (!isFinite(x) || !isFinite(y)) return null;
+      const g = Math.hypot(x, y); if (g > 1) { x /= g; y /= g; }
+      return { x, y };
+    };
     function sendDirs(force) {
       const d = onl.dirs;
       if (onl.isHost) {
         keys["w"] = d.u; keys["s"] = d.d; keys["a"] = d.l; keys["d"] = d.r;
         return;
       }
-      const sig = [d.u, d.d, d.l, d.r].map(Number).join("");
-      if (force || sig !== onl.lastDirsSent) {
-        sendMsg({ t: "in", u: d.u, d: d.d, l: d.l, r: d.r });
-        onl.lastDirsSent = sig;
+      const q = v => Math.round(v * 20) / 20, ax = q(touchAnalog.p1.x), ay = q(touchAnalog.p1.y);
+      const dsig = [d.u, d.d, d.l, d.r].map(Number).join(""), sig = dsig + "|" + ax + "|" + ay, tn = performance.now();
+      if (force || (sig !== onl.lastDirsSent && (dsig !== onl.lastDsig || tn - (onl.lastDirsT || 0) > 33))) {   // ver105：向きが変わったら即送信／倒し具合だけの変化は約30msに1回
+        sendMsg({ t: "in", u: d.u, d: d.d, l: d.l, r: d.r, ax, ay });
+        onl.lastDirsSent = sig; onl.lastDsig = dsig; onl.lastDirsT = tn;
       }
     }
     function onlineKeyDown(e) {
@@ -3565,6 +3572,7 @@ fighterList().forEach(p => {
         const ramp = on ? Math.min(1, Math.max(0, (m - R * JOY_DEAD) / (R * (JOY_FULL - JOY_DEAD)))) : 0;
         const mag = on ? JOY_MIN + (1 - JOY_MIN) * Math.pow(ramp, JOY_CURVE) : 0;   // 動き出し＝半分の速さ、そこから全速まで
         touchAnalog[slot].x = on ? dx / m * mag : 0; touchAnalog[slot].y = on ? dy / m * mag : 0;
+        if (slot === "p1" && typeof onl !== "undefined" && onl.running && !onl.isHost) { try { sendDirs(); } catch (e) { } }   // ver105：オンラインのゲスト：倒し具合も送る
         set("l", on && dx < -a ? 1 : 0); set("r", on && dx > a ? 1 : 0);
         set("u", on && dy < -a ? 1 : 0); set("d", on && dy > a ? 1 : 0);
       };
@@ -8863,7 +8871,7 @@ function think(i){
       };
       function gameMsg(seat, m) {   // 席ごとの入力（接続元に関係なく席で処理）
         switch (m.t) {
-          case "in": if (onl.running) { const k = SK[seat]; keys[k.up] = !!m.u; keys[k.down] = !!m.d; keys[k.left] = !!m.l; keys[k.right] = !!m.r; } return;
+          case "in": if (onl.running) { const k = SK[seat]; keys[k.up] = !!m.u; keys[k.down] = !!m.d; keys[k.left] = !!m.l; keys[k.right] = !!m.r; const pp = PL()[seat]; if (pp) pp.__an = __anFrom(m); } return;
           case "shoot": { const p = PL()[seat]; if (onl.running && gameActive && p && p.hp > 0) __aimRun(m, "atk", () => shootBullet(p, opponentOf(p))); } return;
           case "skill": { const p = PL()[seat]; if (onl.running && gameActive && p && p.hp > 0) __aimRun(m, "skl", () => useSkill(p)); } return;
           case "mAim": { const p = PL()[seat]; if (p) p.__mAim = Number.isFinite(m.a) ? m.a : null; } return;
@@ -9164,6 +9172,10 @@ function think(i){
     /* ver82：リワーク表示（REWORK 表に足すと、図鑑・キャラ選択でバッジと「変更点」が出る） */
     (function () {
       window.REWORK = {
+        "海鮮塗装屋": { ver: "ver104", summary: "カニダッシュの条件を緩和", notes: [
+          "カニに変身できる場所を、インクの上だけから「どこでもOK」に変更（インクの外へ出ても解除されない。ボタンを離すと戻る）",
+          "移動速度1.5倍・リロード0.5秒の強化は、自分のチームのインクの上にいるカニにだけ効くように変更"
+        ] },
         "メープル": { ver: "ver82", summary: "防御特化から「守って反撃」へ", notes: [
           "ガードで受け止めた敵弾が、威力50%（最低5ダメージ）の反射弾になって撃った本人へ跳ね返る（メープルの攻撃扱い・弾の特性は引き継ぎ）",
           "壁で跳ねた弾・引っ掻きなどの近接攻撃は反射しない（従来どおり防ぐだけ／貫通攻撃は防げない）",
@@ -10241,6 +10253,7 @@ function think(i){
       const CRAB_X = { cell: 8, trailStep: 8, trailR: [14, 19], splatR: 34, spawnR: 175, crabSpeed: 1.5, crabReload: 500, burst: 3, spread: .12, burstGap: 60 };
       const COLS = ["#ff2d95", "#00e5ff", "#ffe600", "#7cff3a", "#ff7a00", "#b04dff", "#2d6bff"];
       const isC = p => !!p && p.charName === NM;
+      const onInk = p => { const c = { x: p.x + (p.w || 30) / 2, y: p.y + (p.h || 30) / 2 }; return ownFoot(c.x, c.y, c.x, c.y, teamOf(p) + 1); };   // ver104：足元が全部、自分のチームのインクの上か
       const cen = p => ({ x: p.x + (p.w || 30) / 2, y: p.y + (p.h || 30) / 2 });
       const anyC = () => { try { return fighterList().some(isC); } catch (e) { return false; } };
       const CS = CRAB_X.cell;
@@ -10391,7 +10404,7 @@ function think(i){
         if (!gameActive || p.hp <= 0 || p.out) return;
         if (p.crab) { p.ckHold = true; return; }
         if (tm - p.skillLastUsed < p.skillCooldown) return;
-        const c = cen(p); if (!ownFoot(c.x, c.y, c.x, c.y, teamOf(p) + 1)) return;   // 足元が全部、自分のチームのインクの上のときだけ
+        const c = cen(p);   // ver104：インクの上でなくても変身できる
         p.crab = true; p.ckHold = true; p._cp = { x: c.x, y: c.y }; clearStatus(p);
       };
       function exitCrab(p) { p.crab = false; p.ckHold = false; p.skillLastUsed = now(); }
@@ -10406,14 +10419,14 @@ function think(i){
       window.addEventListener("blur", () => { try { fighterList().forEach(p => { if (isC(p)) p.ckHold = false; }); } catch (e) {} });
       const _mp = movePlayer;
       movePlayer = function (p, u, d, l, r) {
-        if (isC(p) && p.crab) { const b = p.speed; p.speed = b * CRAB_X.crabSpeed; try { _mp(p, u, d, l, r); } finally { p.speed = b; } } else _mp(p, u, d, l, r);
+        if (isC(p) && p.crab && onInk(p)) { const b = p.speed; p.speed = b * CRAB_X.crabSpeed; try { _mp(p, u, d, l, r); } finally { p.speed = b; } } else _mp(p, u, d, l, r);
       };
       const _hr = handleReload;
       handleReload = function (p) {
-        if (isC(p) && p.crab) { const b = p.reloadTime; p.reloadTime = CRAB_X.crabReload; try { _hr(p); } finally { p.reloadTime = b; } } else _hr(p);
+        if (isC(p) && p.crab && onInk(p)) { const b = p.reloadTime; p.reloadTime = CRAB_X.crabReload; try { _hr(p); } finally { p.reloadTime = b; } } else _hr(p);
       };
       /* CPU：インクの上で弾切れ・遠いときにカニになり、弾が溜まって近づいたら戻る */
-      window.__crabWant = (me, en, d) => { const c = cen(me); return !me.crab && ownFoot(c.x, c.y, c.x, c.y, teamOf(me) + 1) && (me.ammo <= 0 || d > 240 || (me.stunUntil || 0) > now()); };
+      window.__crabWant = (me, en, d) => { const c = cen(me); return !me.crab && ((ownFoot(c.x, c.y, c.x, c.y, teamOf(me) + 1) && (me.ammo <= 0 || d > 240)) || (me.stunUntil || 0) > now()); };
       const isCpu = p => typeof cpuMode !== "undefined" && cpuMode && p !== player1;
 
       /* ---- 毎フレーム（ホスト／ひとり用） ---- */
@@ -10453,7 +10466,7 @@ function think(i){
           if (isC(p) && p.crab) {
             if (isCpu(p)) { const en = opponentOf(p); if (en && ((p.ammo >= 2 && Math.hypot(en.x - p.x, en.y - p.y) < 250) || p.ammo >= p.maxAmmo)) p.ckHold = false; }
             const pc0 = p._cp || c; p._cp = { x: c.x, y: c.y };
-            if (!p.ckHold || !ownFoot(pc0.x, pc0.y, c.x, c.y, teamOf(p) + 1)) exitCrab(p);   // ver91：足が少しでもインク（自分のチーム）からはみ出したら即解除
+            if (!p.ckHold) exitCrab(p);   // ver104：インクの外へ出ても解除されない（ボタンを離したときだけ）
             return;
           }
           if (isInk(c.x, c.y) && teamAt(c.x, c.y) !== teamOf(p) + 1 && t - (p._ife || 0) > 90) { p._ife = t; emit(1, c.x, c.y + 6, 13, 0, teamOf(p) + 1); }   // 敵の足跡で削れる
@@ -10519,6 +10532,13 @@ function think(i){
         if (ik.f) applyFull(ik);
       }
       window.__crabInk = applyIk;
+      /* ver103：試合開始のたびに、全員（ホスト／ゲスト／オフライン）の画面でインクを全部消してから描き始める */
+      window.__crabClear = () => {
+        try { if (ensure()) reset(); } catch (e) { }
+        lastGST = null; remoteM = null; remoteLast = 0; remoteOn = false; dirty = false; lastFull = 0; pend = [];
+      };
+      const _crabSG = startGame; startGame = function () { try { window.__crabClear(); } catch (e) { } return _crabSG.apply(this, arguments); };
+      const _crabBM = beginMatch; beginMatch = function () { try { window.__crabClear(); } catch (e) { } return _crabBM.apply(this, arguments); };
       /* ---- オンライン同期：出来事は「インク専用メッセージ」で送り、ときどき全体の状態も送る（スナップショットには載せない＝軽い） ---- */
       const _bs = buildSnap;
       buildSnap = function () {
@@ -10668,7 +10688,7 @@ function think(i){
       const _dr = draw;
       draw = function () {
         _dr();
-        try { if (ctx && gameActive) for (const k in A.st) if (A.st[k]) { drawAim(); break; } } catch (e) { console.error("aim", e); }
+        try { if (ctx && (gameActive || (typeof onl !== "undefined" && onl.running))) for (const k in A.st) if (A.st[k]) { drawAim(); break; } } catch (e) { console.error("aim", e); }
       };
     })();
   </script>
