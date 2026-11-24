@@ -711,13 +711,13 @@
        ============================================================ */
     /* ============================================================
        ■ 射程表（ver107：弾が飛べる「距離(px)」で管理。弾の寿命(bulletLife)では消えなくなりました）
-         マップは 800×400。GAY（短射程の長め）＝267px＝マップ縦の約2/3 を基準にしています。
+         マップは 800×400。ver108：全体に短く調整（中射程(短)＝旧・短射程の267px、短射程はそれより近く）。
          ここの数字を書き換えるだけで、弾の射程・CPUの射撃距離・エイム線がまとめて変わります。
          ・RANGE_TIER ........ 階級ごとの射程(px)。中射程(長)と中射程(短)は表記上どちらも「中射程」
          ・RANGE_OF_CHAR ..... キャラごとの階級
          ・RANGE_X ........... 状態で変わるキャラ／変化後の弾／召喚物の弾（階級名か数値で指定）
        ============================================================ */
-    const RANGE_TIER = { ultra: 1000, long: 600, midL: 460, midS: 360, short: 267 };
+    const RANGE_TIER = { ultra: 1000, long: 460, midL: 350, midS: 267, short: 160 };
     const RANGE_OF_CHAR = {
       "白い死神": "ultra",
       "スナイパー太郎": "long", "ジャンパー": "long", "海鮮塗装屋": "long",
@@ -731,10 +731,10 @@
       twinH: "midS", twinS: "short",            // ツインブラザーズ：Hモード（爆発弾）／Sモード（ショットガン）
       phoenixNormal: "midS", phoenixHP1: "midL", // 不死鳥：通常／HP1（強化弾）
       summon: "midS",                            // 召喚物（タレット・ドローン・雪だるま等）が撃つ弾
-      birdLight: 300,                            // 上裸の鳥頭：光の弾に変化したあと（変化前は階級どおり）
-      pikaShard: 200,                            // サンダーマウス：分裂した小さい弾（分裂するのは本体が射程の80%飛んだ地点）
-      pieShard: 200,                             // パイハークン：破裂した破片
-      ricochet: 320                              // エース・キッカー：跳弾
+      birdLight: 250,                            // 上裸の鳥頭：光の弾に変化したあと（変化前は階級どおり）
+      pikaShard: 150,                            // サンダーマウス：分裂した小さい弾（分裂するのは本体が射程の80%飛んだ地点）
+      pieShard: 150,                             // パイハークン：破裂した破片
+      ricochet: 250                              // エース・キッカー：跳弾
     };
     const rangePx = k => typeof k === "number" ? k : (RANGE_TIER[k] || RANGE_TIER.midS);
     function rangeOfPlayer(p) {   // キャラ（状態込み）の通常攻撃の射程(px)
@@ -750,12 +750,13 @@
       if (n && RANGE_OF_CHAR[n]) return rangePx(RANGE_OF_CHAR[n]);
       return rangePx(RANGE_X.summon);
     }
+    window.aiRangeCap = (p, r) => { const n = p.charName; return (n === "ボマー" || n === "怪獣王" || n === "メープル") ? r : Math.min(r, rangeOfPlayer(p) - 25); };   // CPUの理想距離も射程の内側に
     window.aiFireCap = (p, f) => { const n = p.charName; return (n === "ボマー" || n === "怪獣王" || n === "メープル") ? f : Math.min(f, rangeOfPlayer(p) + 25); };   // CPUは射程の外から撃たない
 
     const BALANCE_DEFAULT = { hp: 100, speed: 3, damage: 10, maxAmmo: 3, reload: 1500, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 15000 };
     const BALANCE = {
       "スナイパー太郎": { hp: 100, speed: 3, damage: 8, maxAmmo: 4, reload: 1100, shots: 2, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 15000 },
-      "白い死神": { hp: 100, speed: 1, damage: 22, maxAmmo: 1, reload: 1700, shots: 1, bulletSpeed: 18, bulletLife: 3000, bulletRadius: 5, pass: false, skillCd: 20000 },
+      "白い死神": { hp: 100, speed: 1.8, damage: 22, maxAmmo: 1, reload: 1700, shots: 1, bulletSpeed: 18, bulletLife: 3000, bulletRadius: 5, pass: false, skillCd: 20000 },
       "怪盗レッド": { hp: 100, speed: 4, damage: 10, maxAmmo: 3, reload: 1500, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 23000 },
       "ガジェットボット": { hp: 100, speed: 2.5, damage: 12, maxAmmo: 3, reload: 1300, shots: 1, bulletSpeed: 6, bulletLife: 600, bulletRadius: 10, pass: true, skillCd: 7000 },
       "アクアファイター": { hp: 100, speed: 3.5, damage: 4, maxAmmo: 10, reload: 1000, shots: 1, bulletSpeed: 6, bulletLife: 1200, bulletRadius: 5, pass: false, skillCd: 8000 },
@@ -3948,7 +3949,7 @@ function think(i){
  const hpLow=me.hp<45,lead=me.hp-en.hp,pass=!!P.pass;
  if(nm==='上裸の鳥頭'||nm==='エース・キッカー')me._ai=NOW();
  if(nm==='メープル'){window.__mapleThink&&window.__mapleThink(me,en,K,i,mx,my,ex,ey,d,rdy);return}
- let range=P.range,fire=(window.aiFireCap?aiFireCap(me,P.fire):P.fire),chase=P.chase||.04,expoW=pass?8:5;
+ let range=(window.aiRangeCap?aiRangeCap(me,P.range):P.range),fire=(window.aiFireCap?aiFireCap(me,P.fire):P.fire),chase=P.chase||.04,expoW=pass?8:5;
  let sh=null,shW=0,petKeep=0,hold=false,hug=null,thOK=false,mageWant=0;
  // --- キャラ別の戦略 ---
  if(nm==='ツインブラザーズ'){range=twin?75:300;fire=twin?105:750;if(twin)chase=.1}
