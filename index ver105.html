@@ -723,7 +723,7 @@
       "ブーメランボーイ": { hp: 100, speed: 3.2, damage: 15, maxAmmo: 1, reload: 900, shots: 1, bulletSpeed: 7, bulletLife: 100, bulletRadius: 5, pass: false, skillCd: 12000 },
       "ジョーカー": { hp: 100, speed: 2.8, damage: 11, maxAmmo: 3, reload: 1700, shots: 3, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 15000 },
       "サンダーマウス": { hp: 100, speed: 3.5, damage: 20, maxAmmo: 4, reload: 1800, shots: 1, bulletSpeed: 7, bulletLife: 500, bulletRadius: 5, pass: false, skillCd: 4000 },
-      "既視感のあるGAY": { hp: 100, speed: 3, damage: 30, maxAmmo: 3, reload: 2200, shots: 1, bulletSpeed: 7, bulletLife: 1000, bulletRadius: 25, pass: false, skillCd: 22000 },
+      "既視感のあるGAY": { hp: 100, speed: 3, damage: 23, maxAmmo: 3, reload: 2200, shots: 1, bulletSpeed: 7, bulletLife: 1000, bulletRadius: 25, pass: false, skillCd: 22000 },
       "元素の魔女": { hp: 100, speed: 3, damage: 20, maxAmmo: 1, reload: 700, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 6, pass: false, skillCd: 300 },
       "パイハークン": { hp: 120, speed: 3, damage: 20, maxAmmo: 4, reload: 2000, shots: 1, bulletSpeed: 5, bulletLife: 1000, bulletRadius: 10, pass: false, skillCd: 14000 },
       "怪獣王": { hp: 150, speed: 1.8, damage: 30, maxAmmo: 3, reload: 1800, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 20000 },
@@ -738,7 +738,7 @@
     };
     /* キャラ固有の数値 */
     const BALANCE_X = {
-      gay: { dmgNear: 30, dmgFar: 15, radiusStart: 25, radiusEnd: 10, range: 267, near: 40, cdPerHp: 100 },
+      gay: { dmgNear: 23, dmgFar: 15, radiusStart: 25, radiusEnd: 10, range: 267, near: 40, cdPerHp: 100 },
       santa: {   // サンタ（プレイヤー用）
         giftDelay: 800, giftDmg: 15, giftStun: 200, giftRadius: 38, giftWall: 6, giftRange: 380,   // プレゼント：落下までの時間(ms)／ダメージ／スタン(ms)／当たり範囲／壁へのダメージ／届く距離（届かない時は範囲内のどこかにランダムで落ちる）
         sockDmg: 15, sockSpeed: 5.6,                                                // 靴下
@@ -1777,10 +1777,10 @@ if (shooter.charName === "ツインブラザーズ") {
         warpBullet(b);
         if (b.mario) {
   // 弾が進むにつれて大きく＆速くなる
-  b.r = 5 + Math.floor(b.lifeTime / 8);   // 半径が徐々に増える
+  b.r = 5 + Math.floor(b.lifeTime / 4);   // 半径が徐々に増える（ver106：増え方を2倍に。元は /8）
   b.vx *= 1.05;                            // 徐々に加速
   b.vy *= 1.05;
-  b.damage = 7 + Math.floor(b.r / 1);      // サイズでダメージ上昇
+  b.damage = 7 + (5 + Math.floor(b.lifeTime / 8));      // ダメージの増え方は従来どおり（大きさの増加率とは切り離し）
 }
 
         const target = hitFoe(b);
@@ -2126,7 +2126,7 @@ fighterList().forEach(p => {
       "既視感のあるGAY": {
         title:  "至近距離で圧倒する、既視感の塊",
         intro:  "何故か既視感のあるGAY。本人によるとGAYでは無いらしい。ピンクのTシャツに青いジャージ、センター分けがトレードマーク。",
-        attack: "大きな弾を2発まで撃てる。至近距離なら最大30ダメージだが、飛ぶほど弾が小さくなり威力も15まで落ちる。射程はマップの縦幅の約3分の2で、それ以上は届く前に消える。リロードは遅め。",
+        attack: "大きな弾を2発まで撃てる。至近距離なら最大23ダメージだが、飛ぶほど弾が小さくなり威力も15まで落ちる。射程はマップの縦幅の約3分の2で、それ以上は届く前に消える。リロードは遅め。",
         skill:  "壁を貫通するピンクのハートの衝撃波を放ち、自分は少しの間だけ移動速度が上がる。衝撃波に触れた敵は1秒間スタンして、移動も攻撃もスキルも一切できない。クールタイムは長めだが、ダメージを受けるほど短くなる。開始時は半分溜まった状態で、最初は使えない。",
         tips:   "スキルでスタンを取ったら、加速して一気に距離を詰め、至近距離で通常攻撃を叩き込もう。外したらスキルが溜まるまで、牽制しつつ弾を避けて我慢の時間。"
       },
@@ -2801,7 +2801,7 @@ fighterList().forEach(p => {
       "ブーメランボーイ": "戻ってくる弾と、ワープ地点の設置",
       "ジョーカー": "3方向の拡散弾。スキルは運任せの6択",
       "サンダーマウス": "途中で分裂する弾と、短距離ダッシュ",
-      "既視感のあるGAY": "至近距離で最大30ダメージ。ハートの衝撃波で敵をスタンさせる",
+      "既視感のあるGAY": "至近距離で最大23ダメージ。ハートの衝撃波で敵をスタンさせる",
       "元素の魔女": "マナで撃つ炎・氷・雷。スキルで魔法を切り替え",
       "パイハークン": "大玉を撃ち、もう一度押すと24発に破裂。スキルで敵を吹き飛ばす",
       "怪獣王": "近距離の薙ぎ払い。チャージして壁も貫く青白い熱線を放つ",
@@ -10196,7 +10196,7 @@ function think(i){
         const s = _bs();
         if (anyA() || DR.length) {
           const R = Math.round, fl = fighterList();
-          s.ak = { d: DR.map(m => [fl.indexOf(m.o), R(m.x), R(m.y), +m.hp.toFixed(1), m.mx, +m.ang.toFixed(2), +m.face.toFixed(2), m.far ? 1 : 0]),
+          s.akr = { d: DR.map(m => [fl.indexOf(m.o), R(m.x), R(m.y), +m.hp.toFixed(1), m.mx, +m.ang.toFixed(2), +m.face.toFixed(2), m.far ? 1 : 0]),
             b: bullets.filter(b => b.ark).map(b => [R(b.x), R(b.y), b.r]) };
         }
         return s;
@@ -10204,15 +10204,15 @@ function think(i){
       const _as = applySnap;
       applySnap = function (s) {
         _as(s);
-        if (s.ak) {
+        if (s.akr) {   // ver106：鳥頭/エースの s.ak（線）と名前がぶつかって、ゲストで毎回エラー→海鮮塗装屋のカニが反映されなかった
           const fl = fighterList();
-          s.ak.d.forEach((a, i) => {
+          s.akr.d.forEach((a, i) => {
             const m = DR[i] || (DR[i] = { tr: [], hf: 0, ft: 0, dir: 1 });
             m.o = fl[a[0]]; m.x = a[1]; m.y = a[2]; m.hp = a[3]; m.mx = a[4]; m.ang = a[5]; m.face = a[6]; m.far = !!a[7];
             m.tr.push({ x: m.x, y: m.y }); if (m.tr.length > 10) m.tr.shift();
           });
-          DR.length = s.ak.d.length;
-          ABL.length = 0; s.ak.b.forEach(a => ABL.push({ x: a[0], y: a[1], r: a[2] }));
+          DR.length = s.akr.d.length;
+          ABL.length = 0; s.akr.b.forEach(a => ABL.push({ x: a[0], y: a[1], r: a[2] }));
         } else { DR.length = 0; ABL.length = 0; }
       };
     })();
