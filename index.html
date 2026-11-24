@@ -1206,7 +1206,7 @@ lastPoisonTick = Date.now();
     }
 
     function reflectBullet(b, o) {
-      const px = b.x - b.vx, py = b.y - b.vy;
+      const px = b.x - b.vx * BULLET_SPEED_MUL, py = b.y - b.vy * BULLET_SPEED_MUL;
       const inX = px >= o.x - b.r && px <= o.x + o.w + b.r;
       const inY = py >= o.y - b.r && py <= o.y + o.h + b.r;
       if (!inX && inY) b.vx = -b.vx;
@@ -1729,6 +1729,8 @@ if (shooter.charName === "ツインブラザーズ") {
 
     /* ver106：移動速度の全体倍率（0.5＝半分）。もともと遅い下のキャラは対象外。数字・リストを変えるだけで調整できます */
     const SPEED_MUL = 0.5, SPEED_EXEMPT = ["白い死神", "怪獣王"];
+    /* ver107：弾速の全体倍率（0.5＝半分）。弾の「寿命・曲がるタイミング・大きくなる速さ」は元の時間感覚のまま、進む速さだけが変わります（＝射程は変わらず、飛ぶのに倍の時間がかかる）。数字を変えるだけで調整できます（1で元の速さ） */
+    const BULLET_SPEED_MUL = 0.5;
     function speedMul(p) { return (p && SPEED_EXEMPT.indexOf(p.charName) < 0) ? SPEED_MUL : 1; }
     function movePlayer(player, up, down, left, right) {
       if (player.out) return;
@@ -1776,14 +1778,14 @@ if (shooter.charName === "ツインブラザーズ") {
 
     function updateBullets() {      for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
-        b.x += b.vx; b.y += b.vy;
-        b.lifeTime++;
+        b.x += b.vx * BULLET_SPEED_MUL; b.y += b.vy * BULLET_SPEED_MUL;   // ver107：弾速倍率
+        b.lifeTime += BULLET_SPEED_MUL;
         warpBullet(b);
         if (b.mario) {
   // 弾が進むにつれて大きく＆速くなる
   b.r = 5 + Math.floor(b.lifeTime / 4);   // 半径が徐々に増える（ver106：増え方を2倍に。元は /8）
-  b.vx *= 1.05;                            // 徐々に加速
-  b.vy *= 1.05;
+  b.vx *= Math.pow(1.05, BULLET_SPEED_MUL);   // 徐々に加速（ver107：弾速倍率に合わせて1フレームあたりの加速を調整）
+  b.vy *= Math.pow(1.05, BULLET_SPEED_MUL);
   b.damage = 7 + (5 + Math.floor(b.lifeTime / 8));      // ダメージの増え方は従来どおり（大きさの増加率とは切り離し）
 }
 
@@ -2707,7 +2709,7 @@ fighterList().forEach(p => {
       if (!onl.running) return;
       const dt = Math.min((ts - onl.lastTs) / (1000 / 60), 3);
       onl.lastTs = ts;
-      bullets.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; }); // 弾は次の状態が来るまで先読み
+      bullets.forEach(b => { b.x += b.vx * dt * BULLET_SPEED_MUL; b.y += b.vy * dt * BULLET_SPEED_MUL; }); // 弾は次の状態が来るまで先読み
       fighterList().forEach(p => {
         if (p.tx === undefined) return;
         if (Math.hypot(p.tx - p.x, p.ty - p.y) > 90) { p.x = p.tx; p.y = p.ty; } // ワープは補間せず即移動
@@ -3877,10 +3879,10 @@ function wallFor(p,e){const px=p.x+15,py=p.y+15,dx=e.x+15-px,dy=e.y+15-py,m=Math
 function trapOK(p,e){const w=wallFor(p,e);return!collidesWithObstacles(w)&&Math.abs(w.x-e.x)<14&&Math.abs(w.y-e.y)<14}
 function threatR(en){const n=en.charName;if(n==='ボマー')return en.bulletRadius+48;if(n==='ツインブラザーズ'&&en.mode==='S')return 130;if(n==='アクアファイター')return 125;return 0}
 function los(ax,ay,bx,by){const n=Math.ceil(HY(bx-ax,by-ay)/9),dx=(bx-ax)/n,dy=(by-ay)/n,L=obstacles.length;for(let k=1;k<n;k++){const x=ax+dx*k,y=ay+dy*k;for(let j=0;j<L;j++){const o=obstacles[j];if(x>o.x-3&&x<o.x+o.w+3&&y>o.y-3&&y<o.y+o.h+3)return false}}return true}
-function danger(me,px,py,vx,vy){let d=0;for(const b of bullets.concat(window.X21?X21.xb:[])){if(b.from===me||(b.from&&teamOf(b.from)===teamOf(me)))continue;const v2=b.vx*b.vx+b.vy*b.vy;if(v2<.01)continue;
- const rx=px-b.x,ry=py-b.y,tc=Math.max(0,Math.min(40,(rx*b.vx+ry*b.vy)/v2)),
+function danger(me,px,py,vx,vy){let d=0;for(const b of bullets.concat(window.X21?X21.xb:[])){if(b.from===me||(b.from&&teamOf(b.from)===teamOf(me)))continue;const bvx=b.vx*BULLET_SPEED_MUL,bvy=b.vy*BULLET_SPEED_MUL,v2=bvx*bvx+bvy*bvy;if(v2<.01)continue;
+ const rx=px-b.x,ry=py-b.y,tc=Math.max(0,Math.min(40,(rx*bvx+ry*bvy)/v2)),
  qx=px+vx*Math.min(tc,12),qy=py+vy*Math.min(tc,12);
- if(HY(qx-(b.x+b.vx*tc),qy-(b.y+b.vy*tc))<b.r+17)d+=(b.damage||10)*(1.4-tc/40)}return d}
+ if(HY(qx-(b.x+bvx*tc),qy-(b.y+bvy*tc))<b.r+17)d+=(b.damage||10)*(1.4-tc/40)}return d}
 // ---- ver31_1：ブロック（遮蔽物）を使う戦術のヘルパー ----
 function pickBlock(rx,ry,lim){let best=null,bd=1e9;for(const o of obstacles){if(o.mir)continue;const d=HY(o.x+o.w/2-rx,o.y+o.h/2-ry);if(d<bd){bd=d;best=o}}return bd<lim?best:null}
 function shadowPt(o,e,off){const cx=o.x+o.w/2,cy=o.y+o.h/2,dx=cx-(e.x+15),dy=cy-(e.y+15),m=HY(dx,dy)||1,ux=dx/m,uy=dy/m,hw=o.w/2+off,hh=o.h/2+off;
@@ -4011,7 +4013,7 @@ function think(i){
  if(nm==='怪獣王'){if(!me.kc&&me.ammo>0&&d<=100&&fr>=A.nf){shootBullet(me,en);A.nf=fr+6}return}
  if(nm==='元素の魔女'&&(me.element|0)===2&&thOK&&me.ammo>0&&fr>=A.nf&&d<fire){shootBullet(me,en);A.nf=fr+GM+Math.floor(RND()*GR);return}
  // ---- 射撃（敵の横移動を見て、当たるタイミングで撃つ）----
- const bs=Math.max(1,me.bulletSpeed*(me.bulletSpeedBoost||1)),lat=Math.abs(A.ev[0]*-uy+A.ev[1]*ux)*d/bs,tol=(P.tol||0)+(me.ammo>=me.maxAmmo?34:14);
+ const bs=Math.max(.5,me.bulletSpeed*(me.bulletSpeedBoost||1)*BULLET_SPEED_MUL),lat=Math.abs(A.ev[0]*-uy+A.ev[1]*ux)*d/bs,tol=(P.tol||0)+(me.ammo>=me.maxAmmo?34:14);
  const inWall=!pass&&obstacles.some(o=>circleHitRect({x:mx,y:my,r:5},o));
  if(aimOther&&ignoreDmg)return;   // エイムがペットに向いている間は撃たない（詰める）
  if(aimOther&&me.ammo>0&&fr>=A.nf&&HY(at.x+15-mx,at.y+15-my)<Math.max(fire,160)&&!inWall&&(pass||canHit(mx,my,at,5,0,6))){
@@ -4286,13 +4288,13 @@ function think(i){
         return [r.x, r.y + r.h - s];
       }
       function startArc(ob, b) {
-        const px = b.x - b.vx, py = b.y - b.vy, r = { x: ob.x, y: ob.y, w: ob.w, h: ob.h };
+        const px = b.x - b.vx * BULLET_SPEED_MUL, py = b.y - b.vy * BULLET_SPEED_MUL, r = { x: ob.x, y: ob.y, w: ob.w, h: ob.h };
         arcs.push({ x: r.x, y: r.y, w: r.w, h: r.h, s0: perimParam(r, px, py), prog: 0, own: b.own, hit: false });
       }
       function stepBullets() {
         for (let i = xb.length - 1; i >= 0; i--) {
           const b = xb[i], target = hitFoe(b);
-          b.x += b.vx; b.y += b.vy; b.age++;
+          b.x += b.vx * BULLET_SPEED_MUL; b.y += b.vy * BULLET_SPEED_MUL; b.age += BULLET_SPEED_MUL;   // ver107：弾速倍率
           warpBullet(b);
           if (b.type === "gay") {
             const d = Math.hypot(b.x - b.sx, b.y - b.sy);
@@ -4314,7 +4316,7 @@ function think(i){
             if (ob) {
               if (ob.mir && (b.bn || 0) < MIRROR_BOUNCES) { reflectBullet(b, ob); continue; }
               damageWall(ob, 1);
-              if (b.type === "ice") addZone(b.x - b.vx, b.y - b.vy, b.own);
+              if (b.type === "ice") addZone(b.x - b.vx * BULLET_SPEED_MUL, b.y - b.vy * BULLET_SPEED_MUL, b.own);
               if (b.type === "thunder" && obstacles.indexOf(ob) >= 0) startArc(ob, b);
               xb.splice(i, 1);
             }
@@ -4671,7 +4673,7 @@ function think(i){
       /* 新キャラの弾（GAY・魔女）と、ハート衝撃波 */
       function drawXb(b, t) {
         const k = b._t ? Math.min(3, (performance.now() - b._t) / 16.67) : 0;
-        const x = b.x + b.vx * k, y = b.y + b.vy * k, q = { x, y, vx: b.vx, vy: b.vy, r: b.r };
+        const x = b.x + b.vx * k * BULLET_SPEED_MUL, y = b.y + b.vy * k * BULLET_SPEED_MUL, q = { x, y, vx: b.vx, vy: b.vy, r: b.r };
         const sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp, uy = b.vy / sp, r = b.r, a = Math.atan2(uy, ux);
         ctx.save();
         switch (b.type) {
@@ -4996,7 +4998,7 @@ function think(i){
           if (!b || bullets.indexOf(b) >= 0) return;
           const p = fighterList()[i], t = opponentOf(p);
           p.pieB = null;
-          if (!circleHitRect(b, t)) burst(p, b.x - b.vx, b.y - b.vy);
+          if (!circleHitRect(b, t)) burst(p, b.x - b.vx * BULLET_SPEED_MUL, b.y - b.vy * BULLET_SPEED_MUL);
         });
       };
       const _us = useSkill;
@@ -5316,7 +5318,7 @@ function think(i){
       };
       /* ---- ペットを「キャラ」として扱う：弾・魔法・雷が当たってHPが減る ---- */
       const sweepHit = (b, m) => {   // 1フレーム前の位置から今の位置までを区切って判定（高速弾のすり抜け防止）
-        const px = b.x - (b.vx || 0), py = b.y - (b.vy || 0), box = { x: m.x, y: m.y, w: 20, h: 20 };
+        const px = b.x - (b.vx || 0) * BULLET_SPEED_MUL, py = b.y - (b.vy || 0) * BULLET_SPEED_MUL, box = { x: m.x, y: m.y, w: 20, h: 20 };
         for (let k = 0; k <= 4; k++) if (circleHitRect({ x: px + (b.x - px) * k / 4, y: py + (b.y - py) * k / 4, r: b.r || 4 }, box)) return true;
         return false;
       };
@@ -8205,9 +8207,9 @@ function think(i){
         for (let i = arr.length - 1; i >= 0; i--) {
           const b = arr[i];
           if (!b.from || teamOf(b.from) === teamOf(p) || b.sp || b.pass || !isFinite(b.x)) continue;
-          const v = Math.hypot(b.vx || 0, b.vy || 0), n = Math.min(14, Math.ceil(v / 6));
+          const v = Math.hypot(b.vx || 0, b.vy || 0) * BULLET_SPEED_MUL, n = Math.min(14, Math.ceil(v / 6));
           let hit = false;
-          for (let k = 0; k <= n && !hit; k++) hit = inSector(p, b.x + (b.vx || 0) * k / (n || 1), b.y + (b.vy || 0) * k / (n || 1));
+          for (let k = 0; k <= n && !hit; k++) hit = inSector(p, b.x + (b.vx || 0) * BULLET_SPEED_MUL * k / (n || 1), b.y + (b.vy || 0) * BULLET_SPEED_MUL * k / (n || 1));
           if (!hit) continue;
           const cost = b.damage != null ? b.damage : (b.dmg != null ? b.dmg : 5);
           arr.splice(i, 1); p.en -= cost;
@@ -8217,7 +8219,7 @@ function think(i){
             if (o && o.hp > 0 && !o.out && isFinite(o.x)) { ax = o.x + 15 - b.x; ay = o.y + 15 - b.y; }
             const m = Math.hypot(ax, ay) || 1, nb = Object.assign({}, b, { from: p, vx: ax / m * v0, vy: ay / m * v0, lifeTime: 0, mrf: 1, hasReflected: false });
             if (b.damage != null) nb.damage = Math.max(RMIN, b.damage * RF); if (b.dmg != null) nb.dmg = Math.max(RMIN, b.dmg * RF); if (b.damage == null && b.dmg == null) nb.damage = RMIN;
-            nb.x = b.x + nb.vx; nb.y = b.y + nb.vy;
+            nb.x = b.x + nb.vx * BULLET_SPEED_MUL; nb.y = b.y + nb.vy * BULLET_SPEED_MUL;
             arr.push(nb); explosions.push({ x: b.x, y: b.y, r: 12, life: 6 });
           }
           explosions.push({ x: b.x, y: b.y, r: 8, life: 5 });
@@ -8503,14 +8505,14 @@ function think(i){
         for (let i = needles.length - 1; i >= 0; i--) {
           const n = needles[i]; let dead = false;
           for (let k = 0; k < 3 && !dead; k++) {
-            n.x += n.vx / 3; n.y += n.vy / 3;
+            n.x += n.vx / 3 * BULLET_SPEED_MUL; n.y += n.vy / 3 * BULLET_SPEED_MUL;
             if (n.x < 0 || n.y < 0 || n.x > ARENA_W || n.y > ARENA_H || collidesWithObstacles({ x: n.x - 2, y: n.y - 2, w: 4, h: 4 })) { dead = true; break; }
             for (const f of fl) {
               if (!f || f.hp <= 0 || f.out || teamOf(f) === teamOf(n.from) || f.x < -100) continue;
               if (Math.hypot(f.x + 15 - n.x, f.y + 15 - n.y) < 20) { f.stunUntil = Math.max(f.stunUntil || 0, t + 3000); f._slp = t + 3000; f._sh = f.hp; if (f.shOn) f.shOn = false; dead = true; explosions.push({ x: n.x, y: n.y, r: 14, life: 8 }); break; }
             }
           }
-          if (++n.age > 60) dead = true;
+          if ((n.age += BULLET_SPEED_MUL) > 60) dead = true;
           if (dead) needles.splice(i, 1);
         }
         // 跳弾の判定用に、このフレーム前の状態を記録
@@ -8537,7 +8539,7 @@ function think(i){
         });
         rec.forEach(r => {   // 跳弾：1人目（キャラ or 召喚物）に当たって消えたら、近くの別の敵（キャラ or 召喚物）へ（1回だけ・同じ相手へは戻らない）
           if (bullets.includes(r.b)) return;
-          const own = r.b.from, ex = r.x + r.vx, ey = r.y + r.vy, myT = teamOf(own);
+          const own = r.b.from, ex = r.x + r.vx * BULLET_SPEED_MUL, ey = r.y + r.vy * BULLET_SPEED_MUL, myT = teamOf(own);
           const curL = entsAll(), cur = new Map(curL.map(e => [e.key, e]));
           let a = null, ad = 1e9;
           snapE.forEach(sn => {
@@ -9291,7 +9293,7 @@ function think(i){
         const t = now(); T.shot = t + 1500; T.gift = t + 3500; T.deer = t + 5500; T.snow = t + 1200; T.kb = t; T.busy = t; T.strafeT = 0; T.dash = t + 1500; T.last = [0, 0];
       }
       function shoot(sc, pc, pv) {
-        const L = LV[B.lv], d = Math.hypot(pc.x - sc.x, pc.y - sc.y), tt = d / 5.6, ax = pc.x + pv.vx * tt * .7, ay = pc.y + pv.vy * tt * .7, a = Math.atan2(ay - sc.y, ax - sc.x);
+        const L = LV[B.lv], d = Math.hypot(pc.x - sc.x, pc.y - sc.y), tt = d / (5.6 * BULLET_SPEED_MUL), ax = pc.x + pv.vx * tt * .7, ay = pc.y + pv.vy * tt * .7, a = Math.atan2(ay - sc.y, ax - sc.x);
         (L.tri ? [-.3, 0, .3] : [0]).forEach(o => bullets.push({ x: sc.x, y: sc.y, r: 7, vx: Math.cos(a + o) * 5.6, vy: Math.sin(a + o) * 5.6, from: boss(), damage: L.atk, lifeTime: 0, maxLifeTime: 170, sock: 1 }));
       }
       function callDeer(sc, H, t) {   // トナカイ：一番近い敵だけに（人数が増えても数は増えない）
