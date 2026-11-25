@@ -925,6 +925,42 @@ let lastPoisonTick = 0;
         { id: "redlightning", name: "紅雷", desc: "黒と赤の雷をまとってビリビリ走る弾", quest: "sniper_nocskill" }
       ]
     };
+    /* ============================================================
+       ★ ver110：キャラ別の弾エフェクト＋専用クエスト（ここに1行足すだけで、クエスト・エフェクト一覧・ロックまで全部できます）
+         char   : キャラ名             key  : クエスト識別用（英数字・変更しないこと）
+         fx     : 弾エフェクトID（描画関数は FX2.<fx> に同じ名前で用意）   fxName / fxDesc : 設定画面に出る名前と説明
+         title / desc / goal : クエストの題・説明・必要回数
+         test   : 勝った試合のデータ s で true になったら +1。 s の中身：
+                  ms（かかった時間ms）／hpPct（残りHP割合0〜1）／minPct（試合中の最低HP割合）／minAbs（試合中の最低HP）
+                  skills（スキル回数）／shots（発射回数）／hits（命中回数）／hitRate（命中率0〜1）／modes（使ったツインのモード数）／elems（使った魔女の属性数）
+         ※ カウントは「CPUとの1対1」で勝ったときだけ（ログイン中）。弾エフェクトは自分の画面だけに出ます（オンラインの相手には通常の弾のまま）
+       ============================================================ */
+    const CHAR_FX_TABLE = [
+      { char: "白い死神", key: "reaper", fx: "scythe", fxName: "魂喰いの鎌", fxDesc: "青白い魂火と三日月の斬撃が、鎌のように尾を引く弾", title: "白い死神で60秒以内にCPU撃破", desc: "白い死神を使い、試合開始から60秒以内にCPUと1対1で勝つ。", goal: 3, test: s => s.ms <= 60000 },
+      { char: "怪盗レッド", key: "phantom", fx: "rose", fxName: "薔薇と予告状", fxDesc: "紅い薔薇の弾が、花びらと予告状のカードをまき散らす", title: "怪盗レッドでHP70%以上を残してCPU撃破", desc: "怪盗レッドを使い、HPを70%以上残したままCPUと1対1で勝つ。", goal: 3, test: s => s.hpPct >= .7 },
+      { char: "ガジェットボット", key: "gadget", fx: "bitstream", fxName: "ビットストリーム", fxDesc: "回る六角形から0と1のデータが流れ出す弾", title: "ガジェットボットでスキルなしCPU撃破", desc: "ガジェットボットを使い、スキルを一度も使わずにCPUと1対1で勝つ。", goal: 3, test: s => s.skills === 0 },
+      { char: "アクアファイター", key: "aqua", fx: "tidal", fxName: "潮の雫", fxDesc: "水の雫が泡と波紋を残して飛ぶ弾", title: "アクアファイターでスキル3回以上＆CPU撃破", desc: "アクアファイターを使い、1試合でスキルを3回以上使ってCPUと1対1で勝つ。", goal: 2, test: s => s.skills >= 3 },
+      { char: "ツインブラザーズ", key: "twin", fx: "dualstar", fxName: "ダブルヘリックス", fxDesc: "兄の橙と弟の緑が、二重らせんを描いて飛ぶ弾", title: "ツインブラザーズでH・S両方で撃ってCPU撃破", desc: "ツインブラザーズを使い、Hモード・Sモードの両方で弾を撃ってCPUと1対1で勝つ。", goal: 2, test: s => s.modes >= 2 },
+      { char: "聖なる使者", key: "holy", fx: "feather", fxName: "天使の羽根", fxDesc: "光輪をまとった弾が、白い羽根と金の煌めきを散らす", title: "聖なる使者でHP90%以上を残してCPU撃破", desc: "聖なる使者を使い、HPを90%以上残したままCPUと1対1で勝つ。", goal: 2, test: s => s.hpPct >= .9 },
+      { char: "ジャンパー", key: "jump", fx: "superstar", fxName: "スーパースター", fxDesc: "回るスターが虹色の星くずをばらまく弾", title: "ジャンパーで命中率50%以上のCPU撃破", desc: "ジャンパーを使い、6発以上撃って命中率50%以上でCPUと1対1で勝つ。", goal: 3, test: s => s.shots >= 6 && s.hitRate >= .5 },
+      { char: "ブーメランボーイ", key: "boomerang", fx: "windblade", fxName: "旋風の刃", fxDesc: "回転する三枚刃が風の弧を引いて飛ぶ弾", title: "ブーメランボーイで命中率50%以上のCPU撃破", desc: "ブーメランボーイを使い、5発以上撃って命中率50%以上でCPUと1対1で勝つ。", goal: 3, test: s => s.shots >= 5 && s.hitRate >= .5 },
+      { char: "ジョーカー", key: "joker", fx: "suits", fxName: "運命のスート", fxDesc: "スペード・ハート・ダイヤ・クラブが入れ替わる弾", title: "ジョーカーでスキル2回以上＆CPU撃破", desc: "ジョーカーを使い、1試合でスキルを2回以上使ってCPUと1対1で勝つ。", goal: 2, test: s => s.skills >= 2 },
+      { char: "サンダーマウス", key: "pika", fx: "zapstar", fxName: "ZAP!スパーク", fxDesc: "アメコミ調の爆発星とギザギザの電光をまとう弾", title: "サンダーマウスで45秒以内にCPU撃破", desc: "サンダーマウスを使い、試合開始から45秒以内にCPUと1対1で勝つ。", goal: 3, test: s => s.ms <= 45000 },
+      { char: "既視感のあるGAY", key: "dejavu", fx: "afterimage", fxName: "デジャヴの残像", fxDesc: "青とピンクの残像が、同じ弾の影を何度も重ねる", title: "既視感のあるGAYでピンチからの逆転勝利", desc: "既視感のあるGAYを使い、試合中にHPが25%以下まで減ってから、CPUと1対1で勝つ。", goal: 2, test: s => s.minPct <= .25 },
+      { char: "元素の魔女", key: "elemental", fx: "triad", fxName: "三元の軌跡", fxDesc: "魔法陣と、ほかの二属性の小さな球が弾のまわりを回る", title: "元素の魔女で炎・氷・雷をすべて使ってCPU撃破", desc: "元素の魔女を使い、1試合で炎・氷・雷の3属性すべてで撃ってCPUと1対1で勝つ。", goal: 2, test: s => s.elems >= 3 },
+      { char: "パイハークン", key: "pie24", fx: "cream", fxName: "生クリームパイ", fxDesc: "さくらんぼ付きのパイが、クリームの塊を残して飛ぶ", title: "パイハークンでHP半分以上を残してCPU撃破", desc: "パイハークンを使い、HPを50%以上残したままCPUと1対1で勝つ。", goal: 3, test: s => s.hpPct >= .5 },
+      { char: "不死鳥", key: "phoenix", fx: "rebirth", fxName: "再誕の炎羽", fxDesc: "黄金から紅へ色が変わる炎と、火の粉・炎の羽根を引く弾", title: "不死鳥で復活を経験してCPU撃破", desc: "不死鳥を使い、一度やられて復活（HP1）してから、CPUと1対1で勝つ。", goal: 2, test: s => s.minAbs <= 1.001 },
+      { char: "ペット＆テイマー", key: "tamer", fx: "pawprint", fxName: "肉球スタンプ", fxDesc: "ピンクの弾が、左右交互に肉球の足跡を残す", title: "ペット＆テイマーで命中率50%以上のCPU撃破", desc: "ペット＆テイマーを使い、8発以上撃って命中率50%以上でCPUと1対1で勝つ。", goal: 3, test: s => s.shots >= 8 && s.hitRate >= .5 },
+      { char: "上裸の鳥頭", key: "bird", fx: "bunny", fxName: "ふわふわ白兎", fxDesc: "耳つきの白兎が、人参のかけらと綿毛をまき散らす", title: "上裸の鳥頭でスキル2回以上＆CPU撃破", desc: "上裸の鳥頭を使い、1試合でスキルを2回以上使ってCPUと1対1で勝つ。", goal: 2, test: s => s.skills >= 2 },
+      { char: "エース・キッカー", key: "ace", fx: "deduction", fxName: "謎は解けた？", fxDesc: "虫眼鏡をかざした弾が、「？」と「！」を残して飛ぶ", title: "エース・キッカーで50秒以内にCPU撃破", desc: "エース・キッカーを使い、試合開始から50秒以内にCPUと1対1で勝つ。", goal: 3, test: s => s.ms <= 50000 },
+      { char: "海鮮塗装屋", key: "seafood", fx: "crabsplash", fxName: "ぶくぶくカニ弾", fxDesc: "カニのハサミ付きの弾が、泡とカラフルなインクを散らす", title: "海鮮塗装屋でスキル2回以上＆CPU撃破", desc: "海鮮塗装屋を使い、1試合でスキルを2回以上使ってCPUと1対1で勝つ。", goal: 3, test: s => s.skills >= 2 },
+      { char: "アーク・フォージ", key: "ark", fx: "repulsor", fxName: "リパルサー・リング", fxDesc: "回る光輪と広がる波紋をまとった青いエネルギー弾", title: "アーク・フォージでスキルを使ってHP半分以上でCPU撃破", desc: "アーク・フォージを使い、スキルを1回以上使い、HPを50%以上残したままCPUと1対1で勝つ。", goal: 3, test: s => s.skills >= 1 && s.hpPct >= .5 }
+    ];
+    CHAR_FX_TABLE.forEach(e => {
+      const qid = "bfx_" + e.key;
+      QUESTS.push({ id: qid, char: e.char, title: e.title, desc: e.desc + "（CPU戦のみカウント／要ログイン）", goal: e.goal, event: "cq_" + e.key, reward: { fx: ["bullet:" + e.char + ":" + e.fx] } });
+      (BULLET_FX[e.char] = BULLET_FX[e.char] || [{ id: "std", name: "標準", desc: "従来の弾" }]).push({ id: e.fx, name: e.fxName, desc: e.fxDesc, quest: qid });
+    });
     const OWNED_FX = new Set();
     window.__devOn = (function () { try { return localStorage.getItem("dv_h") === "1"; } catch (e) { return false; } })();
     function isFxOwned(k) {
@@ -4815,7 +4851,7 @@ function think(i){
           ctx.beginPath(); ctx.arc(b.x, b.y, Math.max(2.5, b.r) + 1.2, 0, TAU); ctx.stroke(); ctx.restore();
         });
         if (fb.length) { const all = bullets; bullets = fb; try { _drawBullets(); } finally { bullets = all; } }
-        xb.forEach(b => drawXb(b, t));
+        xb.forEach(b => { const k = b._t ? Math.min(3, (performance.now() - b._t) / 16.67) : 0; if (window.__xbFx && __xbFx(b, t, b.x + b.vx * k * BULLET_SPEED_MUL, b.y + b.vy * k * BULLET_SPEED_MUL)) return; drawXb(b, t); });
         ctx.lineCap = "butt";
       };
 
@@ -7112,7 +7148,219 @@ function think(i){
         twin: { dur: 1800, draw: twinKill }, holy: { dur: 1800, draw: holyKill }, jump: { dur: 1800, draw: jumpKill }, bomb: { dur: 1800, draw: bombKill }, boomerang: { dur: 1800, draw: boomKill },
         pie24: { dur: 1800, draw: pieKill }, tamer: { dur: 1800, draw: tamerKill }, maple: { dur: 1800, draw: mapleKill }, bird: { dur: 1800, draw: birdKill }, ace: { dur: 1800, draw: aceKill }, pop: { dur: 1300, draw: popKill }, kaiju: { dur: 1500, draw: kaijuKill },
         ark: { dur: 1800, draw: arkKill }, phoenix: { dur: 1500, draw: phoenixKill }, elemental: { dur: 1500, draw: elementalKill }, dejavu: { dur: 1500, draw: dejavuKill } };
-      const BULLET_DRAW = { redlightning: redBullet };
+      /* ============================================================
+         ver110：キャラ別の弾エフェクト（自分の画面だけ・オンラインの相手には見えない／相手の弾は通常のまま）
+         ・描画は「弾の位置・向き・半径」だけで決まる（状態を持たない）ので軽く、ぼかし(shadowBlur)も使いません
+         ・重いときは エフェクト設定 で そのキャラの弾を「標準」に戻せます
+         ・追加したいときは BULLET_FX／クエストの表（CHAR_FX_TABLE）に1行足し、ここに同じIDの描画関数を足すだけ
+         ============================================================ */
+      const FX2 = (() => {
+        const hh = id => { const x = Math.sin(id * 12.9898 + 4.1) * 43758.5453; return x - Math.floor(x); };   // 0〜1の安定した乱数
+        const dirOf = b => { const sp = Math.hypot(b.vx, b.vy) || 1; return [b.vx / sp, b.vy / sp]; };
+        const R_ = b => Math.max(4, b.r || 5);
+        const dot = (c, x, y, r, col, a) => { c.globalAlpha = a == null ? 1 : a; c.fillStyle = col; c.beginPath(); c.arc(x, y, Math.max(.3, r), 0, TAU); c.fill(); };
+        const rng = (c, x, y, r, col, w, a) => { c.globalAlpha = a == null ? 1 : a; c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.arc(x, y, Math.max(.3, r), 0, TAU); c.stroke(); };
+        const ell = (c, x, y, rx, ry, rot, col, a) => { c.globalAlpha = a == null ? 1 : a; c.fillStyle = col; c.beginPath(); c.ellipse(x, y, Math.max(.3, rx), Math.max(.3, ry), rot, 0, TAU); c.fill(); };
+        const starP = (c, x, y, Ro, Ri, n, rot) => { c.beginPath(); for (let i = 0; i < n * 2; i++) { const a = rot + i * Math.PI / n, r = i % 2 ? Ri : Ro; i ? c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r) : c.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); };
+        const txt = (c, s, x, y, px, col, a, rot) => { c.globalAlpha = a; c.fillStyle = col; c.font = "bold " + Math.max(6, px | 0) + "px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.save(); c.translate(x, y); if (rot) c.rotate(rot); c.fillText(s, 0, 0); c.restore(); };
+        /* 弾が通ったあとに「その場に残る」ように並べる（弾が動いても粒は動かない）。fn(x, y, 経過0〜1, 粒ID, 進行方向x, 進行方向y) */
+        function trail(b, n, step, fn) {
+          const ux = dirOf(b)[0], uy = dirOf(b)[1], s = b.x * ux + b.y * uy, j0 = Math.floor(s / step);
+          for (let i = 0; i < n; i++) { const d = s - (j0 - i) * step, k = d / (n * step); if (k > 1) break; fn(b.x - ux * d, b.y - uy * d, k, j0 - i, ux, uy); }
+        }
+        const D = {};
+        /* 白い死神：魂喰いの鎌 */
+        D.scythe = (c, b, t) => {
+          const r = R_(b), ux = dirOf(b)[0], uy = dirOf(b)[1], an = Math.atan2(uy, ux);
+          trail(b, 6, 11, (x, y, k, id) => {
+            const a = 1 - k, R = 10 + r * .9 + k * 4;
+            c.globalAlpha = .6 * a; c.strokeStyle = "#cfeeff"; c.lineWidth = 2.6 * (1 - k * .55); c.beginPath(); c.arc(x - ux * R * .9, y - uy * R * .9, R, an - .95, an + .95); c.stroke();
+            dot(c, x + (hh(id) - .5) * 14, y + (hh(id + 3) - .5) * 14 - k * 14, 1.9 * a + .4, "#e8f6ff", .75 * a);
+          });
+          dot(c, b.x, b.y, r * 2.1, "#7fc4ff", .22 + .06 * Math.sin(t * 9)); dot(c, b.x, b.y, r * 1.2, "#f2fbff"); dot(c, b.x - r * .35, b.y - r * .1, r * .28, "#27406b"); dot(c, b.x + r * .35, b.y - r * .1, r * .28, "#27406b");
+        };
+        /* 怪盗レッド：予告状と薔薇 */
+        D.rose = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 7, 12, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, off = (hh(id) - .5) * 22 * (.4 + k), px = x - uy * off, py = y + ux * off;
+            if (id % 3 === 0) { c.save(); c.translate(px, py); c.rotate(hh(id + 9) * 6 + t * 3); c.globalAlpha = .85 * a; c.fillStyle = "#fff"; c.fillRect(-3.2, -4.6, 6.4, 9.2); c.fillStyle = "#e0183a"; c.fillRect(-1.4, -1.4, 2.8, 2.8); c.restore(); }
+            else ell(c, px, py, 3.4 * (1 - k * .4), 1.9 * (1 - k * .4), hh(id + 4) * 6 + t * 4, hh(id) > .5 ? "#ff3d63" : "#b3112c", .85 * a);
+          });
+          dot(c, b.x, b.y, r * 1.55, "#7a0a1c"); dot(c, b.x, b.y, r * 1.15, "#d51a3c"); dot(c, b.x, b.y, r * .72, "#ff5d78");
+          rng(c, b.x, b.y, r * .42, "#7a0a1c", 1.3); ell(c, b.x - r * 1.5, b.y + r * .5, r * .8, r * .38, -.6, "#2f9e52"); ell(c, b.x + r * .4, b.y + r * 1.5, r * .8, r * .38, 1.1, "#2f9e52");
+        };
+        /* ガジェットボット：バイナリの奔流 */
+        D.bitstream = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 8, 10, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, off = (hh(id) - .5) * 18, px = x - uy * off, py = y + ux * off;
+            if (id % 2) txt(c, hh(id + 1) > .5 ? "1" : "0", px, py, 11 * (1 - k * .3), "#5ff6ff", .9 * a);
+            else { c.globalAlpha = .7 * a; c.fillStyle = "#1fd3e6"; c.fillRect(px - 1.8, py - 1.8, 3.6, 3.6); }
+          });
+          c.save(); c.translate(b.x, b.y); c.rotate(t * 4); c.globalAlpha = 1; c.fillStyle = "#06323a"; c.strokeStyle = "#5ff6ff"; c.lineWidth = 2; c.beginPath();
+          for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; i ? c.lineTo(Math.cos(a) * r * 1.6, Math.sin(a) * r * 1.6) : c.moveTo(Math.cos(a) * r * 1.6, Math.sin(a) * r * 1.6); } c.closePath(); c.fill(); c.stroke();
+          c.fillStyle = "#d9ffff"; c.fillRect(-r * .5, -r * .5, r, r); c.restore();
+        };
+        /* アクアファイター：潮の雫 */
+        D.tidal = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 7, 12, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, off = Math.sin(id * 1.7 + t * 5) * 6 * (.3 + k), px = x - uy * off, py = y + ux * off;
+            if (id % 2) { rng(c, px, py, 2 + k * 5 + hh(id) * 2, "#bfeaff", 1.4, .8 * a); dot(c, px - 1, py - 1, .9, "#fff", .8 * a); }
+            else { c.save(); c.translate(px, py); c.rotate(Math.atan2(uy, ux)); c.globalAlpha = .5 * a; c.strokeStyle = "#8fd6ff"; c.lineWidth = 1.6; c.beginPath(); c.ellipse(0, 0, 3 + k * 5, 6 + k * 9, 0, 0, TAU); c.stroke(); c.restore(); }
+          });
+          dot(c, b.x, b.y, r * 1.7, "#2a8fe0", .35); dot(c, b.x, b.y, r * 1.2, "#7fd8ff"); dot(c, b.x, b.y, r * .6, "#d8f6ff"); dot(c, b.x - r * .4, b.y - r * .45, r * .3, "#fff", .95);
+        };
+        /* ツインブラザーズ：二重らせんの閃光 */
+        D.dualstar = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 9, 7, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, ph = id * .8 + 0.0, o = Math.sin(ph) * 8;
+            dot(c, x - uy * o, y + ux * o, 2.4 * a + .5, "#ffa44a", .85 * a); dot(c, x + uy * o, y - ux * o, 2.4 * a + .5, "#4de08c", .85 * a);
+          });
+          const ux = dirOf(b)[0], uy = dirOf(b)[1], o = Math.sin((b.x * ux + b.y * uy) * .114 * 7) * 8;
+          dot(c, b.x - uy * o, b.y + ux * o, r * .95, "#ff9a3d"); dot(c, b.x + uy * o, b.y - ux * o, r * .95, "#47e08a");
+          c.globalAlpha = .9; c.fillStyle = "#fff"; starP(c, b.x, b.y, r * 1.5, r * .45, 4, t * 5); c.fill();
+        };
+        /* 聖なる使者：天使の羽根 */
+        D.feather = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 7, 12, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, side = hh(id) > .5 ? 1 : -1, off = side * (4 + k * 14), px = x - uy * off, py = y + ux * off - k * 3, rot = Math.atan2(uy, ux) + side * (.6 + k);
+            c.save(); c.translate(px, py); c.rotate(rot); ell(c, 0, 0, 6.5 * (1 - k * .4), 2.1, 0, "#fff", .9 * a); c.globalAlpha = .6 * a; c.strokeStyle = "#e0c470"; c.lineWidth = .9; c.beginPath(); c.moveTo(-6, 0); c.lineTo(6, 0); c.stroke(); c.restore();
+            if (id % 3 === 0) { c.globalAlpha = a; c.fillStyle = "#ffe48a"; starP(c, px + 5, py - 5, 3, 1, 4, t * 3 + id); c.fill(); }
+          });
+          dot(c, b.x, b.y, r * 2.3, "#fff2b8", .25); dot(c, b.x, b.y, r * 1.2, "#fffdf0"); rng(c, b.x, b.y, r * 1.9, "#ffd75a", 1.6, .8);
+          for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + t * 2; c.globalAlpha = .7; c.strokeStyle = "#ffe48a"; c.lineWidth = 1.2; c.beginPath(); c.moveTo(b.x + Math.cos(a) * r * 2.1, b.y + Math.sin(a) * r * 2.1); c.lineTo(b.x + Math.cos(a) * r * 2.9, b.y + Math.sin(a) * r * 2.9); c.stroke(); }
+        };
+        /* ジャンパー：スーパースター */
+        D.superstar = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 8, 9, (x, y, k, id) => {
+            const a = 1 - k; c.globalAlpha = .9 * a; c.fillStyle = "hsl(" + ((id * 47 + t * 120) % 360 | 0) + ",95%,62%)"; starP(c, x + (hh(id) - .5) * 10, y + (hh(id + 2) - .5) * 10, 4.4 * a + 1, 1.6 * a, 5, id + t * 4); c.fill();
+          });
+          c.globalAlpha = 1; c.fillStyle = "#ffd21a"; c.strokeStyle = "#7a4b00"; c.lineWidth = 1.6; starP(c, b.x, b.y, r * 2.1, r * .95, 5, -Math.PI / 2 + Math.sin(t * 6) * .2); c.fill(); c.stroke();
+          dot(c, b.x - r * .38, b.y - r * .1, r * .2, "#3a2300"); dot(c, b.x + r * .38, b.y - r * .1, r * .2, "#3a2300");
+        };
+        /* ブーメランボーイ：旋風の刃 */
+        D.windblade = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 6, 12, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, an = Math.atan2(uy, ux); c.globalAlpha = .55 * a; c.strokeStyle = "#aefbe0"; c.lineWidth = 1.6; c.beginPath(); c.arc(x - ux * 4, y - uy * 4, 9 + k * 7, an - 1.1, an - .3); c.stroke(); c.beginPath(); c.arc(x - ux * 4, y - uy * 4, 9 + k * 7, an + .3, an + 1.1); c.stroke();
+            dot(c, x + (hh(id) - .5) * 16, y + (hh(id + 5) - .5) * 16, 1.8 * a, "#7ee08c", .8 * a);
+          });
+          c.save(); c.translate(b.x, b.y); c.rotate(t * 16); c.globalAlpha = 1; c.fillStyle = "#e9fff6"; c.strokeStyle = "#1c9a7a"; c.lineWidth = 1.4;
+          for (let i = 0; i < 3; i++) { c.save(); c.rotate(i * TAU / 3); c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(r * 1.9, -r * .2, r * 2.4, r * 1.1); c.quadraticCurveTo(r * 1.2, r * .5, 0, 0); c.fill(); c.stroke(); c.restore(); }
+          c.restore(); dot(c, b.x, b.y, r * .5, "#1c9a7a");
+        };
+        /* ジョーカー：運命のカードスート */
+        D.suits = (c, b, t) => {
+          const r = R_(b), S = ["♠", "♥", "♦", "♣"], red = i => i === 1 || i === 2;
+          trail(b, 7, 12, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, i = ((id % 4) + 4) % 4, off = (hh(id) - .5) * 20 * (.4 + k);
+            txt(c, S[i], x - uy * off, y + ux * off, 13 * (1 - k * .5), red(i) ? "#ff5a7a" : "#d9c8ff", .9 * a, (hh(id + 2) - .5) * 1.2);
+          });
+          dot(c, b.x, b.y, r * 2.1, "#b04aff", .25); dot(c, b.x, b.y, r * 1.55, "#fff"); rng(c, b.x, b.y, r * 1.55, "#6a1fc2", 1.6);
+          const i = Math.floor(t * 6) % 4; txt(c, S[i], b.x, b.y + .5, r * 2.2, red(i) ? "#e0183a" : "#1a1030", 1);
+        };
+        /* サンダーマウス：ZAP! */
+        D.zapstar = (c, b, t) => {
+          const r = R_(b), ux = dirOf(b)[0], uy = dirOf(b)[1], f = Math.floor(t * 22);
+          const pts = [[b.x, b.y]]; for (let i = 1; i <= 5; i++) { const o = ((hh(f * 7 + i) - .5) * 2) * 9, d = i * 9; pts.push([b.x - ux * d - uy * o, b.y - uy * d + ux * o]); }
+          c.lineJoin = "miter"; c.lineCap = "round"; c.globalAlpha = 1;
+          [[6, "#201400"], [3.4, "#ffd21a"], [1.2, "#fffbe0"]].forEach(([w, col]) => { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); });
+          c.fillStyle = "#ffd21a"; c.strokeStyle = "#201400"; c.lineWidth = 2; starP(c, b.x, b.y, r * 2.7, r * 1.35, 8, t * 6); c.fill(); c.stroke(); dot(c, b.x, b.y, r * .9, "#fff");
+        };
+        /* 既視感のあるGAY：デジャヴの残像（xb） */
+        D.afterimage = (c, b, t) => {
+          const r = R_(b), ux = dirOf(b)[0], uy = dirOf(b)[1];
+          for (let i = 5; i >= 1; i--) { const o = Math.sin(t * 9 + i) * 3, x = b.x - ux * i * 11 - uy * o, y = b.y - uy * i * 11 + ux * o; rng(c, x, y, r * (1 - i * .08), i % 2 ? "#3d9bff" : "#ff6ec7", 2.2, .6 / (i * .8)); dot(c, x, y, r * .45, i % 2 ? "#9bd0ff" : "#ffb3e0", .35 / i); }
+          dot(c, b.x, b.y, r * 1.8, "#ff6ec7", .22); dot(c, b.x, b.y, r, "#ffd9f0"); rng(c, b.x, b.y, r, "#3d9bff", Math.max(1.5, r * .25)); dot(c, b.x - r * .3, b.y - r * .35, r * .25, "#fff", .8);
+        };
+        /* 元素の魔女：三元の軌跡（xb。炎・氷・雷で色が変わる） */
+        D.triad = (c, b, t) => {
+          const r = R_(b), COL = { fire: "#ff7a2a", ice: "#7fe3ff", thunder: "#ffe14d" }, ORD = ["fire", "ice", "thunder"], ty = ORD.includes(b.type) ? b.type : "fire", main = COL[ty], others = ORD.filter(x => x !== ty);
+          trail(b, 6, 9, (x, y, k, id) => { dot(c, x + (hh(id) - .5) * 6, y + (hh(id + 1) - .5) * 6, 3.2 * (1 - k) + .6, main, .6 * (1 - k)); });
+          c.globalAlpha = .55; c.strokeStyle = main; c.lineWidth = 1.2; c.setLineDash([3, 4]); c.lineDashOffset = -t * 30; c.beginPath(); c.arc(b.x, b.y, r * 3, 0, TAU); c.stroke(); c.setLineDash([]);
+          others.forEach((o, i) => { const a = t * 6 + i * Math.PI; dot(c, b.x + Math.cos(a) * r * 2.3, b.y + Math.sin(a) * r * 2.3, r * .6, COL[o], .95); });
+          dot(c, b.x, b.y, r * 1.9, main, .28); dot(c, b.x, b.y, r * 1.15, main); dot(c, b.x, b.y, r * .55, "#fff");
+        };
+        /* パイハークン：生クリームのパイ */
+        D.cream = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 6, 11, (x, y, k, id) => {
+            const a = 1 - k, px = x + (hh(id) - .5) * 9, py = y + (hh(id + 4) - .5) * 9; dot(c, px, py, 5.2 * (1 - k * .5), "#fff6fa", .8 * a); dot(c, px + 1.5, py + 1, 3 * (1 - k * .5), "#ffc7de", .55 * a);
+            if (id % 3 === 0) dot(c, px + 4, py - 3, 1.4, "#c98a4b", .9 * a);
+          });
+          dot(c, b.x, b.y, r * 1.45, "#b9772f"); dot(c, b.x, b.y, r * 1.2, "#e8b46a"); dot(c, b.x, b.y, r * .85, "#fffafc"); dot(c, b.x - r * .1, b.y - r * .1, r * .5, "#ffd6e8");
+          dot(c, b.x + r * .35, b.y - r * .55, r * .3, "#e0183a"); rng(c, b.x, b.y, r * .5, "#f2a6c6", 1.2, .9);
+        };
+        /* 不死鳥：再誕の炎羽 */
+        D.rebirth = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 8, 9, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, px = x + (hh(id) - .5) * 8, py = y - k * 12 + (hh(id + 2) - .5) * 6, col = k < .3 ? "#ffe27a" : k < .65 ? "#ff9a2a" : "#e0391a";
+            dot(c, px, py, (r * 1.1) * (1 - k * .7), col, .75 * a);
+            if (id % 2) dot(c, px + (hh(id + 8) - .5) * 14, py - 6 - k * 8, 1.4, "#fff2b0", .9 * a);
+            if (id % 4 === 0) { c.save(); c.translate(px, py); c.rotate(Math.atan2(uy, ux) + 2.6); ell(c, 0, 0, 6 * (1 - k * .5), 2, 0, "#ffb347", .7 * a); c.restore(); }
+          });
+          dot(c, b.x, b.y, r * 2.4, "#ff6a1a", .28 + .08 * Math.sin(t * 12)); dot(c, b.x, b.y, r * 1.5, "#ffb02a"); dot(c, b.x, b.y, r * .85, "#fff6c2");
+        };
+        /* ペット＆テイマー：肉球スタンプ */
+        D.pawprint = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 6, 22, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, side = id % 2 ? 1 : -1, px = x - uy * side * 7, py = y + ux * side * 7, an = Math.atan2(uy, ux);
+            c.save(); c.translate(px, py); c.rotate(an); c.globalAlpha = .85 * a; c.fillStyle = "#ff8fb8";
+            c.beginPath(); c.ellipse(-1, 0, 4.2, 3.4, 0, 0, TAU); c.fill();
+            [[4.6, -4], [6.6, -1.4], [6.6, 1.4], [4.6, 4]].forEach(p => { c.beginPath(); c.arc(p[0], p[1], 1.7, 0, TAU); c.fill(); });
+            c.restore();
+          });
+          dot(c, b.x, b.y, r * 2.1, "#ffb6d2", .3); dot(c, b.x, b.y, r * 1.2, "#ff8fb8"); dot(c, b.x - r * .3, b.y - r * .35, r * .35, "#fff", .85);
+        };
+        /* 上裸の鳥頭：兎の弾 */
+        D.bunny = (c, b, t) => {
+          const r = R_(b), ux = dirOf(b)[0], uy = dirOf(b)[1], nx = -uy, ny = ux;
+          trail(b, 6, 11, (x, y, k, id) => {
+            const a = 1 - k; if (id % 2) dot(c, x + (hh(id) - .5) * 10, y + (hh(id + 3) - .5) * 10, 4 * (1 - k * .5), "#fff", .8 * a);
+            else { c.save(); c.translate(x + (hh(id) - .5) * 12, y + (hh(id + 3) - .5) * 12); c.rotate(hh(id) * 3); c.globalAlpha = .9 * a; c.fillStyle = "#ff8a2a"; c.beginPath(); c.moveTo(0, -4); c.lineTo(2, 3); c.lineTo(-2, 3); c.closePath(); c.fill(); c.restore(); }
+          });
+          ell(c, b.x - ux * r * .6 + nx * r * .9, b.y - uy * r * .6 + ny * r * .9, r * .5, r * 1.5, Math.atan2(uy, ux) + 1.2, "#fff"); ell(c, b.x - ux * r * .6 - nx * r * .9, b.y - uy * r * .6 - ny * r * .9, r * .5, r * 1.5, Math.atan2(uy, ux) - 1.2, "#fff");
+          dot(c, b.x, b.y, r * 1.7, "#e8f1ff", .35); dot(c, b.x, b.y, r * 1.35, "#fff"); dot(c, b.x + ux * r * .55 + nx * r * .4, b.y + uy * r * .55 + ny * r * .4, r * .17, "#2a2a3a"); dot(c, b.x + ux * r * .55 - nx * r * .4, b.y + uy * r * .55 - ny * r * .4, r * .17, "#2a2a3a"); dot(c, b.x + ux * r * .85, b.y + uy * r * .85, r * .15, "#ff7fa8");
+        };
+        /* エース・キッカー：謎は解けた！ */
+        D.deduction = (c, b, t) => {
+          const r = R_(b), ux = dirOf(b)[0], uy = dirOf(b)[1];
+          trail(b, 6, 14, (x, y, k, id) => { txt(c, id % 3 ? "?" : "!", x + (hh(id) - .5) * 14, y + (hh(id + 3) - .5) * 14, 14 * (1 - k * .4), "#ffe9a0", .9 * (1 - k), (hh(id + 1) - .5) * .8); });
+          c.globalAlpha = 1; c.strokeStyle = "#b8901f"; c.lineWidth = 2.6; c.lineCap = "round"; c.beginPath(); c.moveTo(b.x - ux * r * 1.5 + uy * r * 1.2, b.y - uy * r * 1.5 - ux * r * 1.2); c.lineTo(b.x - ux * r * 3 + uy * r * 2.4, b.y - uy * r * 3 - ux * r * 2.4); c.stroke();
+          dot(c, b.x, b.y, r * 1.9, "#bfefff", .3); dot(c, b.x, b.y, r * .95, "#ffd75a"); rng(c, b.x, b.y, r * 1.9, "#d9b13a", 2.4);
+          c.globalAlpha = .95; c.fillStyle = "#fff"; starP(c, b.x - r * .8, b.y - r * .8, r * .75, r * .2, 4, 0); c.fill();
+        };
+        /* 海鮮塗装屋：大漁スプラッシュ */
+        D.crabsplash = (c, b, t) => {
+          const r = R_(b), PAL = ["#00d8ff", "#ff3fa5", "#ffd21a", "#7cff5a"];
+          trail(b, 7, 10, (x, y, k, id, ux, uy) => {
+            const a = 1 - k, off = (hh(id) - .5) * 16 * (.4 + k), px = x - uy * off, py = y + ux * off;
+            if (id % 2) { rng(c, px, py, 2 + k * 4, "#e6fbff", 1.3, .8 * a); } else dot(c, px, py, 3 * (1 - k * .5), PAL[((id % 4) + 4) % 4], .85 * a);
+          });
+          const ux = dirOf(b)[0], uy = dirOf(b)[1], an = Math.atan2(uy, ux);
+          dot(c, b.x, b.y, r * 1.9, "#ff6a5a", .25); dot(c, b.x, b.y, r * 1.25, "#ff7a6a"); dot(c, b.x - r * .3, b.y - r * .3, r * .4, "#ffd0c8");
+          [-1, 1].forEach(s => { c.globalAlpha = 1; c.strokeStyle = "#ff4a3a"; c.lineWidth = 2; c.beginPath(); c.arc(b.x + ux * r * 1.5 - uy * s * r * 1.1, b.y + uy * r * 1.5 + ux * s * r * 1.1, r * .75, an - 1.3 + s * .6, an + 1.3 + s * .6); c.stroke(); });
+        };
+        /* アーク・フォージ：リパルサー・リング */
+        D.repulsor = (c, b, t) => {
+          const r = R_(b);
+          trail(b, 5, 14, (x, y, k) => { rng(c, x, y, r * (1.1 + k * 1.8), "#59d6ff", 2 - k * 1.2, .65 * (1 - k)); });
+          dot(c, b.x, b.y, r * 2.1, "#2fb8ff", .28); dot(c, b.x, b.y, r * 1.1, "#9be9ff"); dot(c, b.x, b.y, r * .55, "#fff");
+          c.globalAlpha = .95; c.strokeStyle = "#59d6ff"; c.lineWidth = 2; for (let i = 0; i < 3; i++) { const a = t * 7 + i * TAU / 3; c.beginPath(); c.arc(b.x, b.y, r * 1.7, a, a + .9); c.stroke(); }
+          c.strokeStyle = "#e3fbff"; c.lineWidth = 1.4; for (let i = 0; i < 3; i++) { const a = -t * 5 + i * TAU / 3; c.beginPath(); c.arc(b.x, b.y, r * 2.2, a, a + .6); c.stroke(); }
+        };
+        return D;
+      })();
+
+      const FX2_SCALE = 1.25;   // 新エフェクトの大きさ（1.0で小さめ）
+      const BULLET_DRAW = Object.assign({ redlightning: redBullet }, FX2);
       const eqKill = () => { const V = window.__fxPv; if (V && V.type === "kill") return V.id; const id = cfg.fx.kill || "std"; return isFxOwned("kill:" + id) ? id : "std"; };
       const eqBullet = ch => { const V = window.__fxPv; if (V && V.type === "bullet" && V.char === ch) return V.id; const id = (cfg.fx.bullet || {})[ch] || "std"; return isFxOwned("bullet:" + ch + ":" + id) ? id : "std"; };
 
@@ -7126,7 +7374,18 @@ function think(i){
         bullets.forEach(b => { const c0 = b.kind !== undefined ? Math.floor(b.kind / 10) : CHAR_NAMES.indexOf(b.from && b.from.charName); (c0 === ci && bulletOwner(b) === own ? mine : rest).push(b); });
         if (!mine.length) return _db();
         const all = bullets; bullets = rest; try { _db(); } finally { bullets = all; }
-        const t = performance.now() / 1000; mine.forEach(b => { ctx.save(); try { fn(ctx, b, t); } finally { ctx.restore(); } });
+        const t = performance.now() / 1000, sc = id === "redlightning" ? 1 : FX2_SCALE; mine.forEach(b => { ctx.save(); try { if (sc !== 1) { ctx.translate(b.x, b.y); ctx.scale(sc, sc); ctx.translate(-b.x, -b.y); } fn(ctx, b, t); } finally { ctx.restore(); } });
+      };
+      /* --- ver110：GAY・元素の魔女の弾（xb）も、自分の弾だけ差し替え（相手の弾・衝撃波は通常のまま） --- */
+      window.__xbFx = function (b, t, x, y) {
+        try {
+          const me = window.myFighter && myFighter(); if (!me) return false;
+          const nm = me.charName, ok = (nm === "既視感のあるGAY" && b.type === "gay") || (nm === "元素の魔女" && (b.type === "fire" || b.type === "ice" || b.type === "thunder"));
+          if (!ok || bulletOwner(b) !== teamOf(me) + 1) return false;
+          const id = eqBullet(nm), fn = BULLET_DRAW[id]; if (id === "std" || !fn) return false;
+          ctx.save(); try { ctx.translate(x, y); ctx.scale(FX2_SCALE, FX2_SCALE); ctx.translate(-x, -y); fn(ctx, { x, y, vx: b.vx, vy: b.vy, r: b.r, type: b.type }, performance.now() / 1000); } finally { ctx.restore(); }
+          return true;
+        } catch (e) { return false; }
       };
       /* --- ゲーム中：キル。試合を決めた「最後の1人」を倒した瞬間に、倒した人のエフェクトを全員の画面で再生する。
              CPUが倒したときは通常（追加演出なし）。演出が終わるまで試合終了（画面切り替え）を待つ --- */
@@ -7204,9 +7463,36 @@ function think(i){
 
       /* --- クエスト条件：スキルを使わずCPUに1対1で勝つ（スナイパー太郎） --- */
       const _us = useSkill;
-      useSkill = function (p) { const b = p && p.skillLastUsed, r = _us(p); if (p && p === player1 && p.skillLastUsed !== b) window.__p1skill = true; return r; };
+      useSkill = function (p) { const b = p && p.skillLastUsed, r = _us(p); if (p && p === player1 && p.skillLastUsed !== b) { window.__p1skill = true; try { if (cqOn()) CQS.skills++; } catch (e) {} } return r; };
+      /* --- ver110：キャラ別クエスト用の試合データ（CPUとの1対1だけ。プレビュー中は数えない） --- */
+      const CQS = { gst: null, skills: 0, shots: 0, hits: 0, dmg: 0, e0: null, minAbs: 1e9, minPct: 1, modes: {}, elems: {}, hp0: 100 };
+      const cqOn = () => { try { return !!(cpu && cpu.on && !window.TWOVTWO && !window.__fxPv && gameActive && player1 && player2); } catch (e) { return false; } };
+      function cqReset() { CQS.gst = gameStartTime; CQS.skills = 0; CQS.shots = 0; CQS.hits = 0; CQS.dmg = 0; CQS.e0 = null; CQS.minAbs = 1e9; CQS.minPct = 1; CQS.modes = {}; CQS.elems = {}; CQS.hp0 = player1.maxHp || player1.hp || 100; }
+      const _cqu = update;
+      update = function () {
+        const r = _cqu.apply(this, arguments);
+        try {
+          if (cqOn()) {
+            if (CQS.gst !== gameStartTime) cqReset();
+            const h2 = player2.hp; if (CQS.e0 != null && CQS.e0 - h2 >= 1) { CQS.hits++; CQS.dmg += CQS.e0 - h2; } CQS.e0 = h2;
+            if (player1.hp > 0) { CQS.minAbs = Math.min(CQS.minAbs, player1.hp); CQS.minPct = Math.min(CQS.minPct, player1.hp / CQS.hp0); }
+          }
+        } catch (e) {}
+        return r;
+      };
+      const _cqsb = shootBullet;
+      shootBullet = function (sh) {
+        try { if (sh === player1 && cqOn()) { if (CQS.gst !== gameStartTime) cqReset(); CQS.shots++; if (sh.mode) CQS.modes[sh.mode] = 1; if (sh.element != null) CQS.elems[sh.element | 0] = 1; } } catch (e) {}
+        return _cqsb.apply(this, arguments);
+      };
+      function cqFinish() {   // 勝った試合だけ、条件を満たすキャラ別クエストを +1
+        if (!(cpu && cpu.on) || window.TWOVTWO || window.__fxPv || !player1 || CQS.gst !== gameStartTime || matchWinner() !== 1) return;
+        const sh = CQS.shots, s = { ms: Date.now() - CQS.gst, hpPct: Math.max(0, player1.hp) / CQS.hp0, minPct: CQS.minPct, minAbs: CQS.minAbs, skills: CQS.skills, shots: sh, hits: CQS.hits, dmg: CQS.dmg, hitRate: sh ? Math.min(1, CQS.hits / sh) : 0, modes: Object.keys(CQS.modes).length, elems: Object.keys(CQS.elems).length };
+        CHAR_FX_TABLE.forEach(q => { if (q.char === player1.charName && q.test(s)) Quest.emit("cq_" + q.key); });
+      }
       const _sr = showResult;
       showResult = function () {
+        try { cqFinish(); } catch (e) { console.error(e); }   // ver110：キャラ別クエスト
         try { if (cpu && cpu.on && !window.TWOVTWO && player1 && player1.charName === "スナイパー太郎" && !window.__p1skill && matchWinner() === 1) Quest.emit("sniperNoSkill"); } catch (e) { console.error(e); }
         try { if (!window.__fxPv && cpu && cpu.on && window.RULE !== "bo3") Quest.brk(); } catch (e) { console.error(e); }   // 連続系：3本対決以外の試合を挟んだらリセット
         try { if (!window.__fxPv && cpu && cpu.on && !window.TWOVTWO && matchWinner() === 1) Quest.emit("matchWin"); } catch (e) { console.error(e); }   // 累計勝利（CPU戦）
