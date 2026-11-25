@@ -759,9 +759,9 @@
       "白い死神": { hp: 100, speed: 1.8, damage: 22, maxAmmo: 1, reload: 1700, shots: 1, bulletSpeed: 18, bulletLife: 3000, bulletRadius: 5, pass: false, skillCd: 20000 },
       "怪盗レッド": { hp: 100, speed: 4, damage: 10, maxAmmo: 3, reload: 1500, shots: 1, bulletSpeed: 6, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 23000 },
       "ガジェットボット": { hp: 100, speed: 2.5, damage: 12, maxAmmo: 3, reload: 1300, shots: 1, bulletSpeed: 6, bulletLife: 600, bulletRadius: 10, pass: true, skillCd: 7000 },
-      "アクアファイター": { hp: 100, speed: 3.5, damage: 4, maxAmmo: 10, reload: 1000, shots: 1, bulletSpeed: 6, bulletLife: 1200, bulletRadius: 5, pass: false, skillCd: 8000 },
+      "アクアファイター": { hp: 100, speed: 3.5, damage: 4, maxAmmo: 10, reload: 3000, shots: 1, bulletSpeed: 6, bulletLife: 1200, bulletRadius: 5, pass: false, skillCd: 8000 },
       "ツインブラザーズ": { hp: 100, speed: 2.8, damage: 13, maxAmmo: 3, reload: 1000, shots: 1, bulletSpeed: 6, bulletLife: 25000, bulletRadius: 5, pass: false, skillCd: 10000 },
-      "聖なる使者": { hp: 100, speed: 2.5, damage: 6, maxAmmo: 9999, reload: 5000, shots: 1, bulletSpeed: 9, bulletLife: 3000, bulletRadius: 5, pass: false, skillCd: Infinity },
+      "聖なる使者": { hp: 100, speed: 2.5, damage: 2, maxAmmo: 3, reload: 2000, shots: 1, bulletSpeed: 9, bulletLife: 3000, bulletRadius: 3, pass: false, skillCd: Infinity },
       "ジャンパー": { hp: 100, speed: 3.5, damage: 10, maxAmmo: 5, reload: 1500, shots: 1, bulletSpeed: 5, bulletLife: 1000, bulletRadius: 5, pass: false, skillCd: 30000 },
       "ボマー": { hp: 100, speed: 2.8, damage: 34, maxAmmo: 1, reload: 600, shots: 1, bulletSpeed: 0, bulletLife: 1, bulletRadius: 40, pass: true, skillCd: 20000 },
       "ブーメランボーイ": { hp: 100, speed: 3.2, damage: 8, maxAmmo: 1, reload: 900, shots: 1, bulletSpeed: 7, bulletLife: 100, bulletRadius: 5, pass: false, skillCd: 12000 },
@@ -1304,6 +1304,7 @@ lastPoisonTick = Date.now();
       const mag = Math.sqrt(dx * dx + dy * dy);
       const dirX = dx / mag;
       const dirY = dy / mag;
+      if (shooter.charName === "聖なる使者") { holyStart(shooter, dirX, dirY); return; }   // ver109：サブマシンガンのバースト
 
       const speedMult = shooter.bulletSpeedBoost || 1;
       let useBonus = 0;
@@ -1756,9 +1757,31 @@ if (shooter.charName === "ツインブラザーズ") {
       updateGimmicks();
     }
 
+    /* ver109：聖なる使者＝サブマシンガン。攻撃1回（弾数1）で10発をパラパラ連射。扇状にばらけ、動いていると広く・止まると狭くなる */
+    const HOLY = { n: 10, gap: 3, min: .05, max: .22, bloom: .012 };   // 連射数／発射間隔(フレーム)／扇の半角：止まっている時・動いている時(ラジアン)／連射が続くほど広がる量
+    function holyStart(s, dx, dy) {
+      if (s._burst) return;   // 連射中は次のバーストを始められない
+      s.ammo -= 1; s.lastReload = Date.now();
+      s._burst = { left: HOLY.n, a: Math.atan2(dy, dx), w: 1, k: 0 };
+    }
+    const holyMove = p => { const sp = (p.speed || 2.5) * (typeof speedMul === "function" ? speedMul(p) : 1); return Math.max(0, Math.min(1, (p._hm || 0) / (sp * .8))); };   // 0＝止まっている／1＝全力で移動中
+    const holyHalf = p => HOLY.min + (HOLY.max - HOLY.min) * holyMove(p);
+    function holyBurst(p) {
+      if (p.charName !== "聖なる使者") return;
+      const mv = Math.hypot(p.x - (p._hx === undefined ? p.x : p._hx), p.y - (p._hy === undefined ? p.y : p._hy)); p._hx = p.x; p._hy = p.y;
+      p._hm = (p._hm || 0) * .8 + mv * .2;   // 動きのなめらかな大きさ
+      const b = p._burst; if (!b) return;
+      if (p.hp <= 0 || p.out || (p.stunUntil || 0) > Date.now()) { p._burst = null; return; }   // 倒れた・スタンで中断
+      if (--b.w > 0) return; b.w = HOLY.gap;
+      const half = Math.min(HOLY.max * 1.4, holyHalf(p) + HOLY.bloom * b.k), a = b.a + (Math.random() * 2 - 1) * half;
+      const sp = p.bulletSpeed * (p.bulletSpeedBoost || 1);
+      bullets.push({ x: p.x + p.w / 2, y: p.y + p.h / 2, r: p.bulletRadius, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, from: p, damage: p.damage, lifeTime: 0, maxLifeTime: p.bulletLifeTimeMax, hasReflected: false });
+      b.k++; if (--b.left <= 0) p._burst = null;
+    }
     function handleReload(player) {
       const now = Date.now();
-      if (player.charName === "聖なる使者") {
+      holyBurst(player);   // ver109：聖なる使者の連射（バースト）を1フレーム進める
+      if (player.charName === "アクアファイター") {   // ver109：マガジン式。撃ち切るまでは補充されず、撃ち切ってから reloadTime（3秒）で一気に満タン
         if (player.ammo <= 0 && now - player.lastReload >= player.reloadTime) {
           player.ammo = player.maxAmmo;
           player.lastReload = now;
@@ -2122,9 +2145,9 @@ fighterList().forEach(p => {
       "アクアファイター": {
         title:  "水の連射戦士",
         intro:  "水を自在に操る戦士。",
-        attack: "10発の連射型（1発4ダメージ、リロード1秒）。",
+        attack: "10発入りのマガジンを連射する（1発4ダメージ）。撃ち切るまでは補充されず、撃ち切るとマガジンを交換して約3秒かけて一気に10発までリロードする。",
         skill:  "敵の方向に壁を作り出す。クールタイム8秒。",
-        tips:   "連射で押しつつ、壁で弾を防ごう。"
+        tips:   "連射で押しつつ、壁で弾を防ごう。撃ち切ると約3秒の隙ができるので、壁で身を守ってからリロードしよう。"
       },
       "ツインブラザーズ": {
         title:  "爆発と散弾の兄弟",
@@ -2136,9 +2159,9 @@ fighterList().forEach(p => {
       "聖なる使者": {
         title:  "癒やしの使者",
         intro:  "傷を力に変える、聖なる使い。",
-        attack: "弾速が速く射程の長い弾（5ダメージ）。撃ち切るとリロード（5秒）。",
+        attack: "サブマシンガンのように、1回の攻撃で10発をパラパラっと連射する（1発2ダメージ）。弾数は最大3で、1回の連射ごとに1つ消費し、1つずつ約2秒でリロードされる。動きながら撃つと扇状に広くばらけ、止まって撃つと狭く集まる。",
         skill:  "与えたダメージが30溜まるたびに、HPを20回復できる。",
-        tips:   "当て続けてダメージを溜め、回復して粘ろう。"
+        tips:   "止まって撃つと弾が集まって当てやすい。当て続けてダメージを溜め、回復して粘ろう。"
       },
       "ジャンパー": {
         title:  "巨大化する弾",
@@ -2845,9 +2868,9 @@ fighterList().forEach(p => {
       "白い死神": "超高速の一撃。スキルで弾数消費なしの大威力弾を撃つ",
       "怪盗レッド": "俊足の撃ち手。自動で撃つタレットを設置",
       "ガジェットボット": "壁を貫通する弾。ランダムワープで回避",
-      "アクアファイター": "10発の連射型。スキルで壁を作り出す",
+      "アクアファイター": "10発のマガジンを撃ち切るとまとめてリロード。スキルで壁を作り出す",
       "ツインブラザーズ": "爆発弾と散弾をスキルで切り替え",
-      "聖なる使者": "与ダメージを溜めて自分のHPを回復",
+      "聖なる使者": "サブマシンガンで10連射。与ダメージを溜めて自分のHPを回復",
       "ジャンパー": "飛ぶほど加速して巨大化する弾",
       "ボマー": "その場で爆発。スキルで威力と速度が上昇（終了後に反動でHP-15）",
       "ブーメランボーイ": "戻ってくる弾と、ワープ地点の設置",
@@ -3806,8 +3829,9 @@ fighterList().forEach(p => {
             if (el._n !== n) build(el, n);
             const prog = Math.max(0, Math.min(1, (now - (p.lastReload || 0)) / (p.reloadTime || 1000)));
             el._f.forEach((c, k) => {
-              const full = inf || k < p.ammo, rl = !inf && k === p.ammo && p.ammo < p.maxAmmo;
-              c.setAttribute("stroke-dasharray", (full ? el._L : rl ? el._L * prog : 0) + " 100"); c.setAttribute("class", rl ? "r" : "f");
+              const mag = p.charName === "アクアファイター" && p.ammo <= 0;   // ver109：マガジン交換中
+              const full = inf || k < p.ammo, rl = mag || (!inf && k === p.ammo && p.ammo < p.maxAmmo);
+              c.setAttribute("stroke-dasharray", (full ? el._L : mag ? el._L * Math.max(0, Math.min(1, prog * n - k)) : rl ? el._L * prog : 0) + " 100"); c.setAttribute("class", rl ? "r" : "f");
             });
             el.classList.toggle("empty", !inf && p.ammo <= 0);
           } else {
@@ -3999,7 +4023,7 @@ function think(i){
  for(const m of (window.TAMER_MINS||[])){if(teamOf(m.o)===teamOf(me))continue;const dd=HY(m.x+10-mx,m.y+10-my);if(dd<pd){pd=dd;pt=m}}
  const at=window.aimTarget?window.aimTarget(me,en):en,aimOther=at!==en;
  if(enTrap&&!EP.pass&&!eTh)expoW=0;
- const hide=me.ammo<=0&&nm!=='聖なる使者'&&nm!=='ボマー';if(hide)expoW*=1.6;
+ const hide=me.ammo<=0&&nm!=='ボマー';if(hide)expoW*=1.6;
  const cur=danger(me,mx,my,0,0);
  let pad=null;if(me.hp<=75&&!me.rv)for(const p of pads)if(NOW()>=p.next&&(!pad||HY(p.x-mx,p.y-my)<HY(pad.x-mx,pad.y-my)))pad=p;
  if(RND()<.04)A.side=-A.side;
@@ -4661,14 +4685,14 @@ function think(i){
           ctx.fillRect(-b.r * .9, -b.r * .6, b.r * 1.8, b.r * 1.2); ctx.restore();
         }
       };
-      ST["聖なる使者"] = (b, v, t) => {
-        const [ux, uy] = dirOf(b), a = Math.atan2(uy, ux);
-        tail(b, 50, 6, "255,242,168", .35); halo(b.x, b.y, b.r * 4, "255,235,150", .6);
-        ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(a + Math.PI / 2); ctx.strokeStyle = "rgba(255,240,170,.95)"; ctx.lineWidth = 1.6; ctx.shadowColor = "#ffd966"; ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.ellipse(0, 0, b.r * 1.9, b.r * .75, 0, 0, TAU); ctx.stroke(); ctx.restore();
-        orb(b.x, b.y, b.r * .85, "#fff", "#ffd966");
-        ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(t * 3); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2; ctx.beginPath();
-        ctx.moveTo(-b.r * 1.8, 0); ctx.lineTo(b.r * 1.8, 0); ctx.moveTo(0, -b.r * 1.8); ctx.lineTo(0, b.r * 1.8); ctx.stroke(); ctx.restore();
+      ST["聖なる使者"] = (b, v, t) => {   // ver109：SMGの普通の銃弾
+        const [ux, uy] = dirOf(b), L = 15;
+        ctx.save(); ctx.lineCap = "round";
+        const g = ctx.createLinearGradient(b.x - ux * L, b.y - uy * L, b.x, b.y); g.addColorStop(0, "rgba(255,200,90,0)"); g.addColorStop(1, "rgba(255,226,140,.85)");
+        ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(b.x - ux * L, b.y - uy * L); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.strokeStyle = "#e0a93a"; ctx.lineWidth = 3.4; ctx.beginPath(); ctx.moveTo(b.x - ux * 3.2, b.y - uy * 3.2); ctx.lineTo(b.x + ux * 2.2, b.y + uy * 2.2); ctx.stroke();
+        ctx.fillStyle = "#fff1c0"; ctx.beginPath(); ctx.arc(b.x + ux * 2.4, b.y + uy * 2.4, 1.7, 0, TAU); ctx.fill();
+        ctx.restore();
       };
       ST["ジャンパー"] = (b, v, t) => {
         if (v === 1) {
@@ -9222,6 +9246,14 @@ function think(i){
     /* ver82：リワーク表示（REWORK 表に足すと、図鑑・キャラ選択でバッジと「変更点」が出る） */
     (function () {
       window.REWORK = {
+        "アクアファイター": { ver: "ver109", summary: "マガジン式リロード", notes: [
+          "撃ち切るまでは補充されず、撃ち切ると約3秒かけて一気に最大までリロードする（マガジン交換）"
+        ] },
+        "聖なる使者": { ver: "ver109", summary: "サブマシンガン化", notes: [
+          "弾数を最大3の有限にし、1回の攻撃（弾数1）で10発をパラパラっと連射する",
+          "1発のダメージを2に変更。動いて撃つと扇状に広くばらけ、止まって撃つと狭く集まる",
+          "弾の見た目をサブマシンガンの普通の銃弾に変更"
+        ] },
         "海鮮塗装屋": { ver: "ver104", summary: "カニダッシュの条件を緩和", notes: [
           "カニに変身できる場所を、インクの上だけから「どこでもOK」に変更（インクの外へ出ても解除されない。ボタンを離すと戻る）",
           "移動速度1.5倍・リロード0.5秒の強化は、自分のチームのインクの上にいるカニにだけ効くように変更"
@@ -10666,6 +10698,7 @@ function think(i){
         "スナイパー太郎": { atk: p => LN(2 * p.bulletRadius + 10, rngOf(p), 0) },          // 2発（上下に5ずれ）
         "白い死神": { skl: p => DEFATK(p) },
         "ガジェットボット": { atk: p => LN(2 * p.bulletRadius, rngOf(p), 1) },              // 壁を貫通
+        "聖なる使者": { atk: p => ({ k: "sector", R: Math.min(rngOf(p), 420), half: holyHalf(p) + HOLY.bloom * 4 }) },   // ver109：SMGの扇（動いているほど広く）
         "アクアファイター": { skl: () => ({ k: "box", side: 30, dist: 50 }) },              // 狙った方向50先に壁を置く
         "ツインブラザーズ": { atk: p => p.mode === "S" ? { k: "sector", R: rngOf(p), half: .23 } : [LN(12, rngOf(p), 0), { k: "endcircle", r: 50 }] },   // Sモード＝近距離のショットガン／Hモード＝爆発弾
         "ジャンパー": { skl: p => MULTI(16, rngOf(p), 1, [-.2, 0, .2]) },                      // 3方向の貫通弾
